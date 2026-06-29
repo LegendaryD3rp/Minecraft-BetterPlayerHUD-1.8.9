@@ -1,0 +1,16 @@
+[
+  {
+    "modid": "betterplayerhud",
+    "name": "BetterPlayerHUD",
+    "description": "BetterPlayerHUD - Elite player HUD enhancement mod",
+    "version": "1.0.11",
+    "mcversion": "1.8.9",
+    "author":"LegendaryDerp",
+    "url": "",
+    "updateUrl": "",
+    "credits": "LegendaryDerp shows gratitude to Minecraft Forge and Deepseek",
+    "logoFile": "",
+    "screenshots": [],
+    "dependencies": []
+  }
+]

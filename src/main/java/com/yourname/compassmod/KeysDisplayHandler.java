@@ -1,0 +1,302 @@
+package com.yourname.compassmod;
+
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.FontRenderer;
+import net.minecraft.client.gui.ScaledResolution;
+import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.WorldRenderer;
+import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
+import net.minecraft.client.settings.KeyBinding;
+import net.minecraftforge.client.event.RenderGameOverlayEvent;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.TickEvent;
+import org.lwjgl.input.Keyboard;
+import org.lwjgl.input.Mouse;
+
+public class KeysDisplayHandler {
+    private final Minecraft mc = Minecraft.getMinecraft();
+
+    // 按键状态跟踪
+    private boolean[] keyStates = new boolean[8]; // 0:LMB, 1:RMB, 2:W, 3:A, 4:S, 5:D, 6:Shift, 7:Space
+    private long[] keyPressTimes = new long[8];
+    private float[] keyIntensities = new float[8];
+
+    // 动画配置
+    private static final long PRESS_ANIMATION_DURATION = 200L;
+    private static final float MAX_PRESS_INTENSITY = 1.0f;
+
+    @SubscribeEvent
+    public void onClientTick(TickEvent.ClientTickEvent event) {
+        if (event.phase != TickEvent.Phase.END || !BetterPlayerHUD.config.showKeysDisplay) return;
+        if (mc.thePlayer == null) return;
+
+        updateKeyStates();
+        updateAnimations();
+    }
+
+    @SubscribeEvent
+    public void onRenderGameOverlay(RenderGameOverlayEvent.Post event) {
+        if (shouldSkipRendering(event)) return;
+
+        ScaledResolution scaledResolution = new ScaledResolution(mc);
+        renderKeysDisplay(scaledResolution.getScaledWidth(), scaledResolution.getScaledHeight());
+    }
+
+    private boolean shouldSkipRendering(RenderGameOverlayEvent event) {
+        return event.type != RenderGameOverlayEvent.ElementType.TEXT ||
+                mc.thePlayer == null ||
+                mc.gameSettings.hideGUI ||
+                !BetterPlayerHUD.config.showKeysDisplay;
+    }
+
+    private void updateKeyStates() {
+        long currentTime = System.currentTimeMillis();
+
+        // 更新鼠标按键状态
+        boolean leftPressed = Mouse.isButtonDown(0);
+        if (leftPressed != keyStates[0]) {
+            keyStates[0] = leftPressed;
+            if (leftPressed) keyPressTimes[0] = currentTime;
+        }
+
+        boolean rightPressed = Mouse.isButtonDown(1);
+        if (rightPressed != keyStates[1]) {
+            keyStates[1] = rightPressed;
+            if (rightPressed) keyPressTimes[1] = currentTime;
+        }
+
+        // 更新键盘按键状态
+        KeyBinding[] keys = {
+                mc.gameSettings.keyBindForward,    // W
+                mc.gameSettings.keyBindLeft,       // A
+                mc.gameSettings.keyBindBack,       // S
+                mc.gameSettings.keyBindRight,      // D
+                mc.gameSettings.keyBindSneak,      // Shift
+                mc.gameSettings.keyBindJump        // Space
+        };
+
+        for (int i = 0; i < keys.length; i++) {
+            boolean isPressed = Keyboard.isKeyDown(keys[i].getKeyCode());
+            int stateIndex = i + 2; // 前两个是鼠标按键
+
+            if (isPressed != keyStates[stateIndex]) {
+                keyStates[stateIndex] = isPressed;
+                if (isPressed) keyPressTimes[stateIndex] = currentTime;
+            }
+        }
+    }
+
+    private void updateAnimations() {
+        long currentTime = System.currentTimeMillis();
+
+        for (int i = 0; i < keyStates.length; i++) {
+            if (keyStates[i]) {
+                long timeSincePress = currentTime - keyPressTimes[i];
+                float progress = Math.min((float) timeSincePress / PRESS_ANIMATION_DURATION, 1.0f);
+                keyIntensities[i] = progress * MAX_PRESS_INTENSITY;
+            } else {
+                if (keyIntensities[i] > 0) {
+                    keyIntensities[i] = Math.max(0, keyIntensities[i] - 0.1f);
+                }
+            }
+        }
+    }
+
+    private void renderKeysDisplay(int screenWidth, int screenHeight) {
+        // 应用缩放（使用 GlStateManager）
+        GlStateManager.pushMatrix();
+        float scale = BetterPlayerHUD.config.keysScale;
+        GlStateManager.scale(scale, scale, 1.0f);
+
+        // 调整坐标以考虑缩放
+        screenWidth = (int)(screenWidth / scale);
+        screenHeight = (int)(screenHeight / scale);
+
+        FontRenderer fr = mc.fontRendererObj;
+        int keySize = BetterPlayerHUD.config.keysSize;
+        int keySpacing = BetterPlayerHUD.config.keysSpacing;
+
+        // 计算显示区域大小
+        int displayWidth = 3 * keySize + 2 * keySpacing;
+        int displayHeight = 4 * keySize + 3 * keySpacing;
+
+        // 计算位置
+        int xPos = calculateDisplayXPosition(screenWidth, displayWidth);
+        int yPos = calculateDisplayYPosition(screenHeight, displayHeight);
+
+        // 绘制背景（可选）
+        if (BetterPlayerHUD.config.showKeysBackground) {
+            drawRoundedRect(xPos - 5, yPos - 5, xPos + displayWidth + 5, yPos + displayHeight + 5, 5, applyAlpha(0x80000000, BetterPlayerHUD.config.keysOpacity));
+        }
+
+        // 严格按照指定格式渲染
+        renderKeysLayout(xPos, yPos, keySize, keySpacing, fr);
+
+        GlStateManager.popMatrix();
+    }
+
+    private void renderKeysLayout(int startX, int startY, int keySize, int keySpacing, FontRenderer fr) {
+        // 计算长按键的宽度（等于A+S+D的总宽度）
+        int longKeyWidth = 3 * keySize + 2 * keySpacing;
+
+        // 第一行: LMB W RMB
+        int row1Y = startY;
+        renderKey(startX, row1Y, keySize, keySize, 0, "LMB", fr); // LMB
+        renderKey(startX + keySize + keySpacing, row1Y, keySize, keySize, 2, "W", fr); // W
+        renderKey(startX + 2 * (keySize + keySpacing), row1Y, keySize, keySize, 1, "RMB", fr); // RMB
+
+        // 第二行: A S D
+        int row2Y = startY + keySize + keySpacing;
+        renderKey(startX, row2Y, keySize, keySize, 3, "A", fr); // A
+        renderKey(startX + keySize + keySpacing, row2Y, keySize, keySize, 4, "S", fr); // S
+        renderKey(startX + 2 * (keySize + keySpacing), row2Y, keySize, keySize, 5, "D", fr); // D
+
+        // 第三行: SHIFT (长按键，与A+S+D总宽度一致)
+        int row3Y = startY + 2 * (keySize + keySpacing);
+        renderKey(startX, row3Y, longKeyWidth, keySize, 6, "SHIFT", fr); // SHIFT
+
+        // 第四行: SPACE (长按键，与A+S+D总宽度一致)
+        int row4Y = startY + 3 * (keySize + keySpacing);
+        renderKey(startX, row4Y, longKeyWidth, keySize, 7, "SPACE", fr); // SPACE
+    }
+
+    private void renderKey(int x, int y, int width, int height, int keyIndex, String label, FontRenderer fr) {
+        boolean isPressed = keyStates[keyIndex];
+        float intensity = keyIntensities[keyIndex];
+        float opacity = BetterPlayerHUD.config.keysOpacity;
+
+        // 计算按键颜色（乘以全局透明度）
+        int keyColor = applyAlpha(calculateKeyColor(isPressed, intensity), opacity);
+        int textColor = applyAlpha(BetterPlayerHUD.config.keysTextColor, opacity);
+
+        // 绘制按键背景
+        drawRoundedRect(x, y, x + width, y + height, 3, keyColor);
+
+        // 绘制按键标签（居中）
+        int textWidth = fr.getStringWidth(label);
+        int textX = x + (width - textWidth) / 2;
+        int textY = y + (height - 8) / 2;
+
+        fr.drawStringWithShadow(label, textX, textY, textColor);
+
+        // 绘制按下效果
+        if (isPressed || intensity > 0) {
+            int glowAlpha = (int) (0x40 * intensity * opacity);
+            int glowColor = glowAlpha << 24 | (BetterPlayerHUD.config.keysActiveColor & 0xFFFFFF);
+            drawRoundedRect(x - 2, y - 2, x + width + 2, y + height + 2, 5, glowColor);
+        }
+    }
+
+    /** 将颜色 ARGB 的 alpha 通道乘以 opacity (0.0~1.0) */
+    private int applyAlpha(int color, float opacity) {
+        if (opacity >= 0.999f) return color;
+        int a = (int)(((color >> 24) & 0xFF) * opacity);
+        return (a << 24) | (color & 0x00FFFFFF);
+    }
+
+    private int calculateKeyColor(boolean isPressed, float intensity) {
+        if (isPressed) {
+            int baseColor = BetterPlayerHUD.config.keysActiveColor;
+            int intensityValue = (int) (0x55 * intensity);
+            return (baseColor & 0xFF000000) |
+                    ((Math.min(0xFF, ((baseColor >> 16) & 0xFF) + intensityValue)) << 16) |
+                    (baseColor & 0x0000FF00) |
+                    ((Math.min(0xFF, ((baseColor >> 0) & 0xFF) + intensityValue)) << 0);
+        } else {
+            return BetterPlayerHUD.config.keysInactiveColor;
+        }
+    }
+
+    private int calculateDisplayXPosition(int screenWidth, int displayWidth) {
+        int offset = BetterPlayerHUD.config.keysDisplayX;
+        if (offset >= 0) {
+            return offset;
+        } else {
+            return screenWidth + offset - displayWidth;
+        }
+    }
+
+    private int calculateDisplayYPosition(int screenHeight, int displayHeight) {
+        int offset = BetterPlayerHUD.config.keysDisplayY;
+        if (offset >= 0) {
+            return offset;
+        } else {
+            return screenHeight + offset - displayHeight;
+        }
+    }
+
+    // 工具方法：绘制矩形（使用 GlStateManager + Tessellator）
+    private void drawRect(int left, int top, int right, int bottom, int color) {
+        if (left < right) {
+            int temp = left;
+            left = right;
+            right = temp;
+        }
+        if (top < bottom) {
+            int temp = top;
+            top = bottom;
+            bottom = temp;
+        }
+
+        float alpha = (float)(color >> 24 & 255) / 255.0F;
+        float red = (float)(color >> 16 & 255) / 255.0F;
+        float green = (float)(color >> 8 & 255) / 255.0F;
+        float blue = (float)(color & 255) / 255.0F;
+
+        GlStateManager.disableTexture2D();
+        GlStateManager.enableBlend();
+        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+        GlStateManager.color(red, green, blue, alpha);
+
+        Tessellator tessellator = Tessellator.getInstance();
+        WorldRenderer worldRenderer = tessellator.getWorldRenderer();
+        worldRenderer.begin(7, DefaultVertexFormats.POSITION);
+        worldRenderer.pos((double)left, (double)bottom, 0.0D).endVertex();
+        worldRenderer.pos((double)right, (double)bottom, 0.0D).endVertex();
+        worldRenderer.pos((double)right, (double)top, 0.0D).endVertex();
+        worldRenderer.pos((double)left, (double)top, 0.0D).endVertex();
+        tessellator.draw();
+
+        GlStateManager.disableBlend();
+        GlStateManager.enableTexture2D();
+        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+    }
+
+    // 工具方法：绘制圆角矩形
+    private void drawRoundedRect(int x, int y, int width, int height, int radius, int color) {
+        // 主矩形
+        drawRect(x + radius, y, width - radius, height, color);
+        drawRect(x, y + radius, width, height - radius, color);
+
+        // 四个角
+        drawCircleQuadrant(x + radius, y + radius, radius, 1, color);
+        drawCircleQuadrant(width - radius, y + radius, radius, 2, color);
+        drawCircleQuadrant(x + radius, height - radius, radius, 3, color);
+        drawCircleQuadrant(width - radius, height - radius, radius, 4, color);
+    }
+
+    // 工具方法：绘制圆的四分之一
+    private void drawCircleQuadrant(int centerX, int centerY, int radius, int quadrant, int color) {
+        for (int i = 0; i <= radius; i++) {
+            for (int j = 0; j <= radius; j++) {
+                if (i * i + j * j <= radius * radius) {
+                    int drawX = centerX, drawY = centerY;
+                    switch (quadrant) {
+                        case 1: drawX = centerX - i; drawY = centerY - j; break; // 左上
+                        case 2: drawX = centerX + i; drawY = centerY - j; break; // 右上
+                        case 3: drawX = centerX - i; drawY = centerY + j; break; // 左下
+                        case 4: drawX = centerX + i; drawY = centerY + j; break; // 右下
+                    }
+                    drawRect(drawX, drawY, drawX + 1, drawY + 1, color);
+                }
+            }
+        }
+    }
+
+    // 在CompassMod主类中注册
+    public static void register() {
+        KeysDisplayHandler handler = new KeysDisplayHandler();
+        net.minecraftforge.common.MinecraftForge.EVENT_BUS.register(handler);
+    }
+}
