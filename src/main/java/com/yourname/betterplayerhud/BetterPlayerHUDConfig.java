@@ -1,4 +1,4 @@
-package com.yourname.compassmod;
+package com.yourname.betterplayerhud;
 
 import net.minecraftforge.common.config.Configuration;
 import net.minecraftforge.common.config.Property;

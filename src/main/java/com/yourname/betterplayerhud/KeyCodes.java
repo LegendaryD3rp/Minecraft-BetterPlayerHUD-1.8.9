@@ -1,4 +1,4 @@
-package com.yourname.compassmod;
+package com.yourname.betterplayerhud;
 
 public class KeyCodes {
     // 常用按键代码常量

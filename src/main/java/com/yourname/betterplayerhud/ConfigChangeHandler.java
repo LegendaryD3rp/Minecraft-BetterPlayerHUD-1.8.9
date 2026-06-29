@@ -1,4 +1,4 @@
-package com.yourname.compassmod;
+package com.yourname.betterplayerhud;
 
 import net.minecraftforge.fml.client.event.ConfigChangedEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;

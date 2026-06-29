@@ -1,4 +1,4 @@
-package com.yourname.compassmod;
+package com.yourname.betterplayerhud;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.Packet;

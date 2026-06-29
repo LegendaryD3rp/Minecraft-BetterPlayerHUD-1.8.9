@@ -1,4 +1,4 @@
-package com.yourname.compassmod;
+package com.yourname.betterplayerhud;
 
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraftforge.common.config.Configuration;

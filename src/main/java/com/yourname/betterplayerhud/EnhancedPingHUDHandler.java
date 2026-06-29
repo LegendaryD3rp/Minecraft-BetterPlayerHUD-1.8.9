@@ -1,4 +1,4 @@
-package com.yourname.compassmod;
+package com.yourname.betterplayerhud;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelDuplexHandler;
