@@ -206,9 +206,8 @@ public class BlockOutlineHandler {
         if (useFlowing) {
             drawFlowingBoundingBox(minX, minY, minZ, maxX, maxY, maxZ, isEntity);
         } else {
-            // 非 RGB：使用原版 drawSelectionBoundingBox 绘制 12 条棱
-            setColor(color);
-            net.minecraft.client.renderer.RenderGlobal.drawSelectionBoundingBox(aabb);
+            // uniform RGB 或静态颜色：用我们自己的 Tessellator 绘制 12 条棱
+            drawSimpleBoundingBox(minX, minY, minZ, maxX, maxY, maxZ, color);
         }
 
         GlStateManager.depthMask(true);
@@ -221,8 +220,44 @@ public class BlockOutlineHandler {
         GlStateManager.popMatrix();
     }
 
-    // RGB 流光每条棱的细分数（18段 = 19个顶点/棱，逐点HSV精确着色）
+    // RGB 流光每条棱的细分数（64段近似连续）
     private static final int RGB_FLOW_SEGMENTS = 64;
+
+    /**
+     * 绘制单色包围盒（uniform RGB/静态颜色）。
+     * 12 条棱用 GL_LINE_STRIP 绘制，颜色统一。
+     */
+    private void drawSimpleBoundingBox(double minX, double minY, double minZ, double maxX, double maxY, double maxZ, int color) {
+        float r = ((color >> 16) & 0xFF) / 255f;
+        float g = ((color >> 8) & 0xFF) / 255f;
+        float b = (color & 0xFF) / 255f;
+        float a = ((color >> 24) & 0xFF) / 255f;
+
+        Tessellator tess = Tessellator.getInstance();
+        WorldRenderer wr = tess.getWorldRenderer();
+
+        double[][] edges = {
+            {minX, minY, minZ, maxX, minY, minZ},
+            {maxX, minY, minZ, maxX, minY, maxZ},
+            {maxX, minY, maxZ, minX, minY, maxZ},
+            {minX, minY, maxZ, minX, minY, minZ},
+            {minX, minY, minZ, minX, maxY, minZ},
+            {maxX, minY, minZ, maxX, maxY, minZ},
+            {maxX, minY, maxZ, maxX, maxY, maxZ},
+            {minX, minY, maxZ, minX, maxY, maxZ},
+            {minX, maxY, minZ, maxX, maxY, minZ},
+            {maxX, maxY, minZ, maxX, maxY, maxZ},
+            {maxX, maxY, maxZ, minX, maxY, maxZ},
+            {minX, maxY, maxZ, minX, maxY, minZ},
+        };
+
+        for (int e = 0; e < 12; e++) {
+            wr.begin(GL11.GL_LINE_STRIP, DefaultVertexFormats.POSITION_COLOR);
+            wr.pos(edges[e][0], edges[e][1], edges[e][2]).color(r, g, b, a).endVertex();
+            wr.pos(edges[e][3], edges[e][4], edges[e][5]).color(r, g, b, a).endVertex();
+            tess.draw();
+        }
+    }
 
     /**
      * 绘制流动RGB包围盒。
