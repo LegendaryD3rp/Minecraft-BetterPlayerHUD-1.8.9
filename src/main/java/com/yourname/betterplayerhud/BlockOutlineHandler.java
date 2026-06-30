@@ -244,10 +244,20 @@ public class BlockOutlineHandler {
         };
 
         // 每条棱属于哪些面: 0=下 1=上 2=北 3=南 4=西 5=东
+        // 每根棱恰好属于2个面（立方体几何）
         int[][] edgeFaces = {
-            {0,2,4}, {0,3,5}, {0,3}, {0,2,4},
-            {2,4},   {2,5},   {3,5}, {3,4},
-            {1,2,4}, {1,3,5}, {1,3}, {1,2,4},
+            {0,2},   // 0: 底-后     (minX,minY,minZ)-(maxX,minY,minZ)
+            {0,5},   // 1: 底-右     (maxX,minY,minZ)-(maxX,minY,maxZ)
+            {0,3},   // 2: 底-前     (maxX,minY,maxZ)-(minX,minY,maxZ)
+            {0,4},   // 3: 底-左     (minX,minY,maxZ)-(minX,minY,minZ)
+            {2,4},   // 4: 北-左(垂直)  (minX,minY,minZ)-(minX,maxY,minZ)
+            {2,5},   // 5: 北-右(垂直)  (maxX,minY,minZ)-(maxX,maxY,minZ)
+            {3,5},   // 6: 南-右(垂直)  (maxX,minY,maxZ)-(maxX,maxY,maxZ)
+            {3,4},   // 7: 南-左(垂直)  (minX,minY,maxZ)-(minX,maxY,maxZ)
+            {1,2},   // 8: 顶-后     (minX,maxY,minZ)-(maxX,maxY,minZ)
+            {1,5},   // 9: 顶-右     (maxX,maxY,minZ)-(maxX,maxY,maxZ)
+            {1,3},   // 10: 顶-前    (maxX,maxY,maxZ)-(minX,maxY,maxZ)
+            {1,4},   // 11: 顶-左    (minX,maxY,maxZ)-(minX,maxY,minZ)
         };
 
         if (drawAllFaces) {
