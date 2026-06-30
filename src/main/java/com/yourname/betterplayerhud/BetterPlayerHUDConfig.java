@@ -209,7 +209,7 @@ public class BetterPlayerHUDConfig {
     // ================================================================
     //  模块14b：RGB 动态流光 & 隐身隐藏（描边/碰撞箱专用）
     // ================================================================
-    public boolean enableRGBMode = false;
+    public boolean enableRGBMode = true;
     public int rgbSpeed = 80;                           // 色相循环速度（ms/周期）
     public boolean rgbApplyBlockOutline = true;
     public boolean rgbApplyEntityHitbox = true;
@@ -801,7 +801,7 @@ public class BetterPlayerHUDConfig {
 
         // --- 模块14b：RGB 动态流光 & 隐身隐藏 ---
         {
-            Property p = config.get(C, "enableRGBMode", false);
+            Property p = config.get(C, "enableRGBMode", true);
             p.comment = "启用 RGB 动态流光（覆盖静态颜色）"; enableRGBMode = p.getBoolean();
 
             p = config.get(C, "rgbSpeed", 80);
@@ -1241,7 +1241,7 @@ public class BetterPlayerHUDConfig {
         config.get(C, "drawVisibleFacesOnlyEntities", false).set(drawVisibleFacesOnlyEntities);
 
         // --- 模块14b ---
-        config.get(C, "enableRGBMode", false).set(enableRGBMode);
+        config.get(C, "enableRGBMode", true).set(enableRGBMode);
         config.get(C, "rgbSpeed", 80).set(rgbSpeed);
         config.get(C, "rgbApplyBlockOutline", true).set(rgbApplyBlockOutline);
         config.get(C, "rgbApplyEntityHitbox", true).set(rgbApplyEntityHitbox);
