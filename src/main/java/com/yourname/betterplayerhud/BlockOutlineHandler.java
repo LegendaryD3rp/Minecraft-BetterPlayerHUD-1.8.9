@@ -10,6 +10,7 @@ import net.minecraft.util.BlockPos;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.TickEvent;
 import org.lwjgl.opengl.GL11;
 
 public class BlockOutlineHandler {
@@ -17,6 +18,47 @@ public class BlockOutlineHandler {
     private final Minecraft mc = Minecraft.getMinecraft();
     // 可见性判断的容差系数，用于提高描边灵敏度。可微调（例如0.01-0.03）。
   //  private static final double FACE_VISIBILITY_EPSILON = 0.01;
+
+    // 快捷键防连发
+    private boolean wasBlockKeyPressed = false;
+    private boolean wasEntityKeyPressed = false;
+    private boolean wasRGBKeyPressed = false;
+
+    @SubscribeEvent
+    public void onClientTick(TickEvent.ClientTickEvent event) {
+        if (event.phase != TickEvent.Phase.START) return;
+        if (mc.thePlayer == null) return;
+
+        // 方块描边开关快捷键
+        if (BetterPlayerHUD.config.keyBindToggleBlockOutline > 0) {
+            boolean pressed = org.lwjgl.input.Keyboard.isKeyDown(BetterPlayerHUD.config.keyBindToggleBlockOutline);
+            if (pressed && !wasBlockKeyPressed) {
+                BetterPlayerHUD.config.enableBlockHighlight = !BetterPlayerHUD.config.enableBlockHighlight;
+                BetterPlayerHUD.config.saveConfig();
+            }
+            wasBlockKeyPressed = pressed;
+        }
+
+        // 实体碰撞箱开关快捷键
+        if (BetterPlayerHUD.config.keyBindToggleEntityHitbox > 0) {
+            boolean pressed = org.lwjgl.input.Keyboard.isKeyDown(BetterPlayerHUD.config.keyBindToggleEntityHitbox);
+            if (pressed && !wasEntityKeyPressed) {
+                BetterPlayerHUD.config.enableEntityHighlight = !BetterPlayerHUD.config.enableEntityHighlight;
+                BetterPlayerHUD.config.saveConfig();
+            }
+            wasEntityKeyPressed = pressed;
+        }
+
+        // RGB 流光开关快捷键
+        if (BetterPlayerHUD.config.keyBindToggleRGB > 0) {
+            boolean pressed = org.lwjgl.input.Keyboard.isKeyDown(BetterPlayerHUD.config.keyBindToggleRGB);
+            if (pressed && !wasRGBKeyPressed) {
+                BetterPlayerHUD.config.enableRGBMode = !BetterPlayerHUD.config.enableRGBMode;
+                BetterPlayerHUD.config.saveConfig();
+            }
+            wasRGBKeyPressed = pressed;
+        }
+    }
 
     @SubscribeEvent
     public void onRenderWorldLast(RenderWorldLastEvent event) {
@@ -40,9 +82,13 @@ public class BlockOutlineHandler {
             }
         } else if (mouseOver.typeOfHit == MovingObjectPosition.MovingObjectType.ENTITY && BetterPlayerHUD.config.enableEntityHighlight) {
             if (mouseOver.entityHit != null) {
+                // 隐身隐藏检查
+                if (BetterPlayerHUD.config.hideHitboxForInvisible && mouseOver.entityHit.isInvisible()) {
+                    return;
+                }
                 AxisAlignedBB entityBoundingBox = mouseOver.entityHit.getEntityBoundingBox();
                 if (entityBoundingBox != null) {
-                    int color = getEntityOutlineColor(mouseOver.entityHit);
+                    int color = getEffectiveEntityOutlineColor(mouseOver.entityHit);
                     drawEntityBoundingBox(entityBoundingBox, event.partialTicks, color);
                 }
             }
@@ -50,7 +96,17 @@ public class BlockOutlineHandler {
     }
 
     /**
-     * 根据实体类型返回对应的描边颜色。
+     * 获取实体描边颜色（考虑 RGB 模式）。
+     */
+    private int getEffectiveEntityOutlineColor(net.minecraft.entity.Entity entity) {
+        if (BetterPlayerHUD.config.enableRGBMode && BetterPlayerHUD.config.rgbApplyEntityHitbox) {
+            return RGBFlowColor.getColor(BetterPlayerHUD.config.rgbSpeed);
+        }
+        return getEntityOutlineColor(entity);
+    }
+
+    /**
+     * 根据实体类型返回对应的静态描边颜色（无 RGB）。
      */
     private int getEntityOutlineColor(net.minecraft.entity.Entity entity) {
         if (entity instanceof net.minecraft.entity.monster.IMob) {
@@ -97,7 +153,17 @@ public class BlockOutlineHandler {
         aabb = aabb.expand(expand, expand, expand);
 
         // 调用通用渲染方法，并指定 isEntity = false
-        renderBoundingBox(aabb, playerX, playerY, playerZ, BetterPlayerHUD.config.blockOutlineColor, BetterPlayerHUD.config.blockOutlineWidth, false);
+        renderBoundingBox(aabb, playerX, playerY, playerZ, getEffectiveBlockOutlineColor(), BetterPlayerHUD.config.blockOutlineWidth, false);
+    }
+
+    /**
+     * 获取方块描边颜色（考虑 RGB 模式）。
+     */
+    private int getEffectiveBlockOutlineColor() {
+        if (BetterPlayerHUD.config.enableRGBMode && BetterPlayerHUD.config.rgbApplyBlockOutline) {
+            return RGBFlowColor.getColor(BetterPlayerHUD.config.rgbSpeed);
+        }
+        return BetterPlayerHUD.config.blockOutlineColor;
     }
 
     /**

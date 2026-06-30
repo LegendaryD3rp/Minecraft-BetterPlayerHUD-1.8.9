@@ -22,6 +22,13 @@ public class KeysDisplayHandler {
     private long[] keyPressTimes = new long[8];
     private float[] keyIntensities = new float[8];
 
+    // CPS 跟踪
+    private int leftClickCount = 0;
+    private int rightClickCount = 0;
+    private long cpsCalcStart = System.currentTimeMillis();
+    private float leftCps = 0f;
+    private float rightCps = 0f;
+
     // 动画配置
     private static final long PRESS_ANIMATION_DURATION = 200L;
     private static final float MAX_PRESS_INTENSITY = 1.0f;
@@ -33,6 +40,7 @@ public class KeysDisplayHandler {
 
         updateKeyStates();
         updateAnimations();
+        updateCps();
     }
 
     @SubscribeEvent
@@ -57,13 +65,19 @@ public class KeysDisplayHandler {
         boolean leftPressed = Mouse.isButtonDown(0);
         if (leftPressed != keyStates[0]) {
             keyStates[0] = leftPressed;
-            if (leftPressed) keyPressTimes[0] = currentTime;
+            if (leftPressed) {
+                keyPressTimes[0] = currentTime;
+                leftClickCount++;
+            }
         }
 
         boolean rightPressed = Mouse.isButtonDown(1);
         if (rightPressed != keyStates[1]) {
             keyStates[1] = rightPressed;
-            if (rightPressed) keyPressTimes[1] = currentTime;
+            if (rightPressed) {
+                keyPressTimes[1] = currentTime;
+                rightClickCount++;
+            }
         }
 
         // 更新键盘按键状态
@@ -103,6 +117,21 @@ public class KeysDisplayHandler {
         }
     }
 
+    /**
+     * 每秒计算一次 CPS 值并重置计数器
+     */
+    private void updateCps() {
+        long now = System.currentTimeMillis();
+        long elapsed = now - cpsCalcStart;
+        if (elapsed >= 1000L) {
+            leftCps = (float) leftClickCount / (elapsed / 1000.0f);
+            rightCps = (float) rightClickCount / (elapsed / 1000.0f);
+            leftClickCount = 0;
+            rightClickCount = 0;
+            cpsCalcStart = now;
+        }
+    }
+
     private void renderKeysDisplay(int screenWidth, int screenHeight) {
         // 应用缩放（使用 GlStateManager）
         GlStateManager.pushMatrix();
@@ -132,6 +161,14 @@ public class KeysDisplayHandler {
 
         // 严格按照指定格式渲染
         renderKeysLayout(xPos, yPos, keySize, keySpacing, fr);
+
+        // 在按键下方显示 CPS
+        String cpsText = String.format("%.1f | %.1f", leftCps, rightCps);
+        int cpsWidth = fr.getStringWidth(cpsText);
+        int cpsX = xPos + (displayWidth - cpsWidth) / 2;
+        int cpsY = yPos + displayHeight + 4;
+        int cpsColor = applyAlpha(0xFFAAAAAA, BetterPlayerHUD.config.keysOpacity);
+        fr.drawStringWithShadow(cpsText, cpsX, cpsY, cpsColor);
 
         GlStateManager.popMatrix();
     }

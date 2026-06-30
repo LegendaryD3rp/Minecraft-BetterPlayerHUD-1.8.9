@@ -9,7 +9,6 @@ public class BetterPlayerHUDGuiFactory implements IModGuiFactory {
 
     @Override
     public void initialize(Minecraft minecraftInstance) {
-        // 1.8.9 中通常为空实现
     }
 
     @Override
@@ -19,6 +18,11 @@ public class BetterPlayerHUDGuiFactory implements IModGuiFactory {
 
     @Override
     public Set<RuntimeOptionCategoryElement> runtimeGuiCategories() {
+        return null;
+    }
+
+    @Override
+    public RuntimeOptionGuiHandler getHandlerFor(RuntimeOptionCategoryElement element) {
         return null;
     }
 }

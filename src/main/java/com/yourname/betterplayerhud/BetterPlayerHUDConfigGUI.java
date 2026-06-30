@@ -25,7 +25,7 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
 
     public BetterPlayerHUDConfigGUI(GuiScreen parentScreen) {
         super(parentScreen, getConfigElements(),
-                BetterPlayerHUD.MODID, false, false, "Compass Mod Configuration");
+                BetterPlayerHUD.MODID, false, false, "Better Player HUD Configuration");
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -204,6 +204,14 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
                         new ColorPreviewHelper.ColorInfo("entityOutlineColorFriendly", "友好生物"),
                 },
                 "Entity Highlight"
+        ));
+
+        // === 模块14b：RGB 动态流光 ===
+        elements.add(ColorPreviewHelper.createPreviewCategory(
+                "RGB 动态流光设置", "compassmod.category.rgb",
+                getRGBConfigElements(),
+                new ColorPreviewHelper.ColorInfo[0],
+                "RGB Flow"
         ));
 
         // === 模块15：物品信息HUD ===
@@ -494,6 +502,22 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
         ColorPreviewHelper.addColorElements(list, cfg(), cat(), "entityOutlineColorFriendly");
         addEl(list, "entityOutlineWidth");
         addEl(list, "drawVisibleFacesOnlyEntities");
+        return list;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  模块14b：RGB 动态流光
+    // ═══════════════════════════════════════════════════════════════
+    private static List<IConfigElement> getRGBConfigElements() {
+        List<IConfigElement> list = new ArrayList<>();
+        addEl(list, "enableRGBMode");
+        addEl(list, "rgbSpeed");
+        addEl(list, "rgbApplyBlockOutline");
+        addEl(list, "rgbApplyEntityHitbox");
+        addEl(list, "hideHitboxForInvisible");
+        addEl(list, "keyBindToggleBlockOutline");
+        addEl(list, "keyBindToggleEntityHitbox");
+        addEl(list, "keyBindToggleRGB");
         return list;
     }
 
