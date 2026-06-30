@@ -828,9 +828,11 @@ public class BetterPlayerHUDConfig {
             p.comment = "隐身生物/玩家不显示碰撞箱（默认关，可开）"; hideHitboxForInvisible = p.getBoolean();
 
             p = config.get(C, "rgbFlowMode", "perimeter");
+            p.setValidValues(new String[]{"perimeter", "uniform"});
             p.comment = "流光模式：perimeter=逐棱流动, uniform=整框同色"; rgbFlowMode = p.getString();
 
             p = config.get(C, "rgbColorAlgo", "hsv");
+            p.setValidValues(new String[]{"hsv", "sinewave"});
             p.comment = "颜色算法：hsv=HSBtoRGB, sinewave=正弦波三通道"; rgbColorAlgo = p.getString();
         }
 
