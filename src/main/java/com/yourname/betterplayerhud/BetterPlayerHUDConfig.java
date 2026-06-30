@@ -132,7 +132,7 @@ public class BetterPlayerHUDConfig {
     public int keysTextColor = 0xFFFFFF;
     public float keysScale = 1.0f;
     public boolean showKeysBackground = false;
-    public float keysOpacity = 1.0f;
+    public float keysOpacity = 0.5f;
 
     // ================================================================
     //  模块10：强制疾跑
@@ -652,8 +652,8 @@ public class BetterPlayerHUDConfig {
             p = config.get(C, "showKeysBackground", false);
             p.comment = "是否显示按键背景"; showKeysBackground = p.getBoolean();
 
-            p = config.get(C, "keysOpacity", 1.0);
-            p.comment = "按键显示透明度 (0.0~1.0)"; keysOpacity = (float) p.getDouble();
+            p = config.get(C, "keysOpacity", 0.5);
+            p.comment = "按键显示透明度 (0.0~1.0)"; p.setMinValue(0.0).setMaxValue(1.0); keysOpacity = (float) p.getDouble();
         }
 
         // --- 模块10：强制疾跑 ---
@@ -1189,7 +1189,7 @@ public class BetterPlayerHUDConfig {
         saveColor(C, "keysTextColor", keysTextColor);
         config.get(C, "keysScale", 1.0f).set(keysScale);
         config.get(C, "showKeysBackground", false).set(showKeysBackground);
-        config.get(C, "keysOpacity", 1.0).set(keysOpacity);
+        config.get(C, "keysOpacity", 0.5).set(keysOpacity);
 
         // --- 模块10 ---
         config.get(C, "enableForceSprint", true).set(enableForceSprint);
