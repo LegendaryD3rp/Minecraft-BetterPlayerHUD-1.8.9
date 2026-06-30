@@ -4,18 +4,17 @@ import java.awt.Color;
 
 /**
  * RGB 动态流光颜色工具。
- * 提供两种模式：
- * 1. 整体变色（getColor）—— 整条描边同时同色
- * 2. 位置流光（getFlowColor）—— 沿包围盒周界渐变，颜色沿边缘流动
+ *
+ * 两种模式：
+ * 1. 平滑流动（stepMs <= 0）：色相随时间连续变化，每条棱的色相 = (时间偏移 + 棱索引/总棱数) % 1.0
+ * 2. 步进流动（stepMs > 0）：时间按 stepMs 量子化，每隔 stepMs 毫秒整圈跳变一次
+ *
+ * 关键：每条棱独立一色（棱），而非沿周界渐变（点）。
  */
 public class RGBFlowColor {
 
     /**
      * 获取当前时刻的流动色（整体同一色）。
-     *
-     * @param speed 色相变化速度（毫秒/完整周期），值越小变化越快。
-     *              推荐范围 30～200，默认 80。
-     * @return ARGB 颜色值（0xFF000000 ~ 0xFFFFFFFF）
      */
     public static int getColor(long speed) {
         long time = System.currentTimeMillis();
@@ -23,27 +22,36 @@ public class RGBFlowColor {
         return 0xFF000000 | (0xFFFFFF & Color.HSBtoRGB(hue, 1.0f, 1.0f));
     }
 
-    /**
-     * 使用默认速度（80ms）获取整体变色。
-     */
     public static int getColor() {
         return getColor(80L);
     }
 
     /**
-     * 获取沿周界流动的流光色。
-     * 色相 = (时间偏移 + 周界位置偏移) % 1.0
-     * 任一瞬间，不同位置的色相不同，形成彩虹沿边缘流动的效果。
+     * 获取基于棱索引的流动色（步进/平滑）。
      *
-     * @param perimeterPosition 该点距周界起点的距离
-     * @param totalPerimeter    周界总长度
-     * @param speed             流动速度（毫秒/完整周期），值越小变化越快
-     * @return ARGB 颜色值（0xFF000000 ~ 0xFFFFFFFF）
+     * 每条棱独占一色（棱），色相 = (时间偏移 + 棱索引/总棱数) % 1.0。
+     * 步进模式：每隔 stepMs 毫秒所有棱的颜色同步跳变一次。
+     *
+     * @param edgeIndex 棱索引（0 ~ totalEdges-1）
+     * @param totalEdges 总棱数（通常为12）
+     * @param speed 完整色相周期（ms），值越小流动越快
+     * @param stepMs 步进间隔（ms），0=平滑流动
+     * @return ARGB 颜色值
      */
-    public static int getFlowColor(float perimeterPosition, float totalPerimeter, long speed) {
-        if (totalPerimeter <= 0) totalPerimeter = 1;
+    public static int getFlowColor(int edgeIndex, int totalEdges, long speed, long stepMs) {
+        if (totalEdges <= 0) totalEdges = 1;
         long time = System.currentTimeMillis();
-        float hue = ((time % speed) / (float) speed + perimeterPosition / totalPerimeter) % 1.0f;
+        float hue;
+
+        if (stepMs <= 0) {
+            // 平滑流动：时间连续
+            hue = ((time % speed) / (float) speed + (float) edgeIndex / totalEdges) % 1.0f;
+        } else {
+            // 步进流动：时间量子化
+            long quantizedTime = (time / stepMs) * stepMs;
+            hue = ((quantizedTime % speed) / (float) speed + (float) edgeIndex / totalEdges) % 1.0f;
+        }
+
         return 0xFF000000 | (0xFFFFFF & Color.HSBtoRGB(hue, 1.0f, 1.0f));
     }
 }
