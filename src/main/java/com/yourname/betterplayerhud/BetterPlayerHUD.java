@@ -41,7 +41,7 @@ public class BetterPlayerHUD {
         @SubscribeEvent
         public void onConfigChanged(ConfigChangedEvent.OnConfigChangedEvent event) {
             if (event.modID.equals(MODID)) {
-                config.loadConfig();
+                config.reloadFromMemory();
             }
         }
     }

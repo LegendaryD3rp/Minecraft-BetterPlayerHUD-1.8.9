@@ -353,6 +353,11 @@ public class BetterPlayerHUDConfig {
         reloadFromConfig();
     }
 
+    /** 仅从内存 Configuration 对象读取，不重新加载文件 */
+    public void reloadFromMemory() {
+        reloadFromConfig();
+    }
+
     // ================================================================
     //  reloadFromConfig — 从 Configuration 读取全部字段
     //  注意：不再在末尾自动 config.save()，加载和存盘彻底分离
