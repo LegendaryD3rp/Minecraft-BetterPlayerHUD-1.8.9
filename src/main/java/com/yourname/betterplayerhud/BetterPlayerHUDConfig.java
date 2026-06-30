@@ -210,7 +210,7 @@ public class BetterPlayerHUDConfig {
     //  模块14b：RGB 动态流光 & 隐身隐藏（描边/碰撞箱专用）
     // ================================================================
     public boolean enableRGBMode = true;
-    public int rgbStepMs = 400;                        // 0=平滑，>0=步进间隔(ms)
+    public int rgbStepMs = 0;                           // 0=平滑流动，>0=步进间隔(ms)
     public int rgbSpeed = 500;                          // 色相循环速度（ms/周期），越大越慢
     public boolean rgbApplyBlockOutline = true;
     public boolean rgbApplyEntityHitbox = true;
