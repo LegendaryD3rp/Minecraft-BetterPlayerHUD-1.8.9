@@ -209,9 +209,13 @@ public class BlockOutlineHandler {
         GlStateManager.popMatrix();
     }
 
+    // RGB 流光每条棱的细分数（18段 = 19个顶点/棱，逐点HSV精确着色）
+    private static final int RGB_FLOW_SEGMENTS = 18;
+
     /**
      * 绘制流动RGB包围盒。
-     * 将12条棱按周界排列，每条棱独立着色，色相 = (时间偏移 + 周界位置偏移) % 1.0
+     * 12条棱各按 RGB_FLOW_SEGMENTS 段细分，每顶点独立计算 HSV 色相，
+     * 用 GL_LINE_STRIP 串联，实现棱内渐变、棱间衔接的连续彩虹效果。
      */
     private void drawFlowingBoundingBox(double minX, double minY, double minZ, double maxX, double maxY, double maxZ, boolean isEntity) {
         double dx = maxX - minX;
@@ -222,21 +226,18 @@ public class BlockOutlineHandler {
         long stepMs = BetterPlayerHUD.config.rgbStepMs;
         if (totalPerimeter <= 0) return;
 
-        // ═══════════════════════════════════════════════════════════════
-        //  统一采样时间，保证一帧内所有顶点颜色使用同一时间基准，
-        //  避免逐棱渲染时 System.currentTimeMillis() 漂移导致首尾不衔接
-        // ═══════════════════════════════════════════════════════════════
+        // 统一采样时间，保证一帧内所有顶点颜色使用同一时间基准
         long currentTimeMs = System.currentTimeMillis();
 
         boolean drawAllFaces = !isEntity ? !BetterPlayerHUD.config.drawVisibleFacesOnlyBlocks : !BetterPlayerHUD.config.drawVisibleFacesOnlyEntities;
 
-        // 计算面可见性（用于 visible-faces-only 模式）
+        // 计算面可见性
         double centerX = (minX + maxX) / 2.0;
         double centerY = (minY + maxY) / 2.0;
         double centerZ = (minZ + maxZ) / 2.0;
         float eyeH = mc.thePlayer != null ? mc.thePlayer.getEyeHeight() : 1.62F;
         double camX = -centerX;
-        double camY = -centerY + eyeH;  // 修正：相机在眼睛高度，不在脚底
+        double camY = -centerY + eyeH;
         double camZ = -centerZ;
         boolean[] faceVis = {
             isFaceVisible( 0,-1, 0, centerX, minY, centerZ, camX, camY, camZ, eyeH),
@@ -248,7 +249,6 @@ public class BlockOutlineHandler {
         };
 
         // 12条棱的端点坐标 [x1,y1,z1, x2,y2,z2]
-        // 周界顺序：底部4条 -> 垂直4条 -> 顶部4条
         double[][] edges = {
             {minX, minY, minZ, maxX, minY, minZ},
             {maxX, minY, minZ, maxX, minY, maxZ},
@@ -265,30 +265,26 @@ public class BlockOutlineHandler {
         };
 
         // 每条棱属于哪些面: 0=下 1=上 2=北 3=南 4=西 5=东
-        // 每根棱恰好属于2个面（立方体几何）
         int[][] edgeFaces = {
-            {0,2},   // 0: 底-后     (minX,minY,minZ)-(maxX,minY,minZ)
-            {0,5},   // 1: 底-右     (maxX,minY,minZ)-(maxX,minY,maxZ)
-            {0,3},   // 2: 底-前     (maxX,minY,maxZ)-(minX,minY,maxZ)
-            {0,4},   // 3: 底-左     (minX,minY,maxZ)-(minX,minY,minZ)
-            {2,4},   // 4: 北-左(垂直)  (minX,minY,minZ)-(minX,maxY,minZ)
-            {2,5},   // 5: 北-右(垂直)  (maxX,minY,minZ)-(maxX,maxY,minZ)
-            {3,5},   // 6: 南-右(垂直)  (maxX,minY,maxZ)-(maxX,maxY,maxZ)
-            {3,4},   // 7: 南-左(垂直)  (minX,minY,maxZ)-(minX,maxY,maxZ)
-            {1,2},   // 8: 顶-后     (minX,maxY,minZ)-(maxX,maxY,minZ)
-            {1,5},   // 9: 顶-右     (maxX,maxY,minZ)-(maxX,maxY,maxZ)
-            {1,3},   // 10: 顶-前    (maxX,maxY,maxZ)-(minX,maxY,maxZ)
-            {1,4},   // 11: 顶-左    (minX,maxY,maxZ)-(minX,maxY,minZ)
+            {0,2},   // 0: 底-后
+            {0,5},   // 1: 底-右
+            {0,3},   // 2: 底-前
+            {0,4},   // 3: 底-左
+            {2,4},   // 4: 北-左(垂直)
+            {2,5},   // 5: 北-右(垂直)
+            {3,5},   // 6: 南-右(垂直)
+            {3,4},   // 7: 南-左(垂直)
+            {1,2},   // 8: 顶-后
+            {1,5},   // 9: 顶-右
+            {1,3},   // 10: 顶-前
+            {1,4},   // 11: 顶-左
         };
 
-        // 逐顶点 RGB：每条棱端点各自算颜色，使用 POSITION_COLOR 让 OpenGL 插值
-        float pos = 0;
+        float pos = 0;  // 周界累计位置
         for (int i = 0; i < 12; i++) {
             double[] e = edges[i];
             double len = Math.sqrt(
                 (e[3]-e[0])*(e[3]-e[0]) + (e[4]-e[1])*(e[4]-e[1]) + (e[5]-e[2])*(e[5]-e[2]));
-            float startPos = pos;
-            float endPos = pos + (float)len;
 
             boolean visible = drawAllFaces;
             if (!drawAllFaces) {
@@ -298,21 +294,23 @@ public class BlockOutlineHandler {
             }
 
             if (visible) {
-                int startColor = RGBFlowColor.getFlowColorAtTime(currentTimeMs, startPos, totalPerimeter, speed, stepMs);
-                int endColor = RGBFlowColor.getFlowColorAtTime(currentTimeMs, endPos, totalPerimeter, speed, stepMs);
-                float sr = ((startColor >> 16) & 0xFF) / 255f;
-                float sg = ((startColor >> 8) & 0xFF) / 255f;
-                float sb = (startColor & 0xFF) / 255f;
-                float sa = ((startColor >> 24) & 0xFF) / 255f;
-                float er = ((endColor >> 16) & 0xFF) / 255f;
-                float eg = ((endColor >> 8) & 0xFF) / 255f;
-                float eb = (endColor & 0xFF) / 255f;
-                float ea = ((endColor >> 24) & 0xFF) / 255f;
                 Tessellator tess = Tessellator.getInstance();
                 WorldRenderer wr = tess.getWorldRenderer();
-                wr.begin(GL11.GL_LINES, DefaultVertexFormats.POSITION_COLOR);
-                wr.pos(e[0], e[1], e[2]).color(sr, sg, sb, sa).endVertex();
-                wr.pos(e[3], e[4], e[5]).color(er, eg, eb, ea).endVertex();
+                wr.begin(GL11.GL_LINE_STRIP, DefaultVertexFormats.POSITION_COLOR);
+
+                for (int seg = 0; seg <= RGB_FLOW_SEGMENTS; seg++) {
+                    double t = (double) seg / RGB_FLOW_SEGMENTS;
+                    double vx = e[0] + t * (e[3] - e[0]);
+                    double vy = e[1] + t * (e[4] - e[1]);
+                    double vz = e[2] + t * (e[5] - e[2]);
+                    float vertexPos = pos + (float)(t * len);
+                    int color = RGBFlowColor.getFlowColorAtTime(currentTimeMs, vertexPos, totalPerimeter, speed, stepMs);
+                    float r = ((color >> 16) & 0xFF) / 255f;
+                    float g = ((color >> 8) & 0xFF) / 255f;
+                    float b = (color & 0xFF) / 255f;
+                    float a = ((color >> 24) & 0xFF) / 255f;
+                    wr.pos(vx, vy, vz).color(r, g, b, a).endVertex();
+                }
                 tess.draw();
             }
             pos += (float)len;
