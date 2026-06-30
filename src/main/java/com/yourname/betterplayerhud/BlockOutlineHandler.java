@@ -217,8 +217,13 @@ public class BlockOutlineHandler {
      * 将12条棱按周界排列，每条棱独立着色，色相 = (时间偏移 + 周界位置偏移) % 1.0
      */
     private void drawFlowingBoundingBox(double minX, double minY, double minZ, double maxX, double maxY, double maxZ, boolean isEntity) {
+        double dx = maxX - minX;
+        double dy = maxY - minY;
+        double dz = maxZ - minZ;
+        float totalPerimeter = (float)(4 * dx + 4 * dy + 4 * dz);
         long speed = BetterPlayerHUD.config.rgbSpeed;
         long stepMs = BetterPlayerHUD.config.rgbStepMs;
+        if (totalPerimeter <= 0) return;
 
         boolean drawAllFaces = !isEntity ? !BetterPlayerHUD.config.drawVisibleFacesOnlyBlocks : !BetterPlayerHUD.config.drawVisibleFacesOnlyEntities;
 
@@ -257,15 +262,20 @@ public class BlockOutlineHandler {
         };
 
         if (drawAllFaces) {
+            float pos = 0;
             for (int i = 0; i < 12; i++) {
                 double[] e = edges[i];
-                setColor(RGBFlowColor.getFlowColor(i, 12, speed, stepMs));
+                double len = Math.sqrt(
+                    (e[3]-e[0])*(e[3]-e[0]) + (e[4]-e[1])*(e[4]-e[1]) + (e[5]-e[2])*(e[5]-e[2]));
+                float midPos = pos + (float)len * 0.5f;
+                setColor(RGBFlowColor.getFlowColor(midPos, totalPerimeter, speed, stepMs));
                 Tessellator tess = Tessellator.getInstance();
                 WorldRenderer wr = tess.getWorldRenderer();
                 wr.begin(GL11.GL_LINES, DefaultVertexFormats.POSITION);
                 wr.pos(e[0], e[1], e[2]).endVertex();
                 wr.pos(e[3], e[4], e[5]).endVertex();
                 tess.draw();
+                pos += (float)len;
             }
         } else {
             double centerX = (minX + maxX) / 2.0;
@@ -284,24 +294,29 @@ public class BlockOutlineHandler {
                 isFaceVisible( 1, 0, 0, maxX, centerY, centerZ, camX, camY, camZ),
             };
 
+            float pos = 0;
             for (int i = 0; i < 12; i++) {
                 double[] e = edges[i];
+                double len = Math.sqrt(
+                    (e[3]-e[0])*(e[3]-e[0]) + (e[4]-e[1])*(e[4]-e[1]) + (e[5]-e[2])*(e[5]-e[2]));
                 boolean visible = false;
                 for (int fi : edgeFaces[i]) {
                     if (faceVis[fi]) { visible = true; break; }
                 }
                 if (visible) {
-                    setColor(RGBFlowColor.getFlowColor(i, 12, speed, stepMs));
+                    float midPos = pos + (float)len * 0.5f;
+                    setColor(RGBFlowColor.getFlowColor(midPos, totalPerimeter, speed, stepMs));
                     Tessellator tess = Tessellator.getInstance();
                     WorldRenderer wr = tess.getWorldRenderer();
                     wr.begin(GL11.GL_LINES, DefaultVertexFormats.POSITION);
                     wr.pos(e[0], e[1], e[2]).endVertex();
                     wr.pos(e[3], e[4], e[5]).endVertex();
                     tess.draw();
+                }
+                pos += (float)len;
             }
         }
     }
-}
 
 
     /**

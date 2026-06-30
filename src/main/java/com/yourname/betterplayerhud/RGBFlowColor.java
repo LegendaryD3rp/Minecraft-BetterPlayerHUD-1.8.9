@@ -5,11 +5,9 @@ import java.awt.Color;
 /**
  * RGB 动态流光颜色工具。
  *
- * 两种模式：
- * 1. 平滑流动（stepMs <= 0）：色相随时间连续变化，每条棱的色相 = (时间偏移 + 棱索引/总棱数) % 1.0
- * 2. 步进流动（stepMs > 0）：时间按 stepMs 量子化，每隔 stepMs 毫秒整圈跳变一次
- *
- * 关键：每条棱独立一色（棱），而非沿周界渐变（点）。
+ * 核心逻辑：颜色沿包围盒周界连续流动。
+ * 每条棱的中点色相 = (时间偏移 + 棱中点位置 / 总周界长度) % 1.0
+ * 每一刻每条棱上的颜色不同，整条彩虹沿棱平滑旋转。
  */
 public class RGBFlowColor {
 
@@ -27,31 +25,37 @@ public class RGBFlowColor {
     }
 
     /**
-     * 获取基于棱索引的流动色（步进/平滑）。
+     * 获取沿周界流动的流光色。
      *
-     * 每条棱独占一色（棱），色相 = (时间偏移 + 棱索引/总棱数) % 1.0。
-     * 步进模式：每隔 stepMs 毫秒所有棱的颜色同步跳变一次。
+     * 每条棱的中点色相 = (时间偏移 + 棱中点位置/总周界) % 1.0
      *
-     * @param edgeIndex 棱索引（0 ~ totalEdges-1）
-     * @param totalEdges 总棱数（通常为12）
-     * @param speed 完整色相周期（ms），值越小流动越快
-     * @param stepMs 步进间隔（ms），0=平滑流动
-     * @return ARGB 颜色值
+     * @param perimeterMidPos  该棱中点距周界起点的距离
+     * @param totalPerimeter   周界总长度
+     * @param speed            完整色相周期（ms），值越小流动越快
+     * @param stepMs           步进间隔（ms），0=平滑，>0=每stepMs跳变一次
+     * @return ARGB 颜色值（0xFF000000 ~ 0xFFFFFFFF）
      */
-    public static int getFlowColor(int edgeIndex, int totalEdges, long speed, long stepMs) {
-        if (totalEdges <= 0) totalEdges = 1;
+    public static int getFlowColor(float perimeterMidPos, float totalPerimeter, long speed, long stepMs) {
+        if (totalPerimeter <= 0) totalPerimeter = 1;
         long time = System.currentTimeMillis();
-        float hue;
 
+        float hue;
         if (stepMs <= 0) {
-            // 平滑流动：时间连续
-            hue = ((time % speed) / (float) speed + (float) edgeIndex / totalEdges) % 1.0f;
+            // 平滑流动
+            hue = ((time % speed) / (float) speed + perimeterMidPos / totalPerimeter) % 1.0f;
         } else {
-            // 步进流动：时间量子化
-            long quantizedTime = (time / stepMs) * stepMs;
-            hue = ((quantizedTime % speed) / (float) speed + (float) edgeIndex / totalEdges) % 1.0f;
+            // 步进流动（时间量子化）
+            long quantized = (time / stepMs) * stepMs;
+            hue = ((quantized % speed) / (float) speed + perimeterMidPos / totalPerimeter) % 1.0f;
         }
 
         return 0xFF000000 | (0xFFFFFF & Color.HSBtoRGB(hue, 1.0f, 1.0f));
+    }
+
+    /**
+     * 获取沿周界流动的流光色（平滑模式）。
+     */
+    public static int getFlowColor(float perimeterMidPos, float totalPerimeter, long speed) {
+        return getFlowColor(perimeterMidPos, totalPerimeter, speed, 0);
     }
 }

@@ -211,7 +211,7 @@ public class BetterPlayerHUDConfig {
     // ================================================================
     public boolean enableRGBMode = true;
     public int rgbStepMs = 400;                        // 0=平滑，>0=步进间隔(ms)
-    public int rgbSpeed = 80;                           // 色相循环速度（ms/周期）
+    public int rgbSpeed = 500;                          // 色相循环速度（ms/周期），越大越慢
     public boolean rgbApplyBlockOutline = true;
     public boolean rgbApplyEntityHitbox = true;
     public boolean hideHitboxForInvisible = false;      // 隐身实体不画碰撞箱
@@ -814,7 +814,7 @@ public class BetterPlayerHUDConfig {
             p.comment = "步进间隔(ms,0=平滑)"; rgbStepMs = p.getInt();
 
             p = config.get(C, "rgbSpeed", 80);
-            p.comment = "RGB 色相循环速度（毫秒/周期，越小越快）"; rgbSpeed = p.getInt();
+            p.comment = "RGB 色相循环速度（毫秒/周期，越大越慢，默认500）"; rgbSpeed = p.getInt();
 
             p = config.get(C, "rgbApplyBlockOutline", true);
             p.comment = "RGB 应用于方块描边"; rgbApplyBlockOutline = p.getBoolean();
