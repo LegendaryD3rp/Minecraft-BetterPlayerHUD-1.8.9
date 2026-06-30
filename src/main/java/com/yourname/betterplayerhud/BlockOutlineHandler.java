@@ -224,6 +224,23 @@ public class BlockOutlineHandler {
 
         boolean drawAllFaces = !isEntity ? !BetterPlayerHUD.config.drawVisibleFacesOnlyBlocks : !BetterPlayerHUD.config.drawVisibleFacesOnlyEntities;
 
+        // 计算面可见性（用于 visible-faces-only 模式）
+        double centerX = (minX + maxX) / 2.0;
+        double centerY = (minY + maxY) / 2.0;
+        double centerZ = (minZ + maxZ) / 2.0;
+        float eyeH = mc.thePlayer != null ? mc.thePlayer.getEyeHeight() : 1.62F;
+        double camX = -centerX;
+        double camY = -centerY + eyeH;  // 修正：相机在眼睛高度，不在脚底
+        double camZ = -centerZ;
+        boolean[] faceVis = {
+            isFaceVisible( 0,-1, 0, centerX, minY, centerZ, camX, camY, camZ, eyeH),
+            isFaceVisible( 0, 1, 0, centerX, maxY, centerZ, camX, camY, camZ, eyeH),
+            isFaceVisible( 0, 0,-1, centerX, centerY, minZ, camX, camY, camZ, eyeH),
+            isFaceVisible( 0, 0, 1, centerX, centerY, maxZ, camX, camY, camZ, eyeH),
+            isFaceVisible(-1, 0, 0, minX, centerY, centerZ, camX, camY, camZ, eyeH),
+            isFaceVisible( 1, 0, 0, maxX, centerY, centerZ, camX, camY, camZ, eyeH),
+        };
+
         // 12条棱的端点坐标 [x1,y1,z1, x2,y2,z2]
         // 周界顺序：底部4条 -> 垂直4条 -> 顶部4条
         double[][] edges = {
@@ -258,87 +275,63 @@ public class BlockOutlineHandler {
             {1,4},   // 11: 顶-左    (minX,maxY,maxZ)-(minX,maxY,minZ)
         };
 
-        if (drawAllFaces) {
-            float pos = 0;
-            for (int i = 0; i < 12; i++) {
-                double[] e = edges[i];
-                double len = Math.sqrt(
-                    (e[3]-e[0])*(e[3]-e[0]) + (e[4]-e[1])*(e[4]-e[1]) + (e[5]-e[2])*(e[5]-e[2]));
-                float midPos = pos + (float)len * 0.5f;
-                setColor(RGBFlowColor.getFlowColor(midPos, totalPerimeter, speed, stepMs));
-                Tessellator tess = Tessellator.getInstance();
-                WorldRenderer wr = tess.getWorldRenderer();
-                wr.begin(GL11.GL_LINES, DefaultVertexFormats.POSITION);
-                wr.pos(e[0], e[1], e[2]).endVertex();
-                wr.pos(e[3], e[4], e[5]).endVertex();
-                tess.draw();
-                pos += (float)len;
-            }
-        } else {
-            double centerX = (minX + maxX) / 2.0;
-            double centerY = (minY + maxY) / 2.0;
-            double centerZ = (minZ + maxZ) / 2.0;
-            double camX = -centerX;
-            double camY = -centerY;
-            double camZ = -centerZ;
+        // 逐顶点 RGB：每条棱端点各自算颜色，使用 POSITION_COLOR 让 OpenGL 插值
+        float pos = 0;
+        for (int i = 0; i < 12; i++) {
+            double[] e = edges[i];
+            double len = Math.sqrt(
+                (e[3]-e[0])*(e[3]-e[0]) + (e[4]-e[1])*(e[4]-e[1]) + (e[5]-e[2])*(e[5]-e[2]));
+            float startPos = pos;
+            float endPos = pos + (float)len;
 
-            boolean[] faceVis = {
-                isFaceVisible( 0,-1, 0, centerX, minY, centerZ, camX, camY, camZ),
-                isFaceVisible( 0, 1, 0, centerX, maxY, centerZ, camX, camY, camZ),
-                isFaceVisible( 0, 0,-1, centerX, centerY, minZ, camX, camY, camZ),
-                isFaceVisible( 0, 0, 1, centerX, centerY, maxZ, camX, camY, camZ),
-                isFaceVisible(-1, 0, 0, minX, centerY, centerZ, camX, camY, camZ),
-                isFaceVisible( 1, 0, 0, maxX, centerY, centerZ, camX, camY, camZ),
-            };
-
-            float pos = 0;
-            for (int i = 0; i < 12; i++) {
-                double[] e = edges[i];
-                double len = Math.sqrt(
-                    (e[3]-e[0])*(e[3]-e[0]) + (e[4]-e[1])*(e[4]-e[1]) + (e[5]-e[2])*(e[5]-e[2]));
-                boolean visible = false;
+            boolean visible = drawAllFaces;
+            if (!drawAllFaces) {
                 for (int fi : edgeFaces[i]) {
                     if (faceVis[fi]) { visible = true; break; }
                 }
-                if (visible) {
-                    float midPos = pos + (float)len * 0.5f;
-                    setColor(RGBFlowColor.getFlowColor(midPos, totalPerimeter, speed, stepMs));
-                    Tessellator tess = Tessellator.getInstance();
-                    WorldRenderer wr = tess.getWorldRenderer();
-                    wr.begin(GL11.GL_LINES, DefaultVertexFormats.POSITION);
-                    wr.pos(e[0], e[1], e[2]).endVertex();
-                    wr.pos(e[3], e[4], e[5]).endVertex();
-                    tess.draw();
-                }
-                pos += (float)len;
             }
+
+            if (visible) {
+                int startColor = RGBFlowColor.getFlowColor(startPos, totalPerimeter, speed, stepMs);
+                int endColor = RGBFlowColor.getFlowColor(endPos, totalPerimeter, speed, stepMs);
+                float sr = ((startColor >> 16) & 0xFF) / 255f;
+                float sg = ((startColor >> 8) & 0xFF) / 255f;
+                float sb = (startColor & 0xFF) / 255f;
+                float sa = ((startColor >> 24) & 0xFF) / 255f;
+                float er = ((endColor >> 16) & 0xFF) / 255f;
+                float eg = ((endColor >> 8) & 0xFF) / 255f;
+                float eb = (endColor & 0xFF) / 255f;
+                float ea = ((endColor >> 24) & 0xFF) / 255f;
+                Tessellator tess = Tessellator.getInstance();
+                WorldRenderer wr = tess.getWorldRenderer();
+                wr.begin(GL11.GL_LINES, DefaultVertexFormats.POSITION_COLOR);
+                wr.pos(e[0], e[1], e[2]).color(sr, sg, sb, sa).endVertex();
+                wr.pos(e[3], e[4], e[5]).color(er, eg, eb, ea).endVertex();
+                tess.draw();
+            }
+            pos += (float)len;
         }
     }
 
 
-
     /**
-     * 判断面是否可见（已集成容差，提高灵敏度）。
-     */
-    /**
-     * 判断面是否可见（修正版）。
-     * 使用极小正向容差，确保只绘制真正朝向摄像机的面，解决底面误显、顶面缺失的问题。
+     * 判断面是否可见。
+     * camToBlock = 块中心指向相机的向量（已包含眼高偏移）。
+     * eyeY = 相机眼睛高度（玩家相对坐标）。
      */
     private boolean isFaceVisible(double faceNormalX, double faceNormalY, double faceNormalZ,
                                   double faceCenterX, double faceCenterY, double faceCenterZ,
-                                  double camToBlockX, double camToBlockY, double camToBlockZ) {
+                                  double camToBlockX, double camToBlockY, double camToBlockZ,
+                                  double eyeY) {
+        // 相机位置在玩家相对坐标中 = (0, eyeY, 0)
+        // 面中心到相机的方向 = 相机 - 面中心
         double toCamX = -faceCenterX;
-        double toCamY = -faceCenterY;
+        double toCamY = eyeY - faceCenterY;
         double toCamZ = -faceCenterZ;
         double dot = faceNormalX * toCamX + faceNormalY * toCamY + faceNormalZ * toCamZ;
 
-        // 关键修正：将容差从负侧调整到正侧，或直接设为0。
-        // 方案1（推荐）：使用极小的正向容差，平衡正确性与临界角度稳定性。
-        final double EPSILON = 1e-5; // 一个非常小的正数
+        final double EPSILON = 1e-5;
         return dot > EPSILON;
-
-        // 方案2（最严格）：完全移除容差，仅当点积为正时可见。
-        // return dot > 0.0;
     }
 
 
