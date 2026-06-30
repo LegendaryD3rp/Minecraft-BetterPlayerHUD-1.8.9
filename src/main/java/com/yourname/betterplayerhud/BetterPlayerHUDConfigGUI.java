@@ -74,47 +74,6 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
                 "Player HUD"
         ));
 
-        // === 模块3：速度HUD ===
-        elements.add(ColorPreviewHelper.createPreviewCategory(
-                "速度HUD设置", "compassmod.category.speed",
-                getSpeedConfigElements(),
-                new ColorPreviewHelper.ColorInfo[]{
-                        new ColorPreviewHelper.ColorInfo("speedColor", "速度颜色"),
-                },
-                "Speed HUD"
-        ));
-
-        // === 模块4：坐标HUD ===
-        elements.add(ColorPreviewHelper.createPreviewCategory(
-                "坐标HUD设置", "compassmod.category.coordinates",
-                getCoordinatesConfigElements(),
-                new ColorPreviewHelper.ColorInfo[]{
-                        new ColorPreviewHelper.ColorInfo("coordinatesColor", "坐标颜色"),
-                        new ColorPreviewHelper.ColorInfo("dimensionColor", "维度颜色"),
-                },
-                "Coordinates HUD"
-        ));
-
-        // === 模块5：游戏时间HUD ===
-        elements.add(ColorPreviewHelper.createPreviewCategory(
-                "游戏时间HUD设置", "compassmod.category.gametime",
-                getGameTimeConfigElements(),
-                new ColorPreviewHelper.ColorInfo[]{
-                        new ColorPreviewHelper.ColorInfo("gameTimeColor", "游戏时间颜色"),
-                },
-                "Game Time HUD"
-        ));
-
-        // === 模块6：现实时间HUD ===
-        elements.add(ColorPreviewHelper.createPreviewCategory(
-                "现实时间HUD设置", "compassmod.category.realtime",
-                getRealTimeConfigElements(),
-                new ColorPreviewHelper.ColorInfo[]{
-                        new ColorPreviewHelper.ColorInfo("timeColor", "现实时间颜色"),
-                },
-                "Real Time HUD"
-        ));
-
         // === 模块7：距离HUD ===
         elements.add(ColorPreviewHelper.createPreviewCategory(
                 "距离HUD设置", "compassmod.category.distance",
@@ -127,17 +86,6 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
                 "Distance HUD"
         ));
 
-        // === 模块8：CPS HUD ===
-        elements.add(ColorPreviewHelper.createPreviewCategory(
-                "CPS（点击速度）HUD设置", "compassmod.category.cps",
-                getCPSConfigElements(),
-                new ColorPreviewHelper.ColorInfo[]{
-                        new ColorPreviewHelper.ColorInfo("leftCPSColor", "左键CPS"),
-                        new ColorPreviewHelper.ColorInfo("rightCPSColor", "右键CPS"),
-                },
-                "CPS HUD"
-        ));
-
         // === 模块9：按键显示 ===
         elements.add(ColorPreviewHelper.createPreviewCategory(
                 "按键显示设置", "compassmod.category.keys",
@@ -148,40 +96,6 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
                         new ColorPreviewHelper.ColorInfo("keysTextColor", "文字颜色"),
                 },
                 "Keys Display"
-        ));
-
-        // === 模块10：强制疾跑 ===
-        elements.add(ColorPreviewHelper.createPreviewCategory(
-                "强制疾跑设置", "compassmod.category.forcesprint",
-                getForceSprintConfigElements(),
-                new ColorPreviewHelper.ColorInfo[]{
-                        new ColorPreviewHelper.ColorInfo("sprintStatusColor", "疾跑状态颜色"),
-                },
-                "Force Sprint"
-        ));
-
-        // === 模块11：强制潜行 ===
-        elements.add(ColorPreviewHelper.createPreviewCategory(
-                "强制潜行设置", "compassmod.category.forcesneak",
-                getForceSneakConfigElements(),
-                new ColorPreviewHelper.ColorInfo[]{
-                        new ColorPreviewHelper.ColorInfo("sneakStatusColor", "潜行状态颜色"),
-                },
-                "Force Sneak"
-        ));
-
-        // === 模块12：药水状态HUD ===
-        elements.add(ColorPreviewHelper.createPreviewCategory(
-                "药水状态HUD设置", "compassmod.category.potion",
-                getPotionConfigElements(),
-                new ColorPreviewHelper.ColorInfo[]{
-                        new ColorPreviewHelper.ColorInfo("potionBackgroundColor", "背景颜色"),
-                        new ColorPreviewHelper.ColorInfo("potionTextColor", "文字颜色"),
-                        new ColorPreviewHelper.ColorInfo("potionGoodEffectColor", "正面效果"),
-                        new ColorPreviewHelper.ColorInfo("potionBadEffectColor", "负面效果"),
-                        new ColorPreviewHelper.ColorInfo("potionNeutralEffectColor", "中性效果"),
-                },
-                "Potion HUD"
         ));
 
         // === 模块13：方块描边 ===
@@ -212,44 +126,6 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
                 getRGBConfigElements(),
                 new ColorPreviewHelper.ColorInfo[0],
                 "RGB Flow"
-        ));
-
-        // === 模块15：物品信息HUD ===
-        elements.add(ColorPreviewHelper.createPreviewCategory(
-                "物品信息HUD设置", "compassmod.category.iteminfo",
-                getItemInfoConfigElements(),
-                new ColorPreviewHelper.ColorInfo[]{
-                        new ColorPreviewHelper.ColorInfo("itemBorderColor", "边框颜色"),
-                        new ColorPreviewHelper.ColorInfo("itemNameColor", "物品名称"),
-                        new ColorPreviewHelper.ColorInfo("itemCountColor", "物品数量"),
-                        new ColorPreviewHelper.ColorInfo("itemDurabilityColor", "耐久度"),
-                        new ColorPreviewHelper.ColorInfo("itemLowDurabilityColor", "低耐久度"),
-                        new ColorPreviewHelper.ColorInfo("itemEnchantmentColor", "附魔颜色"),
-                },
-                "Item Info HUD"
-        ));
-
-        // === 模块16：低血量警告 ===
-        elements.add(ColorPreviewHelper.createPreviewCategory(
-                "低血量警告设置", "compassmod.category.lowhealth",
-                getLowHealthConfigElements(),
-                new ColorPreviewHelper.ColorInfo[]{
-                        new ColorPreviewHelper.ColorInfo("darkenColor", "变暗颜色"),
-                },
-                "Low Health Warning"
-        ));
-
-        // === 模块17：Ping HUD ===
-        elements.add(ColorPreviewHelper.createPreviewCategory(
-                "Ping HUD设置", "compassmod.category.ping",
-                getPingConfigElements(),
-                new ColorPreviewHelper.ColorInfo[]{
-                        new ColorPreviewHelper.ColorInfo("pingColor", "默认颜色"),
-                        new ColorPreviewHelper.ColorInfo("pingGoodColor", "良好延迟"),
-                        new ColorPreviewHelper.ColorInfo("pingMediumColor", "中等延迟"),
-                        new ColorPreviewHelper.ColorInfo("pingBadColor", "高延迟"),
-                },
-                "Ping HUD"
         ));
 
         // === 模块18：目标血量显示 ===
@@ -308,65 +184,6 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  模块3：速度HUD
-    // ═══════════════════════════════════════════════════════════════
-    private static List<IConfigElement> getSpeedConfigElements() {
-        List<IConfigElement> list = new ArrayList<>();
-        addEl(list, "showSpeedHUD");
-        addEl(list, "speedHudXOffset");
-        addEl(list, "speedHudYOffset");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "speedColor");
-        addEl(list, "speedUnit");
-        addEl(list, "speedPrecision");
-        addEl(list, "showVerticalSpeed");
-        addEl(list, "showExactAngle");
-        return list;
-    }
-
-    // ═══════════════════════════════════════════════════════════════
-    //  模块4：坐标HUD
-    // ═══════════════════════════════════════════════════════════════
-    private static List<IConfigElement> getCoordinatesConfigElements() {
-        List<IConfigElement> list = new ArrayList<>();
-        addEl(list, "showCoordinatesHUD");
-        addEl(list, "coordinatesHudXOffset");
-        addEl(list, "coordinatesHudYOffset");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "coordinatesColor");
-        addEl(list, "coordinatesPrecision");
-        addEl(list, "showDimension");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "dimensionColor");
-        addEl(list, "showFacing");
-        return list;
-    }
-
-    // ═══════════════════════════════════════════════════════════════
-    //  模块5：游戏时间HUD
-    // ═══════════════════════════════════════════════════════════════
-    private static List<IConfigElement> getGameTimeConfigElements() {
-        List<IConfigElement> list = new ArrayList<>();
-        addEl(list, "showGameTimeHUD");
-        addEl(list, "gameTimeHudXOffset");
-        addEl(list, "gameTimeHudYOffset");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "gameTimeColor");
-        addEl(list, "gameTime24Hour");
-        addEl(list, "showGameDay");
-        return list;
-    }
-
-    // ═══════════════════════════════════════════════════════════════
-    //  模块6：现实时间HUD
-    // ═══════════════════════════════════════════════════════════════
-    private static List<IConfigElement> getRealTimeConfigElements() {
-        List<IConfigElement> list = new ArrayList<>();
-        addEl(list, "showRealTimeHUD");
-        addEl(list, "timeHudXOffset");
-        addEl(list, "timeHudYOffset");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "timeColor");
-        addEl(list, "timeFormat");
-        return list;
-    }
-
-    // ═══════════════════════════════════════════════════════════════
     //  模块7：距离HUD
     // ═══════════════════════════════════════════════════════════════
     private static List<IConfigElement> getDistanceConfigElements() {
@@ -386,20 +203,6 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  模块8：CPS HUD
-    // ═══════════════════════════════════════════════════════════════
-    private static List<IConfigElement> getCPSConfigElements() {
-        List<IConfigElement> list = new ArrayList<>();
-        addEl(list, "showCPSHUD");
-        addEl(list, "cpsHudXOffset");
-        addEl(list, "cpsHudYOffset");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "leftCPSColor");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "rightCPSColor");
-        addEl(list, "cpsUpdateInterval");
-        return list;
-    }
-
-    // ═══════════════════════════════════════════════════════════════
     //  模块9：按键显示
     // ═══════════════════════════════════════════════════════════════
     private static List<IConfigElement> getKeysDisplayConfigElements() {
@@ -414,68 +217,6 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
         ColorPreviewHelper.addColorElements(list, cfg(), cat(), "keysTextColor");
         addEl(list, "keysScale");
         addEl(list, "showKeysBackground");
-        return list;
-    }
-
-    // ═══════════════════════════════════════════════════════════════
-    //  模块10：强制疾跑
-    // ═══════════════════════════════════════════════════════════════
-    private static List<IConfigElement> getForceSprintConfigElements() {
-        List<IConfigElement> list = new ArrayList<>();
-        addEl(list, "enableForceSprint");
-        addEl(list, "forceSprintEnabled");
-        addEl(list, "forceSprintKey");
-        addEl(list, "showSprintStatus");
-        addEl(list, "sprintStatusX");
-        addEl(list, "sprintStatusY");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "sprintStatusColor");
-        addEl(list, "sprintStatusScale");
-        addEl(list, "showDebugInfo");
-        return list;
-    }
-
-    // ═══════════════════════════════════════════════════════════════
-    //  模块11：强制潜行
-    // ═══════════════════════════════════════════════════════════════
-    private static List<IConfigElement> getForceSneakConfigElements() {
-        List<IConfigElement> list = new ArrayList<>();
-        addEl(list, "enableForceSneak");
-        addEl(list, "forceSneakEnabled");
-        addEl(list, "forceSneakKey");
-        addEl(list, "showSneakStatus");
-        addEl(list, "sneakStatusX");
-        addEl(list, "sneakStatusY");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "sneakStatusColor");
-        addEl(list, "sneakPlaySound");
-        return list;
-    }
-
-    // ═══════════════════════════════════════════════════════════════
-    //  模块12：药水状态HUD
-    // ═══════════════════════════════════════════════════════════════
-    private static List<IConfigElement> getPotionConfigElements() {
-        List<IConfigElement> list = new ArrayList<>();
-        addEl(list, "showPotionHUD");
-        addEl(list, "potionHudX");
-        addEl(list, "potionHudY");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "potionBackgroundColor");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "potionTextColor");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "potionGoodEffectColor");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "potionBadEffectColor");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "potionNeutralEffectColor");
-        addEl(list, "potionScale");
-        addEl(list, "showPotionIcons");
-        addEl(list, "showPotionNames");
-        addEl(list, "showPotionDurations");
-        addEl(list, "showPotionAmplifier");
-        addEl(list, "showPotionBackground");
-        addEl(list, "potionSpacing");
-        addEl(list, "potionTextOffset");
-        addEl(list, "potionTimeFormat");
-        addEl(list, "showOnlyActivePotions");
-        addEl(list, "maxPotionDisplay");
-        addEl(list, "sortByDuration");
-        addEl(list, "showInfiniteAsIcon");
         return list;
     }
 
@@ -518,86 +259,6 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
         addEl(list, "keyBindToggleBlockOutline");
         addEl(list, "keyBindToggleEntityHitbox");
         addEl(list, "keyBindToggleRGB");
-        return list;
-    }
-
-    // ═══════════════════════════════════════════════════════════════
-    //  模块15：物品信息HUD
-    // ═══════════════════════════════════════════════════════════════
-    private static List<IConfigElement> getItemInfoConfigElements() {
-        List<IConfigElement> list = new ArrayList<>();
-        addEl(list, "enableItemInfoHUD");
-        addEl(list, "itemHudX");
-        addEl(list, "itemHudY");
-        addEl(list, "itemHudWidth");
-        addEl(list, "itemHudHeight");
-        addEl(list, "itemShowBackground");
-        addEl(list, "itemBackgroundOpacity");
-        addEl(list, "itemShowBorder");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "itemBorderColor");
-        addEl(list, "showMainHandCountSeparate");
-        addEl(list, "mainHandCountX");
-        addEl(list, "mainHandCountY");
-        addEl(list, "showMainHandItem");
-        addEl(list, "showItemIcon");
-        addEl(list, "showItemName");
-        addEl(list, "showItemType");
-        addEl(list, "showItemCount");
-        addEl(list, "showDurability");
-        addEl(list, "showDurabilityBar");
-        addEl(list, "showEnchantments");
-        addEl(list, "showArrowCount");
-        addEl(list, "showArmorItems");
-        addEl(list, "showArmorIcon");
-        addEl(list, "showArmorName");
-        addEl(list, "showArmorDurability");
-        addEl(list, "showArmorEnchantments");
-        addEl(list, "itemUseRarityColors");
-        addEl(list, "itemLowDurabilityThreshold");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "itemNameColor");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "itemCountColor");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "itemDurabilityColor");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "itemLowDurabilityColor");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "itemEnchantmentColor");
-        addEl(list, "showItemDamage");
-        addEl(list, "showDamageBreakdown");
-        return list;
-    }
-
-    // ═══════════════════════════════════════════════════════════════
-    //  模块16：低血量警告
-    // ═══════════════════════════════════════════════════════════════
-    private static List<IConfigElement> getLowHealthConfigElements() {
-        List<IConfigElement> list = new ArrayList<>();
-        addEl(list, "enableLowHealthWarning");
-        addEl(list, "lowHealthThreshold");
-        addEl(list, "darkenIntensity");
-        addEl(list, "vignetteSize");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "darkenColor");
-        return list;
-    }
-
-    // ═══════════════════════════════════════════════════════════════
-    //  模块17：Ping HUD
-    // ═══════════════════════════════════════════════════════════════
-    private static List<IConfigElement> getPingConfigElements() {
-        List<IConfigElement> list = new ArrayList<>();
-        addEl(list, "showPingHUD");
-        addEl(list, "pingHudXOffset");
-        addEl(list, "pingHudYOffset");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "pingColor");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "pingGoodColor");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "pingMediumColor");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "pingBadColor");
-        addEl(list, "goodPingThreshold");
-        addEl(list, "mediumPingThreshold");
-        addEl(list, "showPingHistory");
-        addEl(list, "pingHistorySize");
-        addEl(list, "showRealPing");
-        addEl(list, "useTrafficBasedPing");
-        addEl(list, "showPingSource");
-        addEl(list, "realPingUpdateInterval");
-        addEl(list, "showNetworkDetails");
         return list;
     }
 
