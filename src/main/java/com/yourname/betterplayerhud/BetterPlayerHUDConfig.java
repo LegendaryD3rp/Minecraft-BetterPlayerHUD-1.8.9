@@ -214,6 +214,8 @@ public class BetterPlayerHUDConfig {
     public int rgbSpeed = 500;                          // 色相循环速度（ms/周期），越大越慢
     public boolean rgbApplyBlockOutline = true;
     public boolean rgbApplyEntityHitbox = true;
+    public String rgbFlowMode = "perimeter";            // "perimeter"=逐棱流动, "uniform"=整框同色
+    public String rgbColorAlgo = "hsv";                 // "hsv"=HSBtoRGB, "sinewave"=正弦波三通道
     public boolean hideHitboxForInvisible = false;      // 隐身实体不画碰撞箱
     public int keyBindToggleBlockOutline = 0;           // 方块描边开关快捷键
     public int keyBindToggleEntityHitbox = 0;           // 实体碰撞箱开关快捷键
@@ -810,11 +812,11 @@ public class BetterPlayerHUDConfig {
             Property p = config.get(C, "enableRGBMode", true);
             p.comment = "启用 RGB 动态流光（覆盖静态颜色）"; enableRGBMode = p.getBoolean();
 
-            p = config.get(C, "rgbStepMs", 400);
+            p = config.get(C, "rgbStepMs", 0);
             p.comment = "步进间隔(ms,0=平滑)"; rgbStepMs = p.getInt();
 
-            p = config.get(C, "rgbSpeed", 80);
-            p.comment = "RGB 色相循环速度（毫秒/周期，越大越慢，默认500）"; rgbSpeed = p.getInt();
+            p = config.get(C, "rgbSpeed", 500);
+            p.comment = "RGB 色相循环速度（毫秒/周期，越大越慢）"; rgbSpeed = p.getInt();
 
             p = config.get(C, "rgbApplyBlockOutline", true);
             p.comment = "RGB 应用于方块描边"; rgbApplyBlockOutline = p.getBoolean();
@@ -824,6 +826,12 @@ public class BetterPlayerHUDConfig {
 
             p = config.get(C, "hideHitboxForInvisible", false);
             p.comment = "隐身生物/玩家不显示碰撞箱（默认关，可开）"; hideHitboxForInvisible = p.getBoolean();
+
+            p = config.get(C, "rgbFlowMode", "perimeter");
+            p.comment = "流光模式：perimeter=逐棱流动, uniform=整框同色"; rgbFlowMode = p.getString();
+
+            p = config.get(C, "rgbColorAlgo", "hsv");
+            p.comment = "颜色算法：hsv=HSBtoRGB, sinewave=正弦波三通道"; rgbColorAlgo = p.getString();
         }
 
         // --- 模块14c：快捷键（描边/碰撞箱/RGB）---
@@ -1251,10 +1259,13 @@ public class BetterPlayerHUDConfig {
 
         // --- 模块14b ---
         config.get(C, "enableRGBMode", true).set(enableRGBMode);
-        config.get(C, "rgbSpeed", 80).set(rgbSpeed);
+        config.get(C, "rgbStepMs", 0).set(rgbStepMs);
+        config.get(C, "rgbSpeed", 500).set(rgbSpeed);
         config.get(C, "rgbApplyBlockOutline", true).set(rgbApplyBlockOutline);
         config.get(C, "rgbApplyEntityHitbox", true).set(rgbApplyEntityHitbox);
         config.get(C, "hideHitboxForInvisible", false).set(hideHitboxForInvisible);
+        config.get(C, "rgbFlowMode", "perimeter").set(rgbFlowMode);
+        config.get(C, "rgbColorAlgo", "hsv").set(rgbColorAlgo);
 
         // --- 模块14c ---
         config.get(C, "keyBindToggleBlockOutline", 0).set(keyBindToggleBlockOutline);

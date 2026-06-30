@@ -96,10 +96,32 @@ public class BlockOutlineHandler {
     }
 
     /**
+     * 获取方块描边颜色（考虑 RGB 模式）。
+     */
+    private int getEffectiveBlockOutlineColor() {
+        if (BetterPlayerHUD.config.enableRGBMode && BetterPlayerHUD.config.rgbApplyBlockOutline) {
+            // uniform 模式：整框同色
+            if ("uniform".equals(BetterPlayerHUD.config.rgbFlowMode)) {
+                return RGBFlowColor.getUniformColorByConfig(System.currentTimeMillis(),
+                    BetterPlayerHUD.config.rgbSpeed, BetterPlayerHUD.config.rgbStepMs,
+                    BetterPlayerHUD.config.rgbColorAlgo);
+            }
+            // perimeter 模式：由 drawFlowingBoundingBox 处理
+            return RGBFlowColor.getColor(BetterPlayerHUD.config.rgbSpeed);
+        }
+        return BetterPlayerHUD.config.blockOutlineColor;
+    }
+
+    /**
      * 获取实体描边颜色（考虑 RGB 模式）。
      */
     private int getEffectiveEntityOutlineColor(net.minecraft.entity.Entity entity) {
         if (BetterPlayerHUD.config.enableRGBMode && BetterPlayerHUD.config.rgbApplyEntityHitbox) {
+            if ("uniform".equals(BetterPlayerHUD.config.rgbFlowMode)) {
+                return RGBFlowColor.getUniformColorByConfig(System.currentTimeMillis(),
+                    BetterPlayerHUD.config.rgbSpeed, BetterPlayerHUD.config.rgbStepMs,
+                    BetterPlayerHUD.config.rgbColorAlgo);
+            }
             return RGBFlowColor.getColor(BetterPlayerHUD.config.rgbSpeed);
         }
         return getEntityOutlineColor(entity);
@@ -157,16 +179,6 @@ public class BlockOutlineHandler {
     }
 
     /**
-     * 获取方块描边颜色（考虑 RGB 模式）。
-     */
-    private int getEffectiveBlockOutlineColor() {
-        if (BetterPlayerHUD.config.enableRGBMode && BetterPlayerHUD.config.rgbApplyBlockOutline) {
-            return RGBFlowColor.getColor(BetterPlayerHUD.config.rgbSpeed);
-        }
-        return BetterPlayerHUD.config.blockOutlineColor;
-    }
-
-    /**
      * 通用渲染核心：管理OpenGL状态，并调用具体的包围盒绘制逻辑。
      * @param isEntity true=实体，false=方块。用于选择对应的“仅可见面”配置。
      */
@@ -188,7 +200,7 @@ public class BlockOutlineHandler {
         double maxY = aabb.maxY - offsetY;
         double maxZ = aabb.maxZ - offsetZ;
 
-        boolean useFlowing = BetterPlayerHUD.config.enableRGBMode &&
+        boolean useFlowing = BetterPlayerHUD.config.enableRGBMode && "perimeter".equals(BetterPlayerHUD.config.rgbFlowMode) &&
             (isEntity ? BetterPlayerHUD.config.rgbApplyEntityHitbox : BetterPlayerHUD.config.rgbApplyBlockOutline);
 
         if (useFlowing) {
@@ -210,7 +222,7 @@ public class BlockOutlineHandler {
     }
 
     // RGB 流光每条棱的细分数（18段 = 19个顶点/棱，逐点HSV精确着色）
-    private static final int RGB_FLOW_SEGMENTS = 18;
+    private static final int RGB_FLOW_SEGMENTS = 64;
 
     /**
      * 绘制流动RGB包围盒。
@@ -304,7 +316,7 @@ public class BlockOutlineHandler {
                     double vy = e[1] + t * (e[4] - e[1]);
                     double vz = e[2] + t * (e[5] - e[2]);
                     float vertexPos = pos + (float)(t * len);
-                    int color = RGBFlowColor.getFlowColorAtTime(currentTimeMs, vertexPos, totalPerimeter, speed, stepMs);
+                    int color = RGBFlowColor.getFlowColorByConfig(currentTimeMs, vertexPos, totalPerimeter, speed, stepMs, BetterPlayerHUD.config.rgbColorAlgo);
                     float r = ((color >> 16) & 0xFF) / 255f;
                     float g = ((color >> 8) & 0xFF) / 255f;
                     float b = (color & 0xFF) / 255f;

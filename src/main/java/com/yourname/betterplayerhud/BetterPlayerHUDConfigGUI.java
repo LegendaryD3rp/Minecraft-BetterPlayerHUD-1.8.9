@@ -254,6 +254,8 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
     private static List<IConfigElement> getRGBConfigElements() {
         List<IConfigElement> list = new ArrayList<>();
         addEl(list, "enableRGBMode");
+        addEl(list, "rgbFlowMode");
+        addEl(list, "rgbColorAlgo");
         addEl(list, "rgbStepMs");
         addEl(list, "rgbSpeed");
         addEl(list, "rgbApplyBlockOutline");
