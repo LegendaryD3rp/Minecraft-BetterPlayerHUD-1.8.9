@@ -217,6 +217,7 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
         ColorPreviewHelper.addColorElements(list, cfg(), cat(), "keysTextColor");
         addEl(list, "keysScale");
         addEl(list, "showKeysBackground");
+        addEl(list, "keysOpacity");
         return list;
     }
 
@@ -243,6 +244,7 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
         ColorPreviewHelper.addColorElements(list, cfg(), cat(), "entityOutlineColorFriendly");
         addEl(list, "entityOutlineWidth");
         addEl(list, "drawVisibleFacesOnlyEntities");
+        addEl(list, "hideHitboxForInvisible");
         return list;
     }
 
@@ -256,7 +258,6 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
         addEl(list, "rgbSpeed");
         addEl(list, "rgbApplyBlockOutline");
         addEl(list, "rgbApplyEntityHitbox");
-        addEl(list, "hideHitboxForInvisible");
         addEl(list, "keyBindToggleBlockOutline");
         addEl(list, "keyBindToggleEntityHitbox");
         addEl(list, "keyBindToggleRGB");

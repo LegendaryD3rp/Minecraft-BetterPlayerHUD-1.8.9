@@ -222,6 +222,12 @@ public class BlockOutlineHandler {
         long stepMs = BetterPlayerHUD.config.rgbStepMs;
         if (totalPerimeter <= 0) return;
 
+        // ═══════════════════════════════════════════════════════════════
+        //  统一采样时间，保证一帧内所有顶点颜色使用同一时间基准，
+        //  避免逐棱渲染时 System.currentTimeMillis() 漂移导致首尾不衔接
+        // ═══════════════════════════════════════════════════════════════
+        long currentTimeMs = System.currentTimeMillis();
+
         boolean drawAllFaces = !isEntity ? !BetterPlayerHUD.config.drawVisibleFacesOnlyBlocks : !BetterPlayerHUD.config.drawVisibleFacesOnlyEntities;
 
         // 计算面可见性（用于 visible-faces-only 模式）
@@ -292,8 +298,8 @@ public class BlockOutlineHandler {
             }
 
             if (visible) {
-                int startColor = RGBFlowColor.getFlowColor(startPos, totalPerimeter, speed, stepMs);
-                int endColor = RGBFlowColor.getFlowColor(endPos, totalPerimeter, speed, stepMs);
+                int startColor = RGBFlowColor.getFlowColorAtTime(currentTimeMs, startPos, totalPerimeter, speed, stepMs);
+                int endColor = RGBFlowColor.getFlowColorAtTime(currentTimeMs, endPos, totalPerimeter, speed, stepMs);
                 float sr = ((startColor >> 16) & 0xFF) / 255f;
                 float sg = ((startColor >> 8) & 0xFF) / 255f;
                 float sb = (startColor & 0xFF) / 255f;

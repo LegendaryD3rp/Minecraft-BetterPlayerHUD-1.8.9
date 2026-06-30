@@ -25,9 +25,29 @@ public class RGBFlowColor {
     }
 
     /**
-     * 获取沿周界流动的流光色。
+     * 获取沿周界流动的流光色（指定时刻）。
      *
-     * 每条棱的中点色相 = (时间偏移 + 棱中点位置/总周界) % 1.0
+     * @param timeMs          当前时刻（统一由调用方传入，保证同一帧内所有顶点使用同一时间基准）
+     * @param perimeterMidPos  该棱中点距周界起点的距离
+     * @param totalPerimeter   周界总长度
+     * @param speed            完整色相周期（ms），值越小流动越快
+     * @param stepMs           步进间隔（ms），0=平滑，>0=每stepMs跳变一次
+     * @return ARGB 颜色值（0xFF000000 ~ 0xFFFFFFFF）
+     */
+    public static int getFlowColorAtTime(long timeMs, float perimeterMidPos, float totalPerimeter, long speed, long stepMs) {
+        if (totalPerimeter <= 0) totalPerimeter = 1;
+        float hue;
+        if (stepMs <= 0) {
+            hue = ((timeMs % speed) / (float) speed + perimeterMidPos / totalPerimeter) % 1.0f;
+        } else {
+            long quantized = (timeMs / stepMs) * stepMs;
+            hue = ((quantized % speed) / (float) speed + perimeterMidPos / totalPerimeter) % 1.0f;
+        }
+        return 0xFF000000 | (0xFFFFFF & Color.HSBtoRGB(hue, 1.0f, 1.0f));
+    }
+
+    /**
+     * 获取沿周界流动的流光色（自动采样时间）。
      *
      * @param perimeterMidPos  该棱中点距周界起点的距离
      * @param totalPerimeter   周界总长度
@@ -36,20 +56,7 @@ public class RGBFlowColor {
      * @return ARGB 颜色值（0xFF000000 ~ 0xFFFFFFFF）
      */
     public static int getFlowColor(float perimeterMidPos, float totalPerimeter, long speed, long stepMs) {
-        if (totalPerimeter <= 0) totalPerimeter = 1;
-        long time = System.currentTimeMillis();
-
-        float hue;
-        if (stepMs <= 0) {
-            // 平滑流动
-            hue = ((time % speed) / (float) speed + perimeterMidPos / totalPerimeter) % 1.0f;
-        } else {
-            // 步进流动（时间量子化）
-            long quantized = (time / stepMs) * stepMs;
-            hue = ((quantized % speed) / (float) speed + perimeterMidPos / totalPerimeter) % 1.0f;
-        }
-
-        return 0xFF000000 | (0xFFFFFF & Color.HSBtoRGB(hue, 1.0f, 1.0f));
+        return getFlowColorAtTime(System.currentTimeMillis(), perimeterMidPos, totalPerimeter, speed, stepMs);
     }
 
     /**
