@@ -207,7 +207,7 @@ public class BlockOutlineHandler {
             drawFlowingBoundingBox(minX, minY, minZ, maxX, maxY, maxZ, isEntity);
         } else {
             // uniform RGB 或静态颜色：用我们自己的 Tessellator 绘制 12 条棱
-            drawSimpleBoundingBox(minX, minY, minZ, maxX, maxY, maxZ, color);
+            drawSimpleBoundingBox(minX, minY, minZ, maxX, maxY, maxZ, color, isEntity);
         }
 
         GlStateManager.depthMask(true);
@@ -227,14 +227,46 @@ public class BlockOutlineHandler {
      * 绘制单色包围盒（uniform RGB/静态颜色）。
      * 12 条棱用 GL_LINE_STRIP 绘制，颜色统一。
      */
-    private void drawSimpleBoundingBox(double minX, double minY, double minZ, double maxX, double maxY, double maxZ, int color) {
+    private void drawSimpleBoundingBox(double minX, double minY, double minZ, double maxX, double maxY, double maxZ, int color, boolean isEntity) {
         float r = ((color >> 16) & 0xFF) / 255f;
         float g = ((color >> 8) & 0xFF) / 255f;
         float b = (color & 0xFF) / 255f;
         float a = ((color >> 24) & 0xFF) / 255f;
 
-        Tessellator tess = Tessellator.getInstance();
-        WorldRenderer wr = tess.getWorldRenderer();
+        boolean drawAllFaces = !isEntity ? !BetterPlayerHUD.config.drawVisibleFacesOnlyBlocks : !BetterPlayerHUD.config.drawVisibleFacesOnlyEntities;
+
+        // 计算面可见性
+        double centerX = (minX + maxX) / 2.0;
+        double centerY = (minY + maxY) / 2.0;
+        double centerZ = (minZ + maxZ) / 2.0;
+        float eyeH = mc.thePlayer != null ? mc.thePlayer.getEyeHeight() : 1.62F;
+        double camX = -centerX;
+        double camY = -centerY + eyeH;
+        double camZ = -centerZ;
+        boolean[] faceVis = {
+            isFaceVisible( 0,-1, 0, centerX, minY, centerZ, camX, camY, camZ, eyeH),
+            isFaceVisible( 0, 1, 0, centerX, maxY, centerZ, camX, camY, camZ, eyeH),
+            isFaceVisible( 0, 0,-1, centerX, centerY, minZ, camX, camY, camZ, eyeH),
+            isFaceVisible( 0, 0, 1, centerX, centerY, maxZ, camX, camY, camZ, eyeH),
+            isFaceVisible(-1, 0, 0, minX, centerY, centerZ, camX, camY, camZ, eyeH),
+            isFaceVisible( 1, 0, 0, maxX, centerY, centerZ, camX, camY, camZ, eyeH),
+        };
+
+        // 每条棱属于哪些面: 0=下 1=上 2=北 3=南 4=西 5=东
+        int[][] edgeFaces = {
+            {0,2},   // 0: 底-后
+            {0,5},   // 1: 底-右
+            {0,3},   // 2: 底-前
+            {0,4},   // 3: 底-左
+            {2,4},   // 4: 北-左(垂直)
+            {2,5},   // 5: 北-右(垂直)
+            {3,5},   // 6: 南-右(垂直)
+            {3,4},   // 7: 南-左(垂直)
+            {1,2},   // 8: 顶-后
+            {1,5},   // 9: 顶-右
+            {1,3},   // 10: 顶-前
+            {1,4},   // 11: 顶-左
+        };
 
         double[][] edges = {
             {minX, minY, minZ, maxX, minY, minZ},
@@ -251,11 +283,22 @@ public class BlockOutlineHandler {
             {minX, maxY, maxZ, minX, maxY, minZ},
         };
 
+        Tessellator tess = Tessellator.getInstance();
+        WorldRenderer wr = tess.getWorldRenderer();
+
         for (int e = 0; e < 12; e++) {
-            wr.begin(GL11.GL_LINE_STRIP, DefaultVertexFormats.POSITION_COLOR);
-            wr.pos(edges[e][0], edges[e][1], edges[e][2]).color(r, g, b, a).endVertex();
-            wr.pos(edges[e][3], edges[e][4], edges[e][5]).color(r, g, b, a).endVertex();
-            tess.draw();
+            boolean visible = drawAllFaces;
+            if (!drawAllFaces) {
+                for (int fi : edgeFaces[e]) {
+                    if (faceVis[fi]) { visible = true; break; }
+                }
+            }
+            if (visible) {
+                wr.begin(GL11.GL_LINE_STRIP, DefaultVertexFormats.POSITION_COLOR);
+                wr.pos(edges[e][0], edges[e][1], edges[e][2]).color(r, g, b, a).endVertex();
+                wr.pos(edges[e][3], edges[e][4], edges[e][5]).color(r, g, b, a).endVertex();
+                tess.draw();
+            }
         }
     }
 
