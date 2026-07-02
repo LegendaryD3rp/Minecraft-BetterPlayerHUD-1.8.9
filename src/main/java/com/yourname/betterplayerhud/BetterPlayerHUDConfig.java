@@ -297,6 +297,22 @@ public class BetterPlayerHUDConfig {
     //  模块18：目标血量显示 (Target HP)
     // ================================================================
     public boolean targetHPEnabled = true;
+
+    // ================================================================
+    //  模块19：服务器信息 HUD（TPS / Ping / 服务器IP）
+    // ================================================================
+    public boolean showServerInfo = true;
+    public int serverInfoX = 5;
+    public int serverInfoY = 65;
+    public int serverInfoColor = 0xAAAAAA;
+    public boolean serverInfoShowTPS = true;
+    public boolean serverInfoShowPing = true;
+    public boolean serverInfoShowServerIP = true;
+    public int serverInfoTPSGoodColor = 0x55FF55;
+    public int serverInfoTPSMediumColor = 0xFFFF55;
+    public int serverInfoTPSBadColor = 0xFF5555;
+    public int serverInfoGoodTpsThreshold = 18;
+    public int serverInfoMediumTpsThreshold = 15;
     public String targetHPStyle = "BAR_AND_TEXT";       // BAR_ONLY / TEXT_ONLY / BAR_AND_TEXT
     public float targetHPMaxRange = 32.0f;
     public boolean targetHPShowPlayers = true;
@@ -1095,6 +1111,39 @@ public class BetterPlayerHUDConfig {
             p = config.get(C, "targetHPFaceSize", 14);
             p.comment = "面部头像尺寸(像素)"; targetHPFaceSize = p.getInt();
         }
+
+        // --- 模块19：服务器信息 HUD ---
+        {
+            Property p = config.get(C, "showServerInfo", true);
+            p.comment = "是否显示服务器信息HUD（TPS/Ping/服务器IP）"; showServerInfo = p.getBoolean();
+
+            p = config.get(C, "serverInfoX", 5);
+            p.comment = "服务器信息 X 坐标"; serverInfoX = p.getInt();
+
+            p = config.get(C, "serverInfoY", 65);
+            p.comment = "服务器信息 Y 坐标"; serverInfoY = p.getInt();
+
+            serverInfoColor = loadColor(C, "serverInfoColor", 170, 170, 170);
+
+            p = config.get(C, "serverInfoShowTPS", true);
+            p.comment = "是否显示TPS估算"; serverInfoShowTPS = p.getBoolean();
+
+            p = config.get(C, "serverInfoShowPing", true);
+            p.comment = "是否显示真实延迟"; serverInfoShowPing = p.getBoolean();
+
+            p = config.get(C, "serverInfoShowServerIP", true);
+            p.comment = "是否显示服务器IP"; serverInfoShowServerIP = p.getBoolean();
+
+            serverInfoTPSGoodColor = loadColor(C, "serverInfoTPSGoodColor", 85, 255, 85);
+            serverInfoTPSMediumColor = loadColor(C, "serverInfoTPSMediumColor", 255, 255, 85);
+            serverInfoTPSBadColor = loadColor(C, "serverInfoTPSBadColor", 255, 85, 85);
+
+            p = config.get(C, "serverInfoGoodTpsThreshold", 18);
+            p.comment = "良好TPS阈值"; serverInfoGoodTpsThreshold = p.getInt();
+
+            p = config.get(C, "serverInfoMediumTpsThreshold", 15);
+            p.comment = "中等TPS阈值"; serverInfoMediumTpsThreshold = p.getInt();
+        }
     }
 
     // ================================================================
@@ -1363,6 +1412,20 @@ public class BetterPlayerHUDConfig {
         config.get(C, "targetHPShowArmorLabels", true).set(targetHPShowArmorLabels);
         config.get(C, "targetHPShowFace", true).set(targetHPShowFace);
         config.get(C, "targetHPFaceSize", 14).set(targetHPFaceSize);
+
+        // --- 模块19 ---
+        config.get(C, "showServerInfo", true).set(showServerInfo);
+        config.get(C, "serverInfoX", 5).set(serverInfoX);
+        config.get(C, "serverInfoY", 65).set(serverInfoY);
+        saveColor(C, "serverInfoColor", serverInfoColor);
+        config.get(C, "serverInfoShowTPS", true).set(serverInfoShowTPS);
+        config.get(C, "serverInfoShowPing", true).set(serverInfoShowPing);
+        config.get(C, "serverInfoShowServerIP", true).set(serverInfoShowServerIP);
+        saveColor(C, "serverInfoTPSGoodColor", serverInfoTPSGoodColor);
+        saveColor(C, "serverInfoTPSMediumColor", serverInfoTPSMediumColor);
+        saveColor(C, "serverInfoTPSBadColor", serverInfoTPSBadColor);
+        config.get(C, "serverInfoGoodTpsThreshold", 18).set(serverInfoGoodTpsThreshold);
+        config.get(C, "serverInfoMediumTpsThreshold", 15).set(serverInfoMediumTpsThreshold);
 
         // 持久化到磁盘
         config.save();
