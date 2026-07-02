@@ -2,14 +2,13 @@ package com.yourname.betterplayerhud;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.channel.ChannelInboundHandlerAdapter;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.network.NetworkPlayerInfo;
 import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.network.NetworkManager;
-import net.minecraft.network.Packet;
 import net.minecraft.network.play.server.S03PacketTimeUpdate;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -109,13 +108,13 @@ public class ServerInfoHUDHandler {
             if (ch.pipeline().get("tps_tracker") != null) return;
 
             ch.pipeline().addBefore("packet_handler", "tps_tracker",
-                new SimpleChannelInboundHandler<Packet>() {
+                new ChannelInboundHandlerAdapter() {
                     @Override
-                    protected void channelRead0(ChannelHandlerContext ctx, Packet packet) {
-                        if (packet instanceof S03PacketTimeUpdate) {
+                    public void channelRead(ChannelHandlerContext ctx, Object msg) {
+                        if (msg instanceof S03PacketTimeUpdate) {
                             onTimePacket();
                         }
-                        ctx.fireChannelRead(packet);
+                        ctx.fireChannelRead(msg);
                     }
                 });
         } catch (Exception e) {
