@@ -35,21 +35,11 @@ public class CrosshairHandler {
         if (event.type == RenderGameOverlayEvent.ElementType.CROSSHAIRS
                 && BetterPlayerHUD.config.enableCrosshair
                 && shouldShow()) {
+            // 在 Pre 中直接绘制自定义准星，然后取消原版
+            ScaledResolution sr = new ScaledResolution(mc);
+            renderCrosshair(sr.getScaledWidth(), sr.getScaledHeight());
             event.setCanceled(true);
         }
-    }
-
-    @SubscribeEvent
-    public void onPostCrosshair(RenderGameOverlayEvent.Post event) {
-        if (event.type != RenderGameOverlayEvent.ElementType.CROSSHAIRS) return;
-        if (!BetterPlayerHUD.config.enableCrosshair) return;
-        if (!shouldShow()) return;
-
-        ScaledResolution sr = new ScaledResolution(mc);
-        int w = sr.getScaledWidth();
-        int h = sr.getScaledHeight();
-
-        renderCrosshair(w, h);
     }
 
     /** 判断当前是否应该显示准星 */
