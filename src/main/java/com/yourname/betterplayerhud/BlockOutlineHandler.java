@@ -225,80 +225,107 @@ public class BlockOutlineHandler {
 
     /**
      * 绘制单色包围盒（uniform RGB/静态颜色）。
-     * 12 条棱用 GL_LINE_STRIP 绘制，颜色统一。
+     * 使用与原始版一致的批处理方式：
+     * GL_LINES + 全局颜色 + 逐可见面绘制。
      */
     private void drawSimpleBoundingBox(double minX, double minY, double minZ, double maxX, double maxY, double maxZ, int color, boolean isEntity) {
-        float r = ((color >> 16) & 0xFF) / 255f;
-        float g = ((color >> 8) & 0xFF) / 255f;
-        float b = (color & 0xFF) / 255f;
-        float a = ((color >> 24) & 0xFF) / 255f;
-
         boolean drawAllFaces = !isEntity ? !BetterPlayerHUD.config.drawVisibleFacesOnlyBlocks : !BetterPlayerHUD.config.drawVisibleFacesOnlyEntities;
 
-        // 计算面可见性
-        double centerX = (minX + maxX) / 2.0;
-        double centerY = (minY + maxY) / 2.0;
-        double centerZ = (minZ + maxZ) / 2.0;
-        float eyeH = mc.thePlayer != null ? mc.thePlayer.getEyeHeight() : 1.62F;
-        double camX = -centerX;
-        double camY = -centerY + eyeH;
-        double camZ = -centerZ;
-        boolean[] faceVis = {
-            isFaceVisible( 0,-1, 0, centerX, minY, centerZ, camX, camY, camZ, eyeH),
-            isFaceVisible( 0, 1, 0, centerX, maxY, centerZ, camX, camY, camZ, eyeH),
-            isFaceVisible( 0, 0,-1, centerX, centerY, minZ, camX, camY, camZ, eyeH),
-            isFaceVisible( 0, 0, 1, centerX, centerY, maxZ, camX, camY, camZ, eyeH),
-            isFaceVisible(-1, 0, 0, minX, centerY, centerZ, camX, camY, camZ, eyeH),
-            isFaceVisible( 1, 0, 0, maxX, centerY, centerZ, camX, camY, camZ, eyeH),
-        };
-
-        // 每条棱属于哪些面: 0=下 1=上 2=北 3=南 4=西 5=东
-        int[][] edgeFaces = {
-            {0,2},   // 0: 底-后
-            {0,5},   // 1: 底-右
-            {0,3},   // 2: 底-前
-            {0,4},   // 3: 底-左
-            {2,4},   // 4: 北-左(垂直)
-            {2,5},   // 5: 北-右(垂直)
-            {3,5},   // 6: 南-右(垂直)
-            {3,4},   // 7: 南-左(垂直)
-            {1,2},   // 8: 顶-后
-            {1,5},   // 9: 顶-右
-            {1,3},   // 10: 顶-前
-            {1,4},   // 11: 顶-左
-        };
-
-        double[][] edges = {
-            {minX, minY, minZ, maxX, minY, minZ},
-            {maxX, minY, minZ, maxX, minY, maxZ},
-            {maxX, minY, maxZ, minX, minY, maxZ},
-            {minX, minY, maxZ, minX, minY, minZ},
-            {minX, minY, minZ, minX, maxY, minZ},
-            {maxX, minY, minZ, maxX, maxY, minZ},
-            {maxX, minY, maxZ, maxX, maxY, maxZ},
-            {minX, minY, maxZ, minX, maxY, maxZ},
-            {minX, maxY, minZ, maxX, maxY, minZ},
-            {maxX, maxY, minZ, maxX, maxY, maxZ},
-            {maxX, maxY, maxZ, minX, maxY, maxZ},
-            {minX, maxY, maxZ, minX, maxY, minZ},
-        };
+        setColor(color);
 
         Tessellator tess = Tessellator.getInstance();
         WorldRenderer wr = tess.getWorldRenderer();
+        wr.begin(GL11.GL_LINES, DefaultVertexFormats.POSITION);
 
-        for (int e = 0; e < 12; e++) {
-            boolean visible = drawAllFaces;
-            if (!drawAllFaces) {
-                for (int fi : edgeFaces[e]) {
-                    if (faceVis[fi]) { visible = true; break; }
-                }
-            }
-            if (visible) {
-                wr.begin(GL11.GL_LINE_STRIP, DefaultVertexFormats.POSITION_COLOR);
-                wr.pos(edges[e][0], edges[e][1], edges[e][2]).color(r, g, b, a).endVertex();
-                wr.pos(edges[e][3], edges[e][4], edges[e][5]).color(r, g, b, a).endVertex();
-                tess.draw();
-            }
+        if (drawAllFaces) {
+            drawCompleteBoxEdges(wr, minX, minY, minZ, maxX, maxY, maxZ);
+        } else {
+            // 逐面可见性判断（使用原始版公式，eyeY=0 即相机在 (0,0,0)）
+            double centerX = (minX + maxX) / 2.0;
+            double centerY = (minY + maxY) / 2.0;
+            double centerZ = (minZ + maxZ) / 2.0;
+
+            boolean drawDown = isFaceVisible(0, -1, 0, centerX, minY, centerZ, 0, 0, 0, 0);
+            boolean drawUp   = isFaceVisible(0,  1, 0, centerX, maxY, centerZ, 0, 0, 0, 0);
+            boolean drawNorth = isFaceVisible(0, 0, -1, centerX, centerY, minZ, 0, 0, 0, 0);
+            boolean drawSouth = isFaceVisible(0, 0,  1, centerX, centerY, maxZ, 0, 0, 0, 0);
+            boolean drawWest  = isFaceVisible(-1, 0, 0, minX, centerY, centerZ, 0, 0, 0, 0);
+            boolean drawEast  = isFaceVisible( 1, 0, 0, maxX, centerY, centerZ, 0, 0, 0, 0);
+
+            if (drawDown)  drawFaceEdges(wr, minX, minY, minZ, maxX, minY, maxZ);
+            if (drawUp)    drawFaceEdges(wr, minX, maxY, minZ, maxX, maxY, maxZ);
+            if (drawNorth) drawFaceEdges(wr, minX, minY, minZ, maxX, maxY, minZ);
+            if (drawSouth) drawFaceEdges(wr, minX, minY, maxZ, maxX, maxY, maxZ);
+            if (drawWest)  drawFaceEdges(wr, minX, minY, minZ, minX, maxY, maxZ);
+            if (drawEast)  drawFaceEdges(wr, maxX, minY, minZ, maxX, maxY, maxZ);
+        }
+
+        tess.draw();
+    }
+
+    /**
+     * 绘制立方体的全部12条棱（GL_LINES 模式）。
+     * 每条棱作为一条线段：端点1→端点2。
+     */
+    private static void drawCompleteBoxEdges(WorldRenderer wr,
+                                             double minX, double minY, double minZ,
+                                             double maxX, double maxY, double maxZ) {
+        // 底面4条
+        wr.pos(minX, minY, minZ).endVertex(); wr.pos(maxX, minY, minZ).endVertex();
+        wr.pos(maxX, minY, minZ).endVertex(); wr.pos(maxX, minY, maxZ).endVertex();
+        wr.pos(maxX, minY, maxZ).endVertex(); wr.pos(minX, minY, maxZ).endVertex();
+        wr.pos(minX, minY, maxZ).endVertex(); wr.pos(minX, minY, minZ).endVertex();
+        // 顶面4条
+        wr.pos(minX, maxY, minZ).endVertex(); wr.pos(maxX, maxY, minZ).endVertex();
+        wr.pos(maxX, maxY, minZ).endVertex(); wr.pos(maxX, maxY, maxZ).endVertex();
+        wr.pos(maxX, maxY, maxZ).endVertex(); wr.pos(minX, maxY, maxZ).endVertex();
+        wr.pos(minX, maxY, maxZ).endVertex(); wr.pos(minX, maxY, minZ).endVertex();
+        // 4条竖棱
+        wr.pos(minX, minY, minZ).endVertex(); wr.pos(minX, maxY, minZ).endVertex();
+        wr.pos(maxX, minY, minZ).endVertex(); wr.pos(maxX, maxY, minZ).endVertex();
+        wr.pos(maxX, minY, maxZ).endVertex(); wr.pos(maxX, maxY, maxZ).endVertex();
+        wr.pos(minX, minY, maxZ).endVertex(); wr.pos(minX, maxY, maxZ).endVertex();
+    }
+
+    /**
+     * 绘制一个矩形面的4条边（GL_LINES 模式）。
+     * 传入面对角线上的两个角点坐标，自动推导4条边的端点。
+     */
+    private static void drawFaceEdges(WorldRenderer wr,
+                                      double x1, double y1, double z1,
+                                      double x2, double y2, double z2) {
+        // 找出不变的轴向（面的法线方向）
+        boolean ySame = Math.abs(y1 - y2) < 1e-9;
+        boolean xSame = Math.abs(x1 - x2) < 1e-9;
+        // 剩下就是 zSame
+
+        if (ySame) {
+            // 水平面（顶面/底面）
+            double y = y1;
+            double minX = Math.min(x1, x2), maxX = Math.max(x1, x2);
+            double minZ = Math.min(z1, z2), maxZ = Math.max(z1, z2);
+            wr.pos(minX, y, minZ).endVertex(); wr.pos(maxX, y, minZ).endVertex();
+            wr.pos(maxX, y, minZ).endVertex(); wr.pos(maxX, y, maxZ).endVertex();
+            wr.pos(maxX, y, maxZ).endVertex(); wr.pos(minX, y, maxZ).endVertex();
+            wr.pos(minX, y, maxZ).endVertex(); wr.pos(minX, y, minZ).endVertex();
+        } else if (xSame) {
+            // 垂直面，法线沿X（东/西）
+            double x = x1;
+            double minY = Math.min(y1, y2), maxY = Math.max(y1, y2);
+            double minZ = Math.min(z1, z2), maxZ = Math.max(z1, z2);
+            wr.pos(x, minY, minZ).endVertex(); wr.pos(x, maxY, minZ).endVertex();
+            wr.pos(x, maxY, minZ).endVertex(); wr.pos(x, maxY, maxZ).endVertex();
+            wr.pos(x, maxY, maxZ).endVertex(); wr.pos(x, minY, maxZ).endVertex();
+            wr.pos(x, minY, maxZ).endVertex(); wr.pos(x, minY, minZ).endVertex();
+        } else {
+            // 垂直面，法线沿Z（北/南）
+            double z = z1;
+            double minX = Math.min(x1, x2), maxX = Math.max(x1, x2);
+            double minY = Math.min(y1, y2), maxY = Math.max(y1, y2);
+            wr.pos(minX, minY, z).endVertex(); wr.pos(maxX, minY, z).endVertex();
+            wr.pos(maxX, minY, z).endVertex(); wr.pos(maxX, maxY, z).endVertex();
+            wr.pos(maxX, maxY, z).endVertex(); wr.pos(minX, maxY, z).endVertex();
+            wr.pos(minX, maxY, z).endVertex(); wr.pos(minX, minY, z).endVertex();
         }
     }
 
