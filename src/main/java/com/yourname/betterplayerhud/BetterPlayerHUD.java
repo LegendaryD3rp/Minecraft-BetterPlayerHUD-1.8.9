@@ -35,6 +35,9 @@ public class BetterPlayerHUD {
 
         // 注册服务器信息 HUD（TPS / Ping / 服务器IP）
         MinecraftForge.EVENT_BUS.register(new ServerInfoHUDHandler());
+
+        // 注册自定义准星 HUD（模块20）
+        MinecraftForge.EVENT_BUS.register(new CrosshairHandler());
     }
 
     /**

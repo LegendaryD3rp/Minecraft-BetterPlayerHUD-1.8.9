@@ -140,6 +140,16 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
                 "Target HP"
         ));
 
+        // === 模块20：自定义准星 ===
+        elements.add(ColorPreviewHelper.createPreviewCategory(
+                "自定义准星设置", "compassmod.category.crosshair",
+                getCrosshairConfigElements(),
+                new ColorPreviewHelper.ColorInfo[]{
+                        new ColorPreviewHelper.ColorInfo("crosshairColor", "准星颜色"),
+                },
+                "Crosshair"
+        ));
+
         return elements;
     }
 
@@ -288,6 +298,41 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
         ColorPreviewHelper.addColorElements(list, cfg(), cat(), "targetHPColor");
         ColorPreviewHelper.addColorElements(list, cfg(), cat(), "targetHPBackColor");
         ColorPreviewHelper.addColorElements(list, cfg(), cat(), "targetHPTextColor");
+        return list;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  模块20：自定义准星 (Crosshair)
+    // ═══════════════════════════════════════════════════════════════
+    private static List<IConfigElement> getCrosshairConfigElements() {
+        List<IConfigElement> list = new ArrayList<>();
+        addEl(list, "enableCrosshair");
+        addEl(list, "crosshairStyle");
+        addEl(list, "crosshairLength");
+        addEl(list, "crosshairGap");
+        addEl(list, "crosshairThickness");
+        addEl(list, "crosshairArmUp");
+        addEl(list, "crosshairArmDown");
+        addEl(list, "crosshairArmLeft");
+        addEl(list, "crosshairArmRight");
+        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "crosshairColor");
+        addEl(list, "crosshairRGB");
+        addEl(list, "crosshairOutline");
+        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "crosshairOutlineColor");
+        addEl(list, "crosshairOutlineWidth");
+        addEl(list, "crosshairRotation");
+        addEl(list, "crosshairSpread");
+        addEl(list, "crosshairSpreadAmount");
+        addEl(list, "crosshairSpreadWalk");
+        addEl(list, "crosshairSpreadJump");
+        addEl(list, "crosshairSpreadBow");
+        addEl(list, "crosshairXOffset");
+        addEl(list, "crosshairYOffset");
+        addEl(list, "crosshairAlwaysShow");
+        addEl(list, "crosshairShowInThirdPerson");
+        addEl(list, "crosshairDotSize");
+        addEl(list, "crosshairCircleRadius");
+        addEl(list, "crosshairCircleSegments");
         return list;
     }
 }

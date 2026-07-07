@@ -340,6 +340,37 @@ public class BetterPlayerHUDConfig {
     public int targetHPFaceSize = 14;
 
     // ================================================================
+    //  模块20：自定义准星 (Crosshair)
+    // ================================================================
+    public boolean enableCrosshair = true;
+    public String crosshairStyle = "cross_gap";              // dot / cross / cross_gap / csgo / circle / diamond / triangle
+    public boolean crosshairArmUp = true;
+    public boolean crosshairArmDown = true;
+    public boolean crosshairArmLeft = true;
+    public boolean crosshairArmRight = true;
+    public int crosshairLength = 10;
+    public int crosshairGap = 2;
+    public int crosshairThickness = 2;
+    public int crosshairColor = 0xFFFFFFFF;
+    public boolean crosshairRGB = false;
+    public boolean crosshairOutline = false;
+    public int crosshairOutlineColor = 0xAA000000;
+    public int crosshairOutlineWidth = 1;
+    public int crosshairRotation = 0;
+    public boolean crosshairSpread = true;
+    public float crosshairSpreadAmount = 1.0f;
+    public boolean crosshairSpreadWalk = true;
+    public boolean crosshairSpreadJump = true;
+    public boolean crosshairSpreadBow = true;
+    public int crosshairXOffset = 0;
+    public int crosshairYOffset = 0;
+    public boolean crosshairAlwaysShow = false;
+    public boolean crosshairShowInThirdPerson = true;
+    public int crosshairDotSize = 2;
+    public int crosshairCircleRadius = 8;
+    public int crosshairCircleSegments = 24;
+
+    // ================================================================
     //  颜色工具方法
     // ================================================================
     private static int packRGB(int r, int g, int b) {
@@ -1144,6 +1175,84 @@ public class BetterPlayerHUDConfig {
             p = config.get(C, "serverInfoMediumTpsThreshold", 15);
             p.comment = "中等TPS阈值"; serverInfoMediumTpsThreshold = p.getInt();
         }
+
+        // --- 模块20：自定义准星 ---
+        {
+            Property p = config.get(C, "enableCrosshair", true);
+            p.comment = "是否启用自定义准星（取代原版）"; enableCrosshair = p.getBoolean();
+
+            p = config.get(C, "crosshairStyle", "cross_gap");
+            p.comment = "准星样式 dot/cross/cross_gap/csgo/circle/diamond/triangle"; crosshairStyle = p.getString();
+
+            p = config.get(C, "crosshairArmUp", true);
+            p.comment = "上臂显示"; crosshairArmUp = p.getBoolean();
+            p = config.get(C, "crosshairArmDown", true);
+            p.comment = "下臂显示"; crosshairArmDown = p.getBoolean();
+            p = config.get(C, "crosshairArmLeft", true);
+            p.comment = "左臂显示"; crosshairArmLeft = p.getBoolean();
+            p = config.get(C, "crosshairArmRight", true);
+            p.comment = "右臂显示"; crosshairArmRight = p.getBoolean();
+
+            p = config.get(C, "crosshairLength", 10);
+            p.comment = "准星臂长(像素)"; crosshairLength = p.getInt();
+
+            p = config.get(C, "crosshairGap", 2);
+            p.comment = "中心间隙(像素)"; crosshairGap = p.getInt();
+
+            p = config.get(C, "crosshairThickness", 2);
+            p.comment = "准星粗细(像素)"; crosshairThickness = p.getInt();
+
+            crosshairColor = loadColor(C, "crosshairColor", 255, 255, 255);
+
+            p = config.get(C, "crosshairRGB", false);
+            p.comment = "启用RGB流光（复用RGB配置的速度/算法）"; crosshairRGB = p.getBoolean();
+
+            p = config.get(C, "crosshairOutline", false);
+            p.comment = "显示描边"; crosshairOutline = p.getBoolean();
+
+            crosshairOutlineColor = loadColor(C, "crosshairOutlineColor", 0, 0, 0);
+
+            p = config.get(C, "crosshairOutlineWidth", 1);
+            p.comment = "描边粗细(像素)"; crosshairOutlineWidth = p.getInt();
+
+            p = config.get(C, "crosshairRotation", 0);
+            p.comment = "旋转角度(0~360)"; crosshairRotation = p.getInt();
+
+            p = config.get(C, "crosshairSpread", true);
+            p.comment = "启用动态扩散"; crosshairSpread = p.getBoolean();
+
+            p = config.get(C, "crosshairSpreadAmount", 1.0);
+            p.comment = "扩散强度(倍数)"; crosshairSpreadAmount = (float) p.getDouble();
+
+            p = config.get(C, "crosshairSpreadWalk", true);
+            p.comment = "行走时扩散"; crosshairSpreadWalk = p.getBoolean();
+
+            p = config.get(C, "crosshairSpreadJump", true);
+            p.comment = "跳跃时扩散"; crosshairSpreadJump = p.getBoolean();
+
+            p = config.get(C, "crosshairSpreadBow", true);
+            p.comment = "拉弓时扩散"; crosshairSpreadBow = p.getBoolean();
+
+            p = config.get(C, "crosshairXOffset", 0);
+            p.comment = "水平偏移"; crosshairXOffset = p.getInt();
+            p = config.get(C, "crosshairYOffset", 0);
+            p.comment = "垂直偏移"; crosshairYOffset = p.getInt();
+
+            p = config.get(C, "crosshairAlwaysShow", false);
+            p.comment = "不瞄准时也显示"; crosshairAlwaysShow = p.getBoolean();
+
+            p = config.get(C, "crosshairShowInThirdPerson", true);
+            p.comment = "第三人称显示"; crosshairShowInThirdPerson = p.getBoolean();
+
+            p = config.get(C, "crosshairDotSize", 2);
+            p.comment = "点状准星尺寸"; crosshairDotSize = p.getInt();
+
+            p = config.get(C, "crosshairCircleRadius", 8);
+            p.comment = "圆形准星半径"; crosshairCircleRadius = p.getInt();
+
+            p = config.get(C, "crosshairCircleSegments", 24);
+            p.comment = "圆形分段数"; crosshairCircleSegments = p.getInt();
+        }
     }
 
     // ================================================================
@@ -1426,6 +1535,35 @@ public class BetterPlayerHUDConfig {
         saveColor(C, "serverInfoTPSBadColor", serverInfoTPSBadColor);
         config.get(C, "serverInfoGoodTpsThreshold", 18).set(serverInfoGoodTpsThreshold);
         config.get(C, "serverInfoMediumTpsThreshold", 15).set(serverInfoMediumTpsThreshold);
+
+        // --- 模块20：自定义准星 ---
+        config.get(C, "enableCrosshair", true).set(enableCrosshair);
+        config.get(C, "crosshairStyle", "cross_gap").set(crosshairStyle);
+        config.get(C, "crosshairArmUp", true).set(crosshairArmUp);
+        config.get(C, "crosshairArmDown", true).set(crosshairArmDown);
+        config.get(C, "crosshairArmLeft", true).set(crosshairArmLeft);
+        config.get(C, "crosshairArmRight", true).set(crosshairArmRight);
+        config.get(C, "crosshairLength", 10).set(crosshairLength);
+        config.get(C, "crosshairGap", 2).set(crosshairGap);
+        config.get(C, "crosshairThickness", 2).set(crosshairThickness);
+        saveColor(C, "crosshairColor", crosshairColor);
+        config.get(C, "crosshairRGB", false).set(crosshairRGB);
+        config.get(C, "crosshairOutline", false).set(crosshairOutline);
+        saveColor(C, "crosshairOutlineColor", crosshairOutlineColor);
+        config.get(C, "crosshairOutlineWidth", 1).set(crosshairOutlineWidth);
+        config.get(C, "crosshairRotation", 0).set(crosshairRotation);
+        config.get(C, "crosshairSpread", true).set(crosshairSpread);
+        config.get(C, "crosshairSpreadAmount", 1.0f).set(crosshairSpreadAmount);
+        config.get(C, "crosshairSpreadWalk", true).set(crosshairSpreadWalk);
+        config.get(C, "crosshairSpreadJump", true).set(crosshairSpreadJump);
+        config.get(C, "crosshairSpreadBow", true).set(crosshairSpreadBow);
+        config.get(C, "crosshairXOffset", 0).set(crosshairXOffset);
+        config.get(C, "crosshairYOffset", 0).set(crosshairYOffset);
+        config.get(C, "crosshairAlwaysShow", false).set(crosshairAlwaysShow);
+        config.get(C, "crosshairShowInThirdPerson", true).set(crosshairShowInThirdPerson);
+        config.get(C, "crosshairDotSize", 2).set(crosshairDotSize);
+        config.get(C, "crosshairCircleRadius", 8).set(crosshairCircleRadius);
+        config.get(C, "crosshairCircleSegments", 24).set(crosshairCircleSegments);
 
         // 持久化到磁盘
         config.save();
