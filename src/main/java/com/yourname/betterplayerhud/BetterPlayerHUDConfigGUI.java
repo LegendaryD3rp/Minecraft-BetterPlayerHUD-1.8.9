@@ -5,6 +5,7 @@ import net.minecraftforge.common.config.Configuration;
 import net.minecraftforge.common.config.ConfigElement;
 import net.minecraftforge.common.config.Property;
 import net.minecraftforge.fml.client.config.IConfigElement;
+import net.minecraftforge.fml.client.config.DummyConfigElement;
 import net.minecraftforge.fml.client.config.GuiConfig;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
@@ -355,30 +356,97 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
     private static List<IConfigElement> getHitMarkerConfigElements() {
         List<IConfigElement> list = new ArrayList<>();
         addEl(list, "enableHitMarker");
-        // audio
-        addEl(list, "enableHitSounds");
-        addEl(list, "enableKillSound");
-        addEl(list, "soundVolume");
-        // visual: hit
-        addEl(list, "hitAlpha");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "hitColor");
-        addEl(list, "hitSize");
-        // visual: kill
-        addEl(list, "killAlpha");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "killColor");
-        addEl(list, "killSize");
-        // border
-        addEl(list, "hitMarkerEnableBorder");
-        addEl(list, "hitMarkerBorderWidth");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "hitMarkerBorderColor");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "hitMarkerKillBorderColor");
-        // effects
-        addEl(list, "hitBloodIntensity");
-        // chat
-        addEl(list, "enableChatKillDetection");
-        // rotation
-        addEl(list, "hitMarkerRandomRotate");
-        addEl(list, "hitMarkerRandomRotateStrength");
+
+        // ── 🔊 音效 ──
+        list.add(new DummyConfigElement.DummyCategoryElement(
+                "音效", "hitmarker.sub.audio", getAudioElements()));
+
+        // ── 🎯 击中视觉效果 ──
+        list.add(ColorPreviewHelper.createPreviewCategory(
+                "击中视觉效果", "hitmarker.sub.visual_hit",
+                getHitVisualElements(),
+                new ColorPreviewHelper.ColorInfo[]{
+                        new ColorPreviewHelper.ColorInfo("hitColor", "击中颜色")
+                },
+                "击中标识"
+        ));
+
+        // ── 💀 击杀视觉效果 ──
+        list.add(ColorPreviewHelper.createPreviewCategory(
+                "击杀视觉效果", "hitmarker.sub.visual_kill",
+                getKillVisualElements(),
+                new ColorPreviewHelper.ColorInfo[]{
+                        new ColorPreviewHelper.ColorInfo("killColor", "击杀颜色")
+                },
+                "击杀标识"
+        ));
+
+        // ── ⬜ 边框 ──
+        list.add(ColorPreviewHelper.createPreviewCategory(
+                "边框", "hitmarker.sub.border",
+                getBorderElements(),
+                new ColorPreviewHelper.ColorInfo[]{
+                        new ColorPreviewHelper.ColorInfo("hitMarkerBorderColor", "边框颜色"),
+                        new ColorPreviewHelper.ColorInfo("hitMarkerKillBorderColor", "击杀边框颜色"),
+                },
+                "边框设置"
+        ));
+
+        // ── 💧 粒子 & 聊天检测 ──
+        list.add(new DummyConfigElement.DummyCategoryElement(
+                "粒子&聊天", "hitmarker.sub.effects", getEffectsElements()));
+
+        // ── 🔄 旋转 ──
+        list.add(new DummyConfigElement.DummyCategoryElement(
+                "旋转", "hitmarker.sub.rotation", getRotationElements()));
+
         return list;
+    }
+
+    private static List<IConfigElement> getAudioElements() {
+        List<IConfigElement> l = new ArrayList<>();
+        addEl(l, "enableHitSounds");
+        addEl(l, "enableKillSound");
+        addEl(l, "soundVolume");
+        return l;
+    }
+
+    private static List<IConfigElement> getHitVisualElements() {
+        List<IConfigElement> l = new ArrayList<>();
+        addEl(l, "hitAlpha");
+        addEl(l, "hitSize");
+        ColorPreviewHelper.addColorElements(l, cfg(), cat(), "hitColor");
+        return l;
+    }
+
+    private static List<IConfigElement> getKillVisualElements() {
+        List<IConfigElement> l = new ArrayList<>();
+        addEl(l, "killAlpha");
+        addEl(l, "killSize");
+        ColorPreviewHelper.addColorElements(l, cfg(), cat(), "killColor");
+        return l;
+    }
+
+    private static List<IConfigElement> getBorderElements() {
+        List<IConfigElement> l = new ArrayList<>();
+        addEl(l, "hitMarkerEnableBorder");
+        addEl(l, "hitMarkerBorderWidth");
+        ColorPreviewHelper.addColorElements(l, cfg(), cat(), "hitMarkerBorderColor");
+        ColorPreviewHelper.addColorElements(l, cfg(), cat(), "hitMarkerKillBorderColor");
+        return l;
+    }
+
+    private static List<IConfigElement> getEffectsElements() {
+        List<IConfigElement> l = new ArrayList<>();
+        addEl(l, "hitBloodIntensity");
+        addEl(l, "enableChatKillDetection");
+        return l;
+    }
+
+    private static List<IConfigElement> getRotationElements() {
+        List<IConfigElement> l = new ArrayList<>();
+        addEl(l, "hitMarkerRandomRotate");
+        addEl(l, "hitMarkerRandomRotateStrength");
+        return l;
     }
 }
