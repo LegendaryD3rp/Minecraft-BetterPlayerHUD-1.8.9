@@ -89,7 +89,7 @@ public class HitMarkerRendererBHUD {
         GlStateManager.translate(cx, cy, 0.0F);
         if (cfg.hitMarkerRandomRotate && cfg.hitMarkerRandomRotateStrength > 0) {
             Random rng = new Random(startTime);
-            float angle = (rng.nextFloat() * 2.0F - 1.0F) * cfg.hitMarkerRandomRotateStrength;
+            float angle = (rng.nextBoolean() ? 1.0F : -1.0F) * (5.0F + rng.nextFloat() * 15.0F);
             GlStateManager.rotate(angle, 0.0F, 0.0F, 1.0F);
         }
         GlStateManager.translate(-cx, -cy, 0.0F);
