@@ -649,7 +649,9 @@ public class BetterPlayerHUDConfig {
             p.comment = "是否启用自定义准星（取代原版）"; enableCrosshair = p.getBoolean();
 
             p = config.get(C, "crosshairStyle", "cross_gap");
-            p.comment = "准星样式 dot/cross/cross_gap/csgo/circle/diamond/triangle"; crosshairStyle = p.getString();
+            p.comment = "准星样式";
+            p.setValidValues(new String[]{"dot", "cross", "cross_gap", "csgo", "circle", "diamond", "triangle"});
+            crosshairStyle = p.getString();
 
             p = config.get(C, "crosshairArmUp", true);
             p.comment = "上臂显示"; crosshairArmUp = p.getBoolean();
