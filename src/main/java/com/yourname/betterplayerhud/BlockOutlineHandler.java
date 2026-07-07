@@ -240,17 +240,18 @@ public class BlockOutlineHandler {
         if (drawAllFaces) {
             drawCompleteBoxEdges(wr, minX, minY, minZ, maxX, maxY, maxZ);
         } else {
-            // 逐面可见性判断（使用原始版公式，eyeY=0 即相机在 (0,0,0)）
+            // 逐面可见性判断（使用真实眼高）
             double centerX = (minX + maxX) / 2.0;
             double centerY = (minY + maxY) / 2.0;
             double centerZ = (minZ + maxZ) / 2.0;
+            float eyeY = mc.thePlayer != null ? mc.thePlayer.getEyeHeight() : 1.62F;
 
-            boolean drawDown = isFaceVisible(0, -1, 0, centerX, minY, centerZ, 0, 0, 0, 0);
-            boolean drawUp   = isFaceVisible(0,  1, 0, centerX, maxY, centerZ, 0, 0, 0, 0);
-            boolean drawNorth = isFaceVisible(0, 0, -1, centerX, centerY, minZ, 0, 0, 0, 0);
-            boolean drawSouth = isFaceVisible(0, 0,  1, centerX, centerY, maxZ, 0, 0, 0, 0);
-            boolean drawWest  = isFaceVisible(-1, 0, 0, minX, centerY, centerZ, 0, 0, 0, 0);
-            boolean drawEast  = isFaceVisible( 1, 0, 0, maxX, centerY, centerZ, 0, 0, 0, 0);
+            boolean drawDown = isFaceVisible(0, -1, 0, centerX, minY, centerZ, 0, 0, 0, eyeY);
+            boolean drawUp   = isFaceVisible(0,  1, 0, centerX, maxY, centerZ, 0, 0, 0, eyeY);
+            boolean drawNorth = isFaceVisible(0, 0, -1, centerX, centerY, minZ, 0, 0, 0, eyeY);
+            boolean drawSouth = isFaceVisible(0, 0,  1, centerX, centerY, maxZ, 0, 0, 0, eyeY);
+            boolean drawWest  = isFaceVisible(-1, 0, 0, minX, centerY, centerZ, 0, 0, 0, eyeY);
+            boolean drawEast  = isFaceVisible( 1, 0, 0, maxX, centerY, centerZ, 0, 0, 0, eyeY);
 
             if (drawDown)  drawFaceEdges(wr, minX, minY, minZ, maxX, minY, maxZ);
             if (drawUp)    drawFaceEdges(wr, minX, maxY, minZ, maxX, maxY, maxZ);
