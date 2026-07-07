@@ -39,8 +39,10 @@ public class BetterPlayerHUD {
         // 注册自定义准星 HUD（模块20）
         MinecraftForge.EVENT_BUS.register(new CrosshairHandler());
 
-        // 注册命中标识系统（模块21）
-        MinecraftForge.EVENT_BUS.register(new HitMarkerHandler());
+        // 注册命中标识系统（模块21）— 由 HitMarkerMod 移植
+        MinecraftForge.EVENT_BUS.register(new HitMarkerRendererBHUD());
+        MinecraftForge.EVENT_BUS.register(new HitMarkerEventHandler());
+        MinecraftForge.EVENT_BUS.register(new HitMarkerChatListener());
     }
 
     /**

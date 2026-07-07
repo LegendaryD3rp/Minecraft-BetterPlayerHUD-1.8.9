@@ -150,6 +150,19 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
                 "Crosshair"
         ));
 
+        // === 模块21：命中标识 ===
+        elements.add(ColorPreviewHelper.createPreviewCategory(
+                "命中标识设置", "compassmod.category.hitmarker",
+                getHitMarkerConfigElements(),
+                new ColorPreviewHelper.ColorInfo[]{
+                        new ColorPreviewHelper.ColorInfo("hitColor", "击中颜色"),
+                        new ColorPreviewHelper.ColorInfo("killColor", "击杀颜色"),
+                        new ColorPreviewHelper.ColorInfo("hitMarkerBorderColor", "边框颜色"),
+                        new ColorPreviewHelper.ColorInfo("hitMarkerKillBorderColor", "击杀边框颜色"),
+                },
+                "Hit Marker"
+        ));
+
         return elements;
     }
 
@@ -333,6 +346,39 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
         addEl(list, "crosshairDotSize");
         addEl(list, "crosshairCircleRadius");
         addEl(list, "crosshairCircleSegments");
+        return list;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  模块21：命中标识 (Hit Marker)
+    // ═══════════════════════════════════════════════════════════════
+    private static List<IConfigElement> getHitMarkerConfigElements() {
+        List<IConfigElement> list = new ArrayList<>();
+        addEl(list, "enableHitMarker");
+        // audio
+        addEl(list, "enableHitSounds");
+        addEl(list, "enableKillSound");
+        addEl(list, "soundVolume");
+        // visual: hit
+        addEl(list, "hitAlpha");
+        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "hitColor");
+        addEl(list, "hitSize");
+        // visual: kill
+        addEl(list, "killAlpha");
+        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "killColor");
+        addEl(list, "killSize");
+        // border
+        addEl(list, "hitMarkerEnableBorder");
+        addEl(list, "hitMarkerBorderWidth");
+        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "hitMarkerBorderColor");
+        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "hitMarkerKillBorderColor");
+        // effects
+        addEl(list, "hitBloodIntensity");
+        // chat
+        addEl(list, "enableChatKillDetection");
+        // rotation
+        addEl(list, "hitMarkerRandomRotate");
+        addEl(list, "hitMarkerRandomRotateStrength");
         return list;
     }
 }
