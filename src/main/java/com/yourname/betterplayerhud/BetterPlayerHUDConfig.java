@@ -218,6 +218,8 @@ public class BetterPlayerHUDConfig {
     public float hitMarkerKillBloodIntensity = 0.5f;
     public boolean hitMarkerEnableChatKill = true;
     public boolean hitMarkerEnableProjectileTracking = true;
+    public boolean hitMarkerRandomRotate = true;
+    public float hitMarkerRandomRotateStrength = 360.0f;
 
     // ================================================================
     //  颜色工具方法
@@ -760,6 +762,11 @@ public class BetterPlayerHUDConfig {
             p.comment = "聊天击杀检测(中英文)"; hitMarkerEnableChatKill = p.getBoolean();
             p = config.get(C, "hitMarkerEnableProjectileTracking", true);
             p.comment = "抛射物追踪(箭/雪球/钓竿)"; hitMarkerEnableProjectileTracking = p.getBoolean();
+
+            p = config.get(C, "hitMarkerRandomRotate", true);
+            p.comment = "随机旋转角度"; hitMarkerRandomRotate = p.getBoolean();
+            p = config.get(C, "hitMarkerRandomRotateStrength", 360.0);
+            p.comment = "旋转幅度(0~360)"; hitMarkerRandomRotateStrength = (float) p.getDouble();
         }
     }
 
@@ -946,6 +953,8 @@ public class BetterPlayerHUDConfig {
         config.get(C, "hitMarkerKillBloodIntensity", 0.5).set(hitMarkerKillBloodIntensity);
         config.get(C, "hitMarkerEnableChatKill", true).set(hitMarkerEnableChatKill);
         config.get(C, "hitMarkerEnableProjectileTracking", true).set(hitMarkerEnableProjectileTracking);
+        config.get(C, "hitMarkerRandomRotate", true).set(hitMarkerRandomRotate);
+        config.get(C, "hitMarkerRandomRotateStrength", 360.0).set(hitMarkerRandomRotateStrength);
 
         // 持久化到磁盘
         config.save();

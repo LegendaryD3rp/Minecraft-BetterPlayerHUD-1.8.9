@@ -135,13 +135,13 @@ public class HitMarkerHandler {
         int cy = sr.getScaledHeight() / 2;
 
         if (showingKill) {
-            renderMarker(cx, cy, killElapsed, KILL_DURATION, true);
+            renderMarker(cx, cy, killElapsed, KILL_DURATION, true, killMarkerTime);
         } else {
-            renderMarker(cx, cy, hitElapsed, HIT_DURATION, false);
+            renderMarker(cx, cy, hitElapsed, HIT_DURATION, false, hitMarkerTime);
         }
     }
 
-    private void renderMarker(int cx, int cy, long elapsed, long duration, boolean isKill) {
+    private void renderMarker(int cx, int cy, long elapsed, long duration, boolean isKill, long startTime) {
         BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
         float progress = Math.min(1.0f, (float) elapsed / duration);
         float scale = 1.0f + progress * 0.5f;
@@ -157,6 +157,13 @@ public class HitMarkerHandler {
         GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
         GlStateManager.translate(cx, cy, 0);
         GlStateManager.scale(scale, scale, scale);
+
+        // 随机旋转：以 startTime 为种子，同一次 hit 角度固定，不同次随机
+        if (cfg.hitMarkerRandomRotate && cfg.hitMarkerRandomRotateStrength > 0) {
+            Random rng = new Random(startTime);
+            float angle = (float) (rng.nextDouble() * 2.0 - 1.0) * cfg.hitMarkerRandomRotateStrength;
+            GlStateManager.rotate(angle, 0.0F, 0.0F, 1.0F);
+        }
 
         // 边框
         if (cfg.hitMarkerEnableBorder) {
