@@ -1,5 +1,6 @@
 package com.yourname.betterplayerhud;
 
+import java.util.LinkedList;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.ScaledResolution;
@@ -22,12 +23,12 @@ public class KeysDisplayHandler {
     private long[] keyPressTimes = new long[8];
     private float[] keyIntensities = new float[8];
 
-    // CPS 跟踪
-    private int leftClickCount = 0;
-    private int rightClickCount = 0;
-    private long cpsCalcStart = System.currentTimeMillis();
+    // CPS 跟踪（滑动窗口：记录每次点击的时间戳）
+    private final LinkedList<Long> leftClicks = new LinkedList<>();
+    private final LinkedList<Long> rightClicks = new LinkedList<>();
     private float leftCps = 0f;
     private float rightCps = 0f;
+    private static final long CPS_WINDOW_MS = 1000L;
 
     // 动画配置
     private static final long PRESS_ANIMATION_DURATION = 200L;
@@ -67,7 +68,7 @@ public class KeysDisplayHandler {
             keyStates[0] = leftPressed;
             if (leftPressed) {
                 keyPressTimes[0] = currentTime;
-                leftClickCount++;
+                leftClicks.addLast(currentTime);
             }
         }
 
@@ -76,7 +77,7 @@ public class KeysDisplayHandler {
             keyStates[1] = rightPressed;
             if (rightPressed) {
                 keyPressTimes[1] = currentTime;
-                rightClickCount++;
+                rightClicks.addLast(currentTime);
             }
         }
 
@@ -118,18 +119,22 @@ public class KeysDisplayHandler {
     }
 
     /**
-     * 每秒计算一次 CPS 值并重置计数器
+     * 滑动窗口 CPS 计算。
+     * 每帧去掉超出1秒窗口的旧时间戳，队列长度 = 实时 CPS。
      */
     private void updateCps() {
         long now = System.currentTimeMillis();
-        long elapsed = now - cpsCalcStart;
-        if (elapsed >= 1000L) {
-            leftCps = (float) leftClickCount / (elapsed / 1000.0f);
-            rightCps = (float) rightClickCount / (elapsed / 1000.0f);
-            leftClickCount = 0;
-            rightClickCount = 0;
-            cpsCalcStart = now;
+        long cutoff = now - CPS_WINDOW_MS;
+
+        while (!leftClicks.isEmpty() && leftClicks.getFirst() < cutoff) {
+            leftClicks.removeFirst();
         }
+        while (!rightClicks.isEmpty() && rightClicks.getFirst() < cutoff) {
+            rightClicks.removeFirst();
+        }
+
+        leftCps = leftClicks.size();
+        rightCps = rightClicks.size();
     }
 
     private void renderKeysDisplay(int screenWidth, int screenHeight) {
