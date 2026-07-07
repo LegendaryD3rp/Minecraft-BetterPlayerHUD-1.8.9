@@ -196,6 +196,30 @@ public class BetterPlayerHUDConfig {
     public int crosshairCircleSegments = 24;
 
     // ================================================================
+    //  模块21：命中标识 (Hit Marker)
+    // ================================================================
+    public boolean enableHitMarker = true;
+    public boolean hitMarkerEnableHitSounds = true;
+    public boolean hitMarkerEnableKillSound = true;
+    public float hitMarkerSoundVolume = 1.0f;
+    public int hitMarkerHitColor = 0xFFFFFFFF;
+    public int hitMarkerKillColor = 0xFFFF0000;
+    public float hitMarkerHitAlpha = 1.0f;
+    public float hitMarkerKillAlpha = 1.0f;
+    public float hitMarkerHitSize = 8.0f;
+    public float hitMarkerKillSize = 12.0f;
+    public boolean hitMarkerEnableBorder = false;
+    public float hitMarkerBorderWidth = 1.5f;
+    public int hitMarkerBorderColor = 0xFF000000;
+    public int hitMarkerKillBorderColor = 0xFF000000;
+    public boolean hitMarkerEnableHitBlood = true;
+    public float hitMarkerHitBloodIntensity = 0.3f;
+    public boolean hitMarkerEnableKillBlood = true;
+    public float hitMarkerKillBloodIntensity = 0.5f;
+    public boolean hitMarkerEnableChatKill = true;
+    public boolean hitMarkerEnableProjectileTracking = true;
+
+    // ================================================================
     //  颜色工具方法
     // ================================================================
     private static int packRGB(int r, int g, int b) {
@@ -691,6 +715,52 @@ public class BetterPlayerHUDConfig {
             p = config.get(C, "crosshairCircleSegments", 24);
             p.comment = "圆形分段数"; crosshairCircleSegments = p.getInt();
         }
+
+        // --- 模块21：命中标识 ---
+        {
+            Property p = config.get(C, "enableHitMarker", true);
+            p.comment = "启用命中标识 (HitMarker)"; enableHitMarker = p.getBoolean();
+
+            p = config.get(C, "hitMarkerEnableHitSounds", true);
+            p.comment = "击中音效"; hitMarkerEnableHitSounds = p.getBoolean();
+            p = config.get(C, "hitMarkerEnableKillSound", true);
+            p.comment = "击杀音效"; hitMarkerEnableKillSound = p.getBoolean();
+            p = config.get(C, "hitMarkerSoundVolume", 1.0);
+            p.comment = "音效音量"; hitMarkerSoundVolume = (float) p.getDouble();
+
+            hitMarkerHitColor = loadColor(C, "hitMarkerHitColor", 255, 255, 255);
+            hitMarkerKillColor = loadColor(C, "hitMarkerKillColor", 255, 0, 0);
+
+            p = config.get(C, "hitMarkerHitAlpha", 1.0);
+            p.comment = "击中标识透明度"; hitMarkerHitAlpha = (float) p.getDouble();
+            p = config.get(C, "hitMarkerKillAlpha", 1.0);
+            p.comment = "击杀标识透明度"; hitMarkerKillAlpha = (float) p.getDouble();
+            p = config.get(C, "hitMarkerHitSize", 8.0);
+            p.comment = "击中标识尺寸"; hitMarkerHitSize = (float) p.getDouble();
+            p = config.get(C, "hitMarkerKillSize", 12.0);
+            p.comment = "击杀标识尺寸"; hitMarkerKillSize = (float) p.getDouble();
+
+            p = config.get(C, "hitMarkerEnableBorder", false);
+            p.comment = "显示边框"; hitMarkerEnableBorder = p.getBoolean();
+            p = config.get(C, "hitMarkerBorderWidth", 1.5);
+            p.comment = "边框宽度"; hitMarkerBorderWidth = (float) p.getDouble();
+            hitMarkerBorderColor = loadColor(C, "hitMarkerBorderColor", 0, 0, 0);
+            hitMarkerKillBorderColor = loadColor(C, "hitMarkerKillBorderColor", 0, 0, 0);
+
+            p = config.get(C, "hitMarkerEnableHitBlood", true);
+            p.comment = "击中血迹粒子"; hitMarkerEnableHitBlood = p.getBoolean();
+            p = config.get(C, "hitMarkerHitBloodIntensity", 0.3);
+            p.comment = "血迹浓度"; hitMarkerHitBloodIntensity = (float) p.getDouble();
+            p = config.get(C, "hitMarkerEnableKillBlood", true);
+            p.comment = "击杀血迹粒子"; hitMarkerEnableKillBlood = p.getBoolean();
+            p = config.get(C, "hitMarkerKillBloodIntensity", 0.5);
+            p.comment = "击杀血迹浓度"; hitMarkerKillBloodIntensity = (float) p.getDouble();
+
+            p = config.get(C, "hitMarkerEnableChatKill", true);
+            p.comment = "聊天击杀检测(中英文)"; hitMarkerEnableChatKill = p.getBoolean();
+            p = config.get(C, "hitMarkerEnableProjectileTracking", true);
+            p.comment = "抛射物追踪(箭/雪球/钓竿)"; hitMarkerEnableProjectileTracking = p.getBoolean();
+        }
     }
 
     // ================================================================
@@ -854,6 +924,28 @@ public class BetterPlayerHUDConfig {
         config.get(C, "crosshairDotSize", 2).set(crosshairDotSize);
         config.get(C, "crosshairCircleRadius", 8).set(crosshairCircleRadius);
         config.get(C, "crosshairCircleSegments", 24).set(crosshairCircleSegments);
+
+        // --- 模块21：命中标识 ---
+        config.get(C, "enableHitMarker", true).set(enableHitMarker);
+        config.get(C, "hitMarkerEnableHitSounds", true).set(hitMarkerEnableHitSounds);
+        config.get(C, "hitMarkerEnableKillSound", true).set(hitMarkerEnableKillSound);
+        config.get(C, "hitMarkerSoundVolume", 1.0).set(hitMarkerSoundVolume);
+        saveColor(C, "hitMarkerHitColor", hitMarkerHitColor);
+        saveColor(C, "hitMarkerKillColor", hitMarkerKillColor);
+        config.get(C, "hitMarkerHitAlpha", 1.0).set(hitMarkerHitAlpha);
+        config.get(C, "hitMarkerKillAlpha", 1.0).set(hitMarkerKillAlpha);
+        config.get(C, "hitMarkerHitSize", 8.0).set(hitMarkerHitSize);
+        config.get(C, "hitMarkerKillSize", 12.0).set(hitMarkerKillSize);
+        config.get(C, "hitMarkerEnableBorder", false).set(hitMarkerEnableBorder);
+        config.get(C, "hitMarkerBorderWidth", 1.5).set(hitMarkerBorderWidth);
+        saveColor(C, "hitMarkerBorderColor", hitMarkerBorderColor);
+        saveColor(C, "hitMarkerKillBorderColor", hitMarkerKillBorderColor);
+        config.get(C, "hitMarkerEnableHitBlood", true).set(hitMarkerEnableHitBlood);
+        config.get(C, "hitMarkerHitBloodIntensity", 0.3).set(hitMarkerHitBloodIntensity);
+        config.get(C, "hitMarkerEnableKillBlood", true).set(hitMarkerEnableKillBlood);
+        config.get(C, "hitMarkerKillBloodIntensity", 0.5).set(hitMarkerKillBloodIntensity);
+        config.get(C, "hitMarkerEnableChatKill", true).set(hitMarkerEnableChatKill);
+        config.get(C, "hitMarkerEnableProjectileTracking", true).set(hitMarkerEnableProjectileTracking);
 
         // 持久化到磁盘
         config.save();
