@@ -2,13 +2,13 @@
   {
     "modid": "betterplayerhud",
     "name": "BetterPlayerHUD",
-    "description": "BetterPlayerHUD - Elite player HUD enhancement mod",
+    "description": "一个轻量化的用户界面模组。\n\n鉴于 Essential 模组逐渐走到了轻量化的反面，各种各样的强制捆绑层出不穷，遂制作了 BetterPlayerHUD——一半为了练习，一半为了自用。\n\n内容包括：方块描边、按键显示、黑色行动冷战式指针罗盘+血条、命中标识、仅在瞄准时触发的实体碰撞箱等，能有效提升 PvP 手感的功能。\n\n全部可自定义，适用于 PvP 方向。",
     "version": "1.0.11",
     "mcversion": "1.8.9",
-    "author":"LegendaryDerp",
-    "url": "",
+    "author": "LegendaryD3rp",
+    "url": "https://github.com/LegendaryD3rp/Minecraft-BetterPlayerHUD-1.8.9",
     "updateUrl": "",
-    "credits": "LegendaryDerp shows gratitude to Minecraft Forge and Deepseek",
+    "credits": "Powered by Minecraft Forge",
     "logoFile": "",
     "screenshots": [],
     "dependencies": []
