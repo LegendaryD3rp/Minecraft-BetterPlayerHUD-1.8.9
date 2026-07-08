@@ -215,6 +215,10 @@ public class PlayerHUDHandler {
         int foodLevel = Math.min(mc.thePlayer.getFoodStats().getFoodLevel(), 20);
         int displayHunger = foodLevel * 5;
 
+        // 饱食度(Saturation): 0~foodLevel 的隐藏缓冲值
+        float saturation = mc.thePlayer.getFoodStats().getSaturationLevel();
+        int displaySaturation = Math.min((int)(saturation * 5), displayHunger);
+
         // 描边
         int outline = 0x66000000;
         drawRect(adjustedHudLeft - 1, hungerY - 1, adjustedHudLeft + barWidth + 1, hungerY, outline);
@@ -225,13 +229,20 @@ public class PlayerHUDHandler {
         // 背景
         drawRect(adjustedHudLeft, hungerY, adjustedHudLeft + barWidth, hungerY + barHeight, 0xFF555555);
 
-        // 橙色条
-        int fillW = (int)(barWidth * (displayHunger / 100.0f));
-        drawRect(adjustedHudLeft, hungerY, adjustedHudLeft + fillW, hungerY + barHeight, BetterPlayerHUD.config.hungerColor);
+        // 橙色条（foodLevel）
+        int foodW = (int)(barWidth * (displayHunger / 100.0f));
+        drawRect(adjustedHudLeft, hungerY, adjustedHudLeft + foodW, hungerY + barHeight, BetterPlayerHUD.config.hungerColor);
 
-        // 数值
+        // 金色半透明叠层（saturationLevel，盖在food bar上面）
+        if (displaySaturation > 0) {
+            int satW = (int)(barWidth * (displaySaturation / 100.0f));
+            drawRect(adjustedHudLeft, hungerY, adjustedHudLeft + satW, hungerY + barHeight, 0x80FFD700);
+        }
+
+        // 数值：food / sat
         FontRenderer fr = mc.fontRendererObj;
-        fr.drawStringWithShadow(String.valueOf(displayHunger),
+        String hungerText = displayHunger + "§7/§e" + displaySaturation;
+        fr.drawStringWithShadow(hungerText,
                 adjustedHudLeft + barWidth + 5,
                 hungerY + (barHeight - 8) / 2,
                 0xFFFFFF);
