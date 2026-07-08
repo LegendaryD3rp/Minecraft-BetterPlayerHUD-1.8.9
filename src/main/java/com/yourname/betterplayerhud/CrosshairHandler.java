@@ -22,13 +22,24 @@ public class CrosshairHandler {
 
     private static final Minecraft mc = Minecraft.getMinecraft();
     private static final double TWO_PI = Math.PI * 2;
+    private static final float SPREAD_SMOOTHING = 0.2f; // 插值系数，越高响应越快
+
+    private static float smoothSpread = 0;
 
     // ================================================================
     //  事件：拦截原版准星 + 绘制自定义准星
     // ================================================================
 
     @SubscribeEvent
-    public void onCrosshair(RenderGameOverlayEvent event) {
+    public void cancelOriginalCrosshair(RenderGameOverlayEvent.Pre event) {
+        if (event.type == RenderGameOverlayEvent.ElementType.CROSSHAIRS
+                && BetterPlayerHUD.config.enableCrosshair) {
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
+    public void drawCustomCrosshair(RenderGameOverlayEvent event) {
         if (event.type == RenderGameOverlayEvent.ElementType.TEXT
                 && BetterPlayerHUD.config.enableCrosshair
                 && shouldShow()) {
@@ -63,10 +74,15 @@ public class CrosshairHandler {
             color = RGBFlowColor.getUniformColorByConfig(now, cfg.rgbSpeed, cfg.rgbStepMs, cfg.rgbColorAlgo);
         }
 
-        // 计算扩散
-        float spread = 0;
+        // 计算扩散（带平滑插值，防止跳变）
+        float spread;
         if (cfg.crosshairSpread) {
-            spread = calculateSpread();
+            float target = calculateSpread();
+            smoothSpread += (target - smoothSpread) * SPREAD_SMOOTHING;
+            spread = smoothSpread;
+        } else {
+            smoothSpread = 0;
+            spread = 0;
         }
 
         GlStateManager.pushMatrix();

@@ -1,6 +1,5 @@
 package com.yourname.betterplayerhud;
 
-import net.minecraftforge.client.GuiIngameForge;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.client.event.ConfigChangedEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -23,9 +22,6 @@ public class BetterPlayerHUD {
 
     @Mod.EventHandler
     public void init(FMLInitializationEvent event) {
-        // 禁用原版准星（由自定义准星替代）
-        GuiIngameForge.renderCrosshairs = !config.enableCrosshair;
-
         // 注册精简版 HUD 处理器
         MinecraftForge.EVENT_BUS.register(new PlayerHUDHandler());
         MinecraftForge.EVENT_BUS.register(new CompassHUDHandler());
@@ -57,8 +53,6 @@ public class BetterPlayerHUD {
         public void onConfigChanged(ConfigChangedEvent.OnConfigChangedEvent event) {
             if (event.modID.equals(MODID)) {
                 config.reloadFromMemory();
-                // 同步原版准星：自定义开启时禁用原版，关闭时恢复原版
-                GuiIngameForge.renderCrosshairs = !config.enableCrosshair;
             }
         }
     }
