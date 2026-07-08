@@ -4,9 +4,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.client.renderer.WorldRenderer;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.item.ItemBow;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -35,7 +32,6 @@ public class CrosshairHandler {
         if (event.type == RenderGameOverlayEvent.ElementType.CROSSHAIRS
                 && BetterPlayerHUD.config.enableCrosshair
                 && shouldShow()) {
-            // 在 Pre 中直接绘制自定义准星，然后取消原版
             ScaledResolution sr = new ScaledResolution(mc);
             renderCrosshair(sr.getScaledWidth(), sr.getScaledHeight());
             event.setCanceled(true);
@@ -47,7 +43,6 @@ public class CrosshairHandler {
         if (mc.thePlayer == null) return false;
         if (mc.gameSettings.hideGUI) return false;
         if (mc.gameSettings.thirdPersonView != 0 && !BetterPlayerHUD.config.crosshairShowInThirdPerson) return false;
-        // 游戏内菜单等 — 原版也不显示
         if (mc.currentScreen != null) return false;
         return true;
     }
@@ -145,7 +140,7 @@ public class CrosshairHandler {
         if (cfg.crosshairSpreadBow && mc.thePlayer.isUsingItem()) {
             if (mc.thePlayer.getHeldItem() != null && mc.thePlayer.getHeldItem().getItem() instanceof ItemBow) {
                 int useCount = mc.thePlayer.getItemInUseCount();
-                float charge = (72000 - useCount) / 20.0f;  // 0→1 满蓄力
+                float charge = (72000 - useCount) / 20.0f;
                 spread += (1 - Math.min(charge, 1)) * 8;
             }
         }
@@ -154,214 +149,151 @@ public class CrosshairHandler {
     }
 
     // ================================================================
-    //  样式绘制
+    //  样式绘制（全部改用 GL11 immediate mode）
     // ================================================================
 
     /** 点 */
     private void drawDot(int cx, int cy, int color, int size) {
-        int half = Math.max(1, size);
         GlStateManager.color(
                 ((color >> 16) & 0xFF) / 255f,
                 ((color >> 8) & 0xFF) / 255f,
                 (color & 0xFF) / 255f,
                 ((color >> 24) & 0xFF) / 255f
         );
-        Gui.drawRect(cx - half, cy - half, cx + half + 1, cy + half + 1, color);
+        Gui.drawRect(cx - size, cy - size, cx + size + 1, cy + size + 1, color);
     }
 
-    /** 十字+间隙（cross / cross_gap 共用） */
+    /** 十字+间隙（cross / cross_gap 共用）— 立即模式 */
     private void drawCrossGap(int cx, int cy, int color, float spread, int gap, BetterPlayerHUDConfig cfg) {
-        setGlColor(color);
-        GL11.glLineWidth(cfg.crosshairThickness);
-
-        Tessellator t = Tessellator.getInstance();
-        WorldRenderer wr = t.getWorldRenderer();
-
         int len = cfg.crosshairLength;
         float g = gap + spread;
 
-        // 上
-        if (cfg.crosshairArmUp) drawLine(t, wr, cx, cy - g, cx, cy - g - len);
-        // 下
-        if (cfg.crosshairArmDown) drawLine(t, wr, cx, cy + g, cx, cy + g + len);
-        // 左
-        if (cfg.crosshairArmLeft) drawLine(t, wr, cx - g, cy, cx - g - len, cy);
-        // 右
-        if (cfg.crosshairArmRight) drawLine(t, wr, cx + g, cy, cx + g + len, cy);
-
-        // 描边（再画一遍，更大宽度，描边色）
+        // 描边（先画，更大宽度）
         if (cfg.crosshairOutline) {
             setGlColor(cfg.crosshairOutlineColor);
             GL11.glLineWidth(cfg.crosshairThickness + cfg.crosshairOutlineWidth * 2);
-
-            if (cfg.crosshairArmUp) drawLine(t, wr, cx, cy - g, cx, cy - g - len);
-            if (cfg.crosshairArmDown) drawLine(t, wr, cx, cy + g, cx, cy + g + len);
-            if (cfg.crosshairArmLeft) drawLine(t, wr, cx - g, cy, cx - g - len, cy);
-            if (cfg.crosshairArmRight) drawLine(t, wr, cx + g, cy, cx + g + len, cy);
-
-            // 恢复主色线条宽度
-            setGlColor(color);
-            GL11.glLineWidth(cfg.crosshairThickness);
-            if (cfg.crosshairArmUp) drawLine(t, wr, cx, cy - g, cx, cy - g - len);
-            if (cfg.crosshairArmDown) drawLine(t, wr, cx, cy + g, cx, cy + g + len);
-            if (cfg.crosshairArmLeft) drawLine(t, wr, cx - g, cy, cx - g - len, cy);
-            if (cfg.crosshairArmRight) drawLine(t, wr, cx + g, cy, cx + g + len, cy);
+            if (cfg.crosshairArmUp) drawLineGL(cx, cy - g, cx, cy - g - len);
+            if (cfg.crosshairArmDown) drawLineGL(cx, cy + g, cx, cy + g + len);
+            if (cfg.crosshairArmLeft) drawLineGL(cx - g, cy, cx - g - len, cy);
+            if (cfg.crosshairArmRight) drawLineGL(cx + g, cy, cx + g + len, cy);
         }
-    }
 
-    /** CSGO 式十字（与 cross_gap 类似，但上臂默认较短且独立控制） */
-    private void drawCSGO(int cx, int cy, int color, float spread, BetterPlayerHUDConfig cfg) {
-        // CSGO 默认上臂关闭；但尊重 armUp 设置
+        // 主色
         setGlColor(color);
         GL11.glLineWidth(cfg.crosshairThickness);
+        if (cfg.crosshairArmUp) drawLineGL(cx, cy - g, cx, cy - g - len);
+        if (cfg.crosshairArmDown) drawLineGL(cx, cy + g, cx, cy + g + len);
+        if (cfg.crosshairArmLeft) drawLineGL(cx - g, cy, cx - g - len, cy);
+        if (cfg.crosshairArmRight) drawLineGL(cx + g, cy, cx + g + len, cy);
+    }
 
-        Tessellator t = Tessellator.getInstance();
-        WorldRenderer wr = t.getWorldRenderer();
-
+    /** CSGO 式十字 — 立即模式 */
+    private void drawCSGO(int cx, int cy, int color, float spread, BetterPlayerHUDConfig cfg) {
         int len = cfg.crosshairLength;
         float g = cfg.crosshairGap + spread;
 
-        if (cfg.crosshairArmUp) drawLine(t, wr, cx, cy - g, cx, cy - g - (len / 2));
-        if (cfg.crosshairArmDown) drawLine(t, wr, cx, cy + g, cx, cy + g + len);
-        if (cfg.crosshairArmLeft) drawLine(t, wr, cx - g, cy, cx - g - len, cy);
-        if (cfg.crosshairArmRight) drawLine(t, wr, cx + g, cy, cx + g + len, cy);
-
         // 描边
         if (cfg.crosshairOutline) {
             setGlColor(cfg.crosshairOutlineColor);
             GL11.glLineWidth(cfg.crosshairThickness + cfg.crosshairOutlineWidth * 2);
-
-            if (cfg.crosshairArmUp) drawLine(t, wr, cx, cy - g, cx, cy - g - (len / 2));
-            if (cfg.crosshairArmDown) drawLine(t, wr, cx, cy + g, cx, cy + g + len);
-            if (cfg.crosshairArmLeft) drawLine(t, wr, cx - g, cy, cx - g - len, cy);
-            if (cfg.crosshairArmRight) drawLine(t, wr, cx + g, cy, cx + g + len, cy);
-
-            setGlColor(color);
-            GL11.glLineWidth(cfg.crosshairThickness);
-            if (cfg.crosshairArmUp) drawLine(t, wr, cx, cy - g, cx, cy - g - (len / 2));
-            if (cfg.crosshairArmDown) drawLine(t, wr, cx, cy + g, cx, cy + g + len);
-            if (cfg.crosshairArmLeft) drawLine(t, wr, cx - g, cy, cx - g - len, cy);
-            if (cfg.crosshairArmRight) drawLine(t, wr, cx + g, cy, cx + g + len, cy);
+            if (cfg.crosshairArmUp) drawLineGL(cx, cy - g, cx, cy - g - (len / 2));
+            if (cfg.crosshairArmDown) drawLineGL(cx, cy + g, cx, cy + g + len);
+            if (cfg.crosshairArmLeft) drawLineGL(cx - g, cy, cx - g - len, cy);
+            if (cfg.crosshairArmRight) drawLineGL(cx + g, cy, cx + g + len, cy);
         }
+
+        // 主色
+        setGlColor(color);
+        GL11.glLineWidth(cfg.crosshairThickness);
+        if (cfg.crosshairArmUp) drawLineGL(cx, cy - g, cx, cy - g - (len / 2));
+        if (cfg.crosshairArmDown) drawLineGL(cx, cy + g, cx, cy + g + len);
+        if (cfg.crosshairArmLeft) drawLineGL(cx - g, cy, cx - g - len, cy);
+        if (cfg.crosshairArmRight) drawLineGL(cx + g, cy, cx + g + len, cy);
     }
 
-    /** 圆形 */
+    /** 圆形 — immediate mode GL_LINE_LOOP */
     private void drawCircle(int cx, int cy, int color, float spread, BetterPlayerHUDConfig cfg) {
-        setGlColor(color);
         int segments = Math.max(8, cfg.crosshairCircleSegments);
         float radius = cfg.crosshairCircleRadius + spread;
 
+        // 描边
+        if (cfg.crosshairOutline) {
+            setGlColor(cfg.crosshairOutlineColor);
+            GL11.glLineWidth(cfg.crosshairThickness + cfg.crosshairOutlineWidth * 2);
+            drawCircleLoop(cx, cy, radius, segments);
+        }
+
+        // 主色
+        setGlColor(color);
         GL11.glLineWidth(cfg.crosshairThickness);
+        drawCircleLoop(cx, cy, radius, segments);
+    }
 
-        Tessellator t = Tessellator.getInstance();
-        WorldRenderer wr = t.getWorldRenderer();
-        wr.begin(GL11.GL_LINE_LOOP, DefaultVertexFormats.POSITION);
-
+    private static void drawCircleLoop(int cx, int cy, float radius, int segments) {
+        GL11.glBegin(GL11.GL_LINE_LOOP);
         for (int i = 0; i < segments; i++) {
             double angle = TWO_PI * i / segments;
-            wr.pos(cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius, 0).endVertex();
+            GL11.glVertex2f(cx + (float) (Math.cos(angle) * radius),
+                    cy + (float) (Math.sin(angle) * radius));
         }
-        t.draw();
+        GL11.glEnd();
+    }
+
+    /** 菱形 — immediate mode */
+    private void drawDiamond(int cx, int cy, int color, float spread, BetterPlayerHUDConfig cfg) {
+        int len = cfg.crosshairLength + (int) spread;
+        if (len < 2) len = 2;
 
         // 描边
         if (cfg.crosshairOutline) {
             setGlColor(cfg.crosshairOutlineColor);
             GL11.glLineWidth(cfg.crosshairThickness + cfg.crosshairOutlineWidth * 2);
-
-            wr.begin(GL11.GL_LINE_LOOP, DefaultVertexFormats.POSITION);
-            for (int i = 0; i < segments; i++) {
-                double angle = TWO_PI * i / segments;
-                wr.pos(cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius, 0).endVertex();
-            }
-            t.draw();
-
-            setGlColor(color);
-            GL11.glLineWidth(cfg.crosshairThickness);
-            wr.begin(GL11.GL_LINE_LOOP, DefaultVertexFormats.POSITION);
-            for (int i = 0; i < segments; i++) {
-                double angle = TWO_PI * i / segments;
-                wr.pos(cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius, 0).endVertex();
-            }
-            t.draw();
+            drawDiamondVerts(cx, cy, len);
         }
-    }
 
-    /** 菱形 */
-    private void drawDiamond(int cx, int cy, int color, float spread, BetterPlayerHUDConfig cfg) {
+        // 主色
         setGlColor(color);
-        int len = cfg.crosshairLength + (int) spread;
-        if (len < 2) len = 2;
-
         GL11.glLineWidth(cfg.crosshairThickness);
-
-        Tessellator t = Tessellator.getInstance();
-        WorldRenderer wr = t.getWorldRenderer();
-        wr.begin(GL11.GL_LINE_LOOP, DefaultVertexFormats.POSITION);
-        wr.pos(cx, cy - len, 0).endVertex();   // 上
-        wr.pos(cx + len, cy, 0).endVertex();    // 右
-        wr.pos(cx, cy + len, 0).endVertex();    // 下
-        wr.pos(cx - len, cy, 0).endVertex();    // 左
-        t.draw();
-
-        if (cfg.crosshairOutline) {
-            setGlColor(cfg.crosshairOutlineColor);
-            GL11.glLineWidth(cfg.crosshairThickness + cfg.crosshairOutlineWidth * 2);
-            wr.begin(GL11.GL_LINE_LOOP, DefaultVertexFormats.POSITION);
-            wr.pos(cx, cy - len, 0).endVertex();
-            wr.pos(cx + len, cy, 0).endVertex();
-            wr.pos(cx, cy + len, 0).endVertex();
-            wr.pos(cx - len, cy, 0).endVertex();
-            t.draw();
-
-            setGlColor(color);
-            GL11.glLineWidth(cfg.crosshairThickness);
-            wr.begin(GL11.GL_LINE_LOOP, DefaultVertexFormats.POSITION);
-            wr.pos(cx, cy - len, 0).endVertex();
-            wr.pos(cx + len, cy, 0).endVertex();
-            wr.pos(cx, cy + len, 0).endVertex();
-            wr.pos(cx - len, cy, 0).endVertex();
-            t.draw();
-        }
+        drawDiamondVerts(cx, cy, len);
     }
 
-    /** 三角形（正三角，指向正上方） */
+    private static void drawDiamondVerts(int cx, int cy, int len) {
+        GL11.glBegin(GL11.GL_LINE_LOOP);
+        GL11.glVertex2f(cx, cy - len);
+        GL11.glVertex2f(cx + len, cy);
+        GL11.glVertex2f(cx, cy + len);
+        GL11.glVertex2f(cx - len, cy);
+        GL11.glEnd();
+    }
+
+    /** 三角形（正三角，指向正上方）— immediate mode */
     private void drawTriangle(int cx, int cy, int color, float spread, BetterPlayerHUDConfig cfg) {
-        setGlColor(color);
         int len = cfg.crosshairLength + (int) spread;
         if (len < 2) len = 2;
 
-        // 等边三角形：从顶部顺时针
         float topY = cy - len;
         float bottomY = cy + len * 0.5f;
         float halfBase = (float) (len * Math.sqrt(3) / 2);
 
-        GL11.glLineWidth(cfg.crosshairThickness);
-
-        Tessellator t = Tessellator.getInstance();
-        WorldRenderer wr = t.getWorldRenderer();
-        wr.begin(GL11.GL_LINE_LOOP, DefaultVertexFormats.POSITION);
-        wr.pos(cx, topY, 0).endVertex();                    // 顶
-        wr.pos(cx + halfBase, bottomY, 0).endVertex();       // 右下
-        wr.pos(cx - halfBase, bottomY, 0).endVertex();       // 左下
-        t.draw();
-
+        // 描边
         if (cfg.crosshairOutline) {
             setGlColor(cfg.crosshairOutlineColor);
             GL11.glLineWidth(cfg.crosshairThickness + cfg.crosshairOutlineWidth * 2);
-            wr.begin(GL11.GL_LINE_LOOP, DefaultVertexFormats.POSITION);
-            wr.pos(cx, topY, 0).endVertex();
-            wr.pos(cx + halfBase, bottomY, 0).endVertex();
-            wr.pos(cx - halfBase, bottomY, 0).endVertex();
-            t.draw();
-
-            setGlColor(color);
-            GL11.glLineWidth(cfg.crosshairThickness);
-            wr.begin(GL11.GL_LINE_LOOP, DefaultVertexFormats.POSITION);
-            wr.pos(cx, topY, 0).endVertex();
-            wr.pos(cx + halfBase, bottomY, 0).endVertex();
-            wr.pos(cx - halfBase, bottomY, 0).endVertex();
-            t.draw();
+            drawTriangleVerts(cx, topY, bottomY, halfBase);
         }
+
+        // 主色
+        setGlColor(color);
+        GL11.glLineWidth(cfg.crosshairThickness);
+        drawTriangleVerts(cx, topY, bottomY, halfBase);
+    }
+
+    private static void drawTriangleVerts(int cx, float topY, float bottomY, float halfBase) {
+        GL11.glBegin(GL11.GL_LINE_LOOP);
+        GL11.glVertex2f(cx, topY);
+        GL11.glVertex2f(cx + halfBase, bottomY);
+        GL11.glVertex2f(cx - halfBase, bottomY);
+        GL11.glEnd();
     }
 
     // ================================================================
@@ -377,11 +309,11 @@ public class CrosshairHandler {
         GlStateManager.color(r, g, b, a);
     }
 
-    /** 画一条简单线段（2D 坐标，使用 Tessellator GL_LINES） */
-    private static void drawLine(Tessellator t, WorldRenderer wr, float x1, float y1, float x2, float y2) {
-        wr.begin(GL11.GL_LINES, DefaultVertexFormats.POSITION);
-        wr.pos(x1, y1, 0).endVertex();
-        wr.pos(x2, y2, 0).endVertex();
-        t.draw();
+    /** 画一条简单线段（GL11 immediate mode） */
+    private static void drawLineGL(float x1, float y1, float x2, float y2) {
+        GL11.glBegin(GL11.GL_LINES);
+        GL11.glVertex2f(x1, y1);
+        GL11.glVertex2f(x2, y2);
+        GL11.glEnd();
     }
 }
