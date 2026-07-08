@@ -1,0 +1,246 @@
+# ================================================================
+# BetterPlayerHUD - 简体中文翻译
+# ================================================================
+
+# ── 模块标签（主分类） ──
+bhud.compass=罗盘设置
+bhud.player=玩家信息设置
+bhud.distance=距离 & 方块信息
+bhud.keys=按键显示设置
+bhud.entity=方块/实体描边
+bhud.rgb=RGB 动态流光
+bhud.targethp=目标血量设置
+bhud.performance=性能检测
+bhud.crosshair=自定义准星
+bhud.hitmarker=命中标识设置
+
+# ── 罗盘子分类 ──
+bhud.compass.basic=基本
+bhud.compass.display=显示选项
+bhud.compass.elements=元素开关
+
+# ── 玩家信息子分类 ──
+bhud.player.basic=基本
+bhud.player.pos=位置
+bhud.player.appearance=外观
+
+# ── 距离子分类 ──
+bhud.distance.basic=基本
+bhud.distance.extra=附加信息
+bhud.distance.color=颜色
+bhud.distance.extra_color=额外颜色
+
+# ── 按键显示子分类 ──
+bhud.keys.basic=基本
+bhud.keys.appearance=外观
+bhud.keys.color=颜色
+bhud.keys.key=按键设置
+
+# ── 方块/实体描边子分类 ──
+bhud.entity.basic=基本
+bhud.entity.face=可见面
+bhud.entity.color=颜色（按阵营）
+
+# ── RGB 流光子分类 ──
+bhud.rgb.basic=基本
+bhud.rgb.apply=应用对象
+bhud.rgb.keys=快捷键
+
+# ── 目标血量子分类 ──
+bhud.targethp.basic=基本
+bhud.targethp.show=显示对象
+bhud.targethp.labels=标签
+bhud.targethp.pos=位置
+bhud.targethp.color=颜色
+
+# ── 性能检测子分类 ──
+bhud.performance.basic=基本
+bhud.performance.toggles=显示开关
+bhud.performance.tpscolor=TPS 阈值
+bhud.performance.color=颜色
+
+# ── 自定义准星子分类 ──
+bhud.crosshair.basic=基本
+bhud.crosshair.arms=臂控制
+bhud.crosshair.spread=扩散
+bhud.crosshair.detail=样式细节
+bhud.crosshair.color=颜色 & 描边
+
+# ── 命中标识子分类 ──
+bhud.hitmarker.audio=🔊 音效
+bhud.hitmarker.hit=🎯 击中视觉效果
+bhud.hitmarker.kill=💀 击杀视觉效果
+bhud.hitmarker.border=⬜ 边框
+bhud.hitmarker.effects=💧 粒子 & 聊天
+bhud.hitmarker.rotation=🔄 旋转
+
+# ================================================================
+# 配置属性显示名称
+# ================================================================
+
+# ── 罗盘 ──
+showCompassHUD=启用罗盘
+showCompassHUD.tooltip=开关罗盘 HUD
+xPosition=X 坐标
+yPosition=Y 坐标
+scale=缩放
+displayStyle=显示样式
+showDegreeMarks=显示刻度
+showCompassNeedle=显示指针
+compassColor=罗盘颜色
+compassColor.tooltip=罗盘文字基础色
+degreeMarkInterval=刻度间隔
+dynamicScaling=动态缩放
+showHorizon=显示水平线
+showExactAngle=显示精确角度
+
+# ── 玩家信息 ──
+showHealthHUD=启用玩家信息
+healthHudX=HUD X 位置
+healthHudY=HUD Y 位置
+healthColorSafe=安全血量颜色
+healthColorWarning=警告血量颜色
+healthColorDanger=危险血量颜色
+showArmorHUD=显示护甲条
+armorColor=护甲颜色
+showHungerHUD=显示饱食度
+hungerColor=饱食度颜色
+showPlayerHead=显示头像
+headSize=头像尺寸
+headTextSpacing=头像文字间距
+
+# ── 距离 ──
+showDistanceHUD=启用距离 HUD
+distanceHudX=X 位置
+distanceHudY=Y 位置
+distanceColor=距离颜色
+distancePrecision=小数位数
+showTargetInfo=显示目标信息
+targetInfoColor=目标信息颜色
+showBlockCoordinates=显示方块坐标
+showBlockHardness=显示方块硬度
+showRequiredTool=显示所需工具
+blockInfoColor=方块信息颜色
+
+# ── 按键显示 ──
+showKeysDisplay=启用按键显示
+keysDisplayX=X 位置
+keysDisplayY=Y 位置
+keysSize=按键尺寸
+keysOpacity=透明度
+keysScale=缩放
+keysSpacing=按键间距
+keysTextColor=按键文字颜色
+keysActiveColor=激活颜色
+keysInactiveColor=未激活颜色
+showKeysBackground=显示背景
+
+# ── 方块描边 ──
+enableBlockHighlight=启用方块描边
+enableEntityHighlight=启用实体碰撞箱
+blockOutlineColor=方块描边颜色
+blockOutlineWidth=方块描边宽度
+entityOutlineColor=实体描边颜色
+entityOutlineColorFriendly=友方颜色
+entityOutlineColorHostile=敌对颜色
+entityOutlineColorNeutral=中立颜色
+entityOutlineWidth=实体描边宽度
+drawVisibleFacesOnly=仅可见面
+drawVisibleFacesOnlyBlocks=方块仅可见面
+drawVisibleFacesOnlyEntities=实体仅可见面
+hideHitboxForInvisible=隐藏隐身碰撞箱
+
+# ── RGB 流光 ──
+enableRGBMode=启用 RGB 流光
+rgbFlowMode=流动模式
+rgbColorAlgo=颜色算法
+rgbSpeed=速度
+rgbStepMs=步进间隔（毫秒）
+rgbApplyBlockOutline=应用到方块描边
+rgbApplyEntityHitbox=应用到实体碰撞箱
+keyBindToggleRGB=切换 RGB 快捷键
+keyBindToggleBlockOutline=切换方块描边快捷键
+keyBindToggleEntityHitbox=切换实体碰撞箱快捷键
+
+# ── 目标血量 ──
+targetHPEnabled=启用目标血量
+targetHPStyle=显示样式
+targetHPMaxRange=最大距离
+targetHPShowPlayers=显示玩家
+targetHPShowMobs=显示生物
+targetHPShowBosses=显示 Boss
+targetHPShowSelf=显示自己
+targetHPShowName=显示名称
+targetHPOffsetX=X 偏移
+targetHPOffsetY=Y 偏移
+targetHPShowArmor=显示护甲
+targetHPBarWidth=条宽度
+targetHPShowLabels=显示标签
+targetHPShowArmorLabels=显示护甲标签
+targetHPShowFace=显示面部
+targetHPFaceSize=面部尺寸
+
+# ── 性能检测 ──
+showPerformanceHUD=启用性能检测
+performanceHudX=X 位置
+performanceHudY=Y 位置
+performanceTextColor=文字颜色
+showFPS=显示 FPS
+showXYZ=显示坐标
+showTPS=显示 TPS
+showPing=显示 Ping
+showServerIP=显示服务器 IP
+serverInfoTPSGoodColor=良好 TPS 颜色
+serverInfoTPSMediumColor=中等 TPS 颜色
+serverInfoTPSBadColor=较差 TPS 颜色
+serverInfoGoodTpsThreshold=良好 TPS 阈值
+serverInfoMediumTpsThreshold=中等 TPS 阈值
+
+# ── 自定义准星 ──
+enableCrosshair=启用自定义准星
+crosshairStyle=准星样式
+crosshairArmUp=显示上方臂
+crosshairArmDown=显示下方臂
+crosshairArmLeft=显示左方臂
+crosshairArmRight=显示右方臂
+crosshairLength=臂长度
+crosshairGap=中心间隙
+crosshairThickness=臂粗细
+crosshairColor=准星颜色
+crosshairRGB=启用 RGB 准星
+crosshairOutline=启用描边
+crosshairOutlineColor=描边颜色
+crosshairOutlineWidth=描边宽度
+crosshairRotation=旋转角度
+crosshairSpread=启用扩散
+crosshairSpreadAmount=扩散程度
+crosshairSpreadWalk=行走扩散
+crosshairSpreadJump=跳跃扩散
+crosshairSpreadBow=拉弓扩散
+crosshairXOffset=X 偏移
+crosshairYOffset=Y 偏移
+crosshairAlwaysShow=始终显示
+crosshairShowInThirdPerson=第三人称显示
+crosshairDotSize=点直径
+crosshairCircleRadius=圆形半径
+crosshairCircleSegments=圆形分段数
+
+# ── 命中标识 ──
+enableHitMarker=启用命中标识
+enableHitSounds=启用命中音效
+enableKillSound=启用击杀音效
+soundVolume=音量
+hitColor=击中颜色
+hitSize=击中大小
+hitAlpha=击中透明度
+killColor=击杀颜色
+killSize=击杀大小
+killAlpha=击杀透明度
+hitBloodIntensity=血迹效果强度
+enableChatKillDetection=启用聊天击杀检测
+hitMarkerEnableBorder=启用边框
+hitMarkerBorderColor=边框颜色
+hitMarkerBorderWidth=边框宽度
+hitMarkerKillBorderColor=击杀边框颜色
+hitMarkerRandomRotate=启用随机旋转
+hitMarkerRandomRotateStrength=旋转强度

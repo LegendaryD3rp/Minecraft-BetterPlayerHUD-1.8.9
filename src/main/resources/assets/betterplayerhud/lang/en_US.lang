@@ -1,0 +1,246 @@
+# ================================================================
+# BetterPlayerHUD - English (US) Translation
+# ================================================================
+
+# ── Module Config Tabs (main categories) ──
+bhud.compass=Compass Settings
+bhud.player=Player HUD Settings
+bhud.distance=Distance & Block Info
+bhud.keys=Keys Display Settings
+bhud.entity=Block/Entity Outline
+bhud.rgb=RGB Flow Settings
+bhud.targethp=Target HP Settings
+bhud.performance=Performance Monitor
+bhud.crosshair=Crosshair Settings
+bhud.hitmarker=Hit Marker Settings
+
+# ── Compass sub-categories ──
+bhud.compass.basic=Basic
+bhud.compass.display=Display Options
+bhud.compass.elements=Element Toggle
+
+# ── Player HUD sub-categories ──
+bhud.player.basic=Basic
+bhud.player.pos=Position
+bhud.player.appearance=Appearance
+
+# ── Distance sub-categories ──
+bhud.distance.basic=Basic
+bhud.distance.extra=Extra Info
+bhud.distance.color=Colors
+bhud.distance.extra_color=Extra Colors
+
+# ── Keys Display sub-categories ──
+bhud.keys.basic=Basic
+bhud.keys.appearance=Appearance
+bhud.keys.color=Colors
+bhud.keys.key=Key Config
+
+# ── Block/Entity Outline sub-categories ──
+bhud.entity.basic=Basic
+bhud.entity.face=Visible Faces
+bhud.entity.color=Colors (By Team)
+
+# ── RGB Flow sub-categories ──
+bhud.rgb.basic=Basic
+bhud.rgb.apply=Apply To
+bhud.rgb.keys=Hotkeys
+
+# ── Target HP sub-categories ──
+bhud.targethp.basic=Basic
+bhud.targethp.show=Show Targets
+bhud.targethp.labels=Labels
+bhud.targethp.pos=Position
+bhud.targethp.color=Colors
+
+# ── Performance Monitor sub-categories ──
+bhud.performance.basic=Basic
+bhud.performance.toggles=Display Toggles
+bhud.performance.tpscolor=TPS Thresholds
+bhud.performance.color=Colors
+
+# ── Crosshair sub-categories ──
+bhud.crosshair.basic=Basic
+bhud.crosshair.arms=Arm Control
+bhud.crosshair.spread=Spread
+bhud.crosshair.detail=Style Details
+bhud.crosshair.color=Colors & Outline
+
+# ── Hit Marker sub-categories ──
+bhud.hitmarker.audio=🔊 Audio
+bhud.hitmarker.hit=🎯 Hit Effects
+bhud.hitmarker.kill=💀 Kill Effects
+bhud.hitmarker.border=⬜ Border
+bhud.hitmarker.effects=💧 Particles & Chat
+bhud.hitmarker.rotation=🔄 Rotation
+
+# ================================================================
+# Config Property Display Names
+# ================================================================
+
+# ── Compass ──
+showCompassHUD=Enable Compass
+showCompassHUD.tooltip=Toggle compass HUD on/off
+xPosition=X Position
+yPosition=Y Position
+scale=Scale
+displayStyle=Display Style
+showDegreeMarks=Show Degree Marks
+showCompassNeedle=Show Needle
+compassColor=Compass Color
+compassColor.tooltip=Base color of compass text
+degreeMarkInterval=Degree Mark Interval
+dynamicScaling=Dynamic Scaling
+showHorizon=Show Horizon
+showExactAngle=Show Exact Angle
+
+# ── Player HUD ──
+showHealthHUD=Enable Player HUD
+healthHudX=HUD X Position
+healthHudY=HUD Y Position
+healthColorSafe=Safe HP Color
+healthColorWarning=Warning HP Color
+healthColorDanger=Danger HP Color
+showArmorHUD=Show Armor Bar
+armorColor=Armor Color
+showHungerHUD=Show Hunger Bar
+hungerColor=Hunger Color
+showPlayerHead=Show Player Head
+headSize=Head Size
+headTextSpacing=Head-Text Spacing
+
+# ── Distance ──
+showDistanceHUD=Enable Distance HUD
+distanceHudX=X Position
+distanceHudY=Y Position
+distanceColor=Distance Color
+distancePrecision=Decimal Places
+showTargetInfo=Show Target Info
+targetInfoColor=Target Info Color
+showBlockCoordinates=Show Block Coords
+showBlockHardness=Show Block Hardness
+showRequiredTool=Show Required Tool
+blockInfoColor=Block Info Color
+
+# ── Keys Display ──
+showKeysDisplay=Enable Keys Display
+keysDisplayX=X Position
+keysDisplayY=Y Position
+keysSize=Key Size
+keysOpacity=Opacity
+keysScale=Scale
+keysSpacing=Key Spacing
+keysTextColor=Active Key Color
+keysActiveColor=Active Color
+keysInactiveColor=Inactive Color
+showKeysBackground=Show Background
+
+# ── Block Outline ──
+enableBlockHighlight=Enable Block Outline
+enableEntityHighlight=Enable Entity Hitbox
+blockOutlineColor=Block Outline Color
+blockOutlineWidth=Block Outline Width
+entityOutlineColor=Entity Outline Color
+entityOutlineColorFriendly=Friendly Color
+entityOutlineColorHostile=Hostile Color
+entityOutlineColorNeutral=Neutral Color
+entityOutlineWidth=Entity Outline Width
+drawVisibleFacesOnly=Visible Faces Only
+drawVisibleFacesOnlyBlocks=Block Visible Faces Only
+drawVisibleFacesOnlyEntities=Entity Visible Faces Only
+hideHitboxForInvisible=Hide Invisible Hitbox
+
+# ── RGB Flow ──
+enableRGBMode=Enable RGB Flow
+rgbFlowMode=Flow Mode
+rgbColorAlgo=Color Algorithm
+rgbSpeed=Speed
+rgbStepMs=Step Interval (ms)
+rgbApplyBlockOutline=Apply to Block Outline
+rgbApplyEntityHitbox=Apply to Entity Hitbox
+keyBindToggleRGB=Toggle RGB Keybind
+keyBindToggleBlockOutline=Toggle Block Outline Keybind
+keyBindToggleEntityHitbox=Toggle Entity Hitbox Keybind
+
+# ── Target HP ──
+targetHPEnabled=Enable Target HP
+targetHPStyle=Display Style
+targetHPMaxRange=Max Range
+targetHPShowPlayers=Show Players
+targetHPShowMobs=Show Mobs
+targetHPShowBosses=Show Bosses
+targetHPShowSelf=Show Self
+targetHPShowName=Show Name
+targetHPOffsetX=X Offset
+targetHPOffsetY=Y Offset
+targetHPShowArmor=Show Armor
+targetHPBarWidth=Bar Width
+targetHPShowLabels=Show Labels
+targetHPShowArmorLabels=Show Armor Labels
+targetHPShowFace=Show Face
+targetHPFaceSize=Face Size
+
+# ── Performance Monitor ──
+showPerformanceHUD=Enable Performance Monitor
+performanceHudX=X Position
+performanceHudY=Y Position
+performanceTextColor=Text Color
+showFPS=Show FPS
+showXYZ=Show Coordinates
+showTPS=Show TPS
+showPing=Show Ping
+showServerIP=Show Server IP
+serverInfoTPSGoodColor=Good TPS Color
+serverInfoTPSMediumColor=Medium TPS Color
+serverInfoTPSBadColor=Bad TPS Color
+serverInfoGoodTpsThreshold=Good TPS Threshold
+serverInfoMediumTpsThreshold=Medium TPS Threshold
+
+# ── Crosshair ──
+enableCrosshair=Enable Custom Crosshair
+crosshairStyle=Crosshair Style
+crosshairArmUp=Show Up Arm
+crosshairArmDown=Show Down Arm
+crosshairArmLeft=Show Left Arm
+crosshairArmRight=Show Right Arm
+crosshairLength=Arm Length
+crosshairGap=Center Gap
+crosshairThickness=Arm Thickness
+crosshairColor=Crosshair Color
+crosshairRGB=Enable RGB Crosshair
+crosshairOutline=Enable Outline
+crosshairOutlineColor=Outline Color
+crosshairOutlineWidth=Outline Width
+crosshairRotation=Rotation
+crosshairSpread=Enable Spread
+crosshairSpreadAmount=Spread Amount
+crosshairSpreadWalk=Spread While Walking
+crosshairSpreadJump=Spread While Jumping
+crosshairSpreadBow=Spread While Bowing
+crosshairXOffset=X Offset
+crosshairYOffset=Y Offset
+crosshairAlwaysShow=Always Show
+crosshairShowInThirdPerson=Show in 3rd Person
+crosshairDotSize=Dot Size
+crosshairCircleRadius=Circle Radius
+crosshairCircleSegments=Circle Segments
+
+# ── Hit Marker ──
+enableHitMarker=Enable Hit Marker
+enableHitSounds=Enable Hit Sounds
+enableKillSound=Enable Kill Sound
+soundVolume=Sound Volume
+hitColor=Hit Color
+hitSize=Hit Size
+hitAlpha=Hit Alpha
+killColor=Kill Color
+killSize=Kill Size
+killAlpha=Kill Alpha
+hitBloodIntensity=Blood Effect Intensity
+enableChatKillDetection=Enable Kill Chat Detection
+hitMarkerEnableBorder=Enable Border
+hitMarkerBorderColor=Border Color
+hitMarkerBorderWidth=Border Width
+hitMarkerKillBorderColor=Kill Border Color
+hitMarkerRandomRotate=Enable Random Rotation
+hitMarkerRandomRotateStrength=Rotation Strength
