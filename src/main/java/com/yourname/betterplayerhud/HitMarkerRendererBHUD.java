@@ -39,7 +39,7 @@ public class HitMarkerRendererBHUD {
         BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
         if (!cfg.hitMarkerRandomRotate || cfg.hitMarkerRandomRotateStrength <= 0) return 0;
         Random rng = new Random(seed);
-        float angle = (rng.nextBoolean() ? 1.0F : -1.0F) * (5.0F + rng.nextFloat() * 15.0F);
+        float angle = (rng.nextBoolean() ? 1.0F : -1.0F) * (5.0F + rng.nextFloat() * 10.0F);
         // 保证连续两次角度不同
         if (angle == lastHitAngle) {
             angle = -angle;

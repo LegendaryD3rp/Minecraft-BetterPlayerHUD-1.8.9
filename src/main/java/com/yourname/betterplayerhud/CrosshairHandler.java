@@ -28,7 +28,7 @@ public class CrosshairHandler {
     // ================================================================
 
     @SubscribeEvent
-    public void onPreCrosshair(RenderGameOverlayEvent.Pre event) {
+    public void onCrosshair(RenderGameOverlayEvent event) {
         if (event.type == RenderGameOverlayEvent.ElementType.CROSSHAIRS
                 && BetterPlayerHUD.config.enableCrosshair
                 && shouldShow()) {
