@@ -3,7 +3,6 @@ package com.yourname.betterplayerhud;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraftforge.common.config.Configuration;
 import net.minecraftforge.common.config.ConfigElement;
-import net.minecraftforge.common.config.Property;
 import net.minecraftforge.fml.client.config.IConfigElement;
 import net.minecraftforge.fml.client.config.DummyConfigElement;
 import net.minecraftforge.fml.client.config.GuiConfig;
@@ -30,7 +29,7 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  辅助：向列表添加一个普通元素
+    //  辅助
     // ═══════════════════════════════════════════════════════════════
     private static void addEl(List<IConfigElement> list, String key) {
         Configuration c = cfg();
@@ -39,414 +38,384 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
         }
     }
 
+    private static List<IConfigElement> el(String... keys) {
+        List<IConfigElement> l = new ArrayList<>();
+        for (String k : keys) addEl(l, k);
+        return l;
+    }
+
+    private static List<IConfigElement> catEl(List<IConfigElement> items, String name, String langKey, ColorPreviewHelper.ColorInfo... colors) {
+        List<IConfigElement> result = new ArrayList<>();
+        result.add(ColorPreviewHelper.createPreviewCategory(name, langKey, items, colors, ""));
+        return result;
+    }
+
     // ═══════════════════════════════════════════════════════════════
     //  主结构
     // ═══════════════════════════════════════════════════════════════
     private static List<IConfigElement> getConfigElements() {
         List<IConfigElement> elements = new ArrayList<>();
 
-        Configuration c = cfg();
-        if (c == null) {
-            System.err.println("Compass config not initialized!");
+        if (cfg() == null) {
+            System.err.println("BHUD config not initialized!");
             return elements;
         }
 
         // === 模块1：罗盘HUD ===
         elements.add(ColorPreviewHelper.createPreviewCategory(
-                "罗盘HUD设置", "compassmod.category.compass",
-                getCompassConfigElements(),
-                new ColorPreviewHelper.ColorInfo[]{
-                        new ColorPreviewHelper.ColorInfo("compassColor", "罗盘颜色")
-                },
-                "Compass HUD"
-        ));
+                "罗盘HUD设置", "bhud.compass", getCompassConfigElements(),
+                new ColorPreviewHelper.ColorInfo[]{ new ColorPreviewHelper.ColorInfo("compassColor", "罗盘颜色") },
+                "Compass HUD"));
 
         // === 模块2：玩家信息HUD ===
         elements.add(ColorPreviewHelper.createPreviewCategory(
-                "玩家信息HUD设置", "compassmod.category.player",
-                getPlayerConfigElements(),
+                "玩家信息HUD设置", "bhud.player", getPlayerConfigElements(),
                 new ColorPreviewHelper.ColorInfo[]{
                         new ColorPreviewHelper.ColorInfo("healthColorSafe", "安全血量"),
                         new ColorPreviewHelper.ColorInfo("healthColorWarning", "警告血量"),
                         new ColorPreviewHelper.ColorInfo("healthColorDanger", "危险血量"),
                         new ColorPreviewHelper.ColorInfo("armorColor", "护甲颜色"),
                         new ColorPreviewHelper.ColorInfo("hungerColor", "饥饿度颜色"),
-                },
-                "Player HUD"
-        ));
+                }, "Player HUD"));
 
         // === 模块7：距离HUD ===
         elements.add(ColorPreviewHelper.createPreviewCategory(
-                "距离HUD设置", "compassmod.category.distance",
-                getDistanceConfigElements(),
+                "距离HUD设置", "bhud.distance", getDistanceConfigElements(),
                 new ColorPreviewHelper.ColorInfo[]{
                         new ColorPreviewHelper.ColorInfo("distanceColor", "距离颜色"),
                         new ColorPreviewHelper.ColorInfo("targetInfoColor", "目标信息颜色"),
                         new ColorPreviewHelper.ColorInfo("blockInfoColor", "方块信息颜色"),
-                },
-                "Distance HUD"
-        ));
+                }, "Distance HUD"));
 
         // === 模块9：按键显示 ===
         elements.add(ColorPreviewHelper.createPreviewCategory(
-                "按键显示设置", "compassmod.category.keys",
-                getKeysDisplayConfigElements(),
+                "按键显示设置", "bhud.keys", getKeysDisplayConfigElements(),
                 new ColorPreviewHelper.ColorInfo[]{
                         new ColorPreviewHelper.ColorInfo("keysActiveColor", "按下颜色"),
                         new ColorPreviewHelper.ColorInfo("keysInactiveColor", "未按下颜色"),
                         new ColorPreviewHelper.ColorInfo("keysTextColor", "文字颜色"),
-                },
-                "Keys Display"
-        ));
+                }, "Keys Display"));
 
         // === 模块13：方块描边 ===
         elements.add(ColorPreviewHelper.createPreviewCategory(
-                "方块描边设置", "compassmod.category.blockoutline",
-                getBlockOutlineConfigElements(),
-                new ColorPreviewHelper.ColorInfo[]{
-                        new ColorPreviewHelper.ColorInfo("blockOutlineColor", "描边颜色"),
-                },
-                "Block Outline"
-        ));
+                "方块描边设置", "bhud.blockoutline", getBlockOutlineConfigElements(),
+                new ColorPreviewHelper.ColorInfo[]{ new ColorPreviewHelper.ColorInfo("blockOutlineColor", "描边颜色") },
+                "Block Outline"));
 
         // === 模块14：实体高亮 ===
         elements.add(ColorPreviewHelper.createPreviewCategory(
-                "实体碰撞箱高亮设置", "compassmod.category.entityhighlight",
-                getEntityHighlightConfigElements(),
+                "实体碰撞箱高亮设置", "bhud.entity", getEntityHighlightConfigElements(),
                 new ColorPreviewHelper.ColorInfo[]{
                         new ColorPreviewHelper.ColorInfo("entityOutlineColorHostile", "敌对生物"),
                         new ColorPreviewHelper.ColorInfo("entityOutlineColorNeutral", "中立生物"),
                         new ColorPreviewHelper.ColorInfo("entityOutlineColorFriendly", "友好生物"),
-                },
-                "Entity Highlight"
-        ));
+                }, "Entity Highlight"));
 
-        // === 模块14b：RGB 动态流光 ===
+        // === RGB 动态流光 ===
         elements.add(ColorPreviewHelper.createPreviewCategory(
-                "RGB 动态流光设置", "compassmod.category.rgb",
-                getRGBConfigElements(),
-                new ColorPreviewHelper.ColorInfo[0],
-                "RGB Flow"
-        ));
+                "RGB动态流光设置", "bhud.rgb", getRGBConfigElements(),
+                new ColorPreviewHelper.ColorInfo[0], "RGB Flow"));
 
-        // === 模块18：目标血量显示 ===
+        // === 模块18：目标血量 ===
         elements.add(ColorPreviewHelper.createPreviewCategory(
-                "目标血量显示设置", "compassmod.category.targethp",
-                getTargetHPConfigElements(),
+                "目标血量显示设置", "bhud.targethp", getTargetHPConfigElements(),
                 new ColorPreviewHelper.ColorInfo[]{
                         new ColorPreviewHelper.ColorInfo("targetHPColor", "血条颜色"),
                         new ColorPreviewHelper.ColorInfo("targetHPBackColor", "背景颜色"),
                         new ColorPreviewHelper.ColorInfo("targetHPTextColor", "文字颜色"),
-                },
-                "Target HP"
-        ));
+                }, "Target HP"));
+
+        // === 模块19：服务器信息 ===
+        elements.add(ColorPreviewHelper.createPreviewCategory(
+                "服务器信息设置", "bhud.server", getServerInfoConfigElements(),
+                new ColorPreviewHelper.ColorInfo[]{
+                        new ColorPreviewHelper.ColorInfo("serverInfoTextColor", "文字颜色"),
+                }, "Server Info"));
 
         // === 模块20：自定义准星 ===
         elements.add(ColorPreviewHelper.createPreviewCategory(
-                "自定义准星设置", "compassmod.category.crosshair",
-                getCrosshairConfigElements(),
-                new ColorPreviewHelper.ColorInfo[]{
-                        new ColorPreviewHelper.ColorInfo("crosshairColor", "准星颜色"),
-                },
-                "Crosshair"
-        ));
+                "自定义准星设置", "bhud.crosshair", getCrosshairConfigElements(),
+                new ColorPreviewHelper.ColorInfo[]{ new ColorPreviewHelper.ColorInfo("crosshairColor", "准星颜色") },
+                "Crosshair"));
 
         // === 模块21：命中标识 ===
         elements.add(ColorPreviewHelper.createPreviewCategory(
-                "命中标识设置", "compassmod.category.hitmarker",
-                getHitMarkerConfigElements(),
+                "命中标识设置", "bhud.hitmarker", getHitMarkerConfigElements(),
                 new ColorPreviewHelper.ColorInfo[]{
                         new ColorPreviewHelper.ColorInfo("hitColor", "击中颜色"),
                         new ColorPreviewHelper.ColorInfo("killColor", "击杀颜色"),
                         new ColorPreviewHelper.ColorInfo("hitMarkerBorderColor", "边框颜色"),
                         new ColorPreviewHelper.ColorInfo("hitMarkerKillBorderColor", "击杀边框颜色"),
-                },
-                "Hit Marker"
-        ));
+                }, "Hit Marker"));
 
         return elements;
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  模块1：罗盘HUD
+    //  罗盘 — 子分类
     // ═══════════════════════════════════════════════════════════════
     private static List<IConfigElement> getCompassConfigElements() {
         List<IConfigElement> list = new ArrayList<>();
-        addEl(list, "showCompassHUD");
-        addEl(list, "xPositionOffset");
-        addEl(list, "yPositionOffset");
-        addEl(list, "compassScale");
-        addEl(list, "displayStyle");
-        addEl(list, "showDegreeMarks");
-        addEl(list, "showCompassNeedle");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "compassColor");
-        addEl(list, "degreeMarkInterval");
-        addEl(list, "dynamicScaling");
-        addEl(list, "showHorizon");
+        list.add(new DummyConfigElement.DummyCategoryElement("基本", "bhud.compass.basic", el(
+                "showCompassHUD", "xPositionOffset", "yPositionOffset", "compassScale")));
+        list.add(new DummyConfigElement.DummyCategoryElement("显示选项", "bhud.compass.display", el(
+                "displayStyle", "degreeMarkInterval", "dynamicScaling")));
+        List<IConfigElement> colorList = new ArrayList<>();
+        ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "compassColor");
+        list.add(new DummyConfigElement.DummyCategoryElement("元素开关", "bhud.compass.elements", el(
+                "showCompassNeedle", "showDegreeMarks", "showHorizon")));
         return list;
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  模块2：玩家信息HUD
+    //  玩家信息 — 子分类
     // ═══════════════════════════════════════════════════════════════
     private static List<IConfigElement> getPlayerConfigElements() {
         List<IConfigElement> list = new ArrayList<>();
-        addEl(list, "showHealthHUD");
-        addEl(list, "healthHudXOffset");
-        addEl(list, "healthHudYOffset");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "healthColorSafe");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "healthColorWarning");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "healthColorDanger");
-        addEl(list, "showArmorHUD");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "armorColor");
-        addEl(list, "showHungerHUD");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "hungerColor");
-        addEl(list, "showPlayerHead");
-        addEl(list, "headSize");
-        addEl(list, "headTextSpacing");
+        list.add(new DummyConfigElement.DummyCategoryElement("基本", "bhud.player.basic", el(
+                "showHealthHUD", "showArmorHUD", "showHungerHUD", "showPlayerHead")));
+        list.add(new DummyConfigElement.DummyCategoryElement("位置", "bhud.player.pos", el(
+                "healthHudXOffset", "healthHudYOffset", "headSize", "headTextSpacing")));
+        List<IConfigElement> colorList = new ArrayList<>();
+        ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "healthColorSafe");
+        ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "healthColorWarning");
+        ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "healthColorDanger");
+        ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "armorColor");
+        ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "hungerColor");
+        list.add(ColorPreviewHelper.createPreviewCategory("颜色", "bhud.player.color", colorList,
+                new ColorPreviewHelper.ColorInfo[]{
+                        new ColorPreviewHelper.ColorInfo("healthColorSafe", "安全血量"),
+                        new ColorPreviewHelper.ColorInfo("healthColorWarning", "警告血量"),
+                        new ColorPreviewHelper.ColorInfo("healthColorDanger", "危险血量"),
+                        new ColorPreviewHelper.ColorInfo("armorColor", "护甲颜色"),
+                        new ColorPreviewHelper.ColorInfo("hungerColor", "饥饿度颜色"),
+                }, ""));
         return list;
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  模块7：距离HUD
+    //  距离 — 子分类
     // ═══════════════════════════════════════════════════════════════
     private static List<IConfigElement> getDistanceConfigElements() {
         List<IConfigElement> list = new ArrayList<>();
-        addEl(list, "showDistanceHUD");
-        addEl(list, "distanceHudXOffset");
-        addEl(list, "distanceHudYOffset");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "distanceColor");
-        addEl(list, "distancePrecision");
-        addEl(list, "showTargetInfo");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "targetInfoColor");
-        addEl(list, "showBlockCoordinates");
-        addEl(list, "showBlockHardness");
-        addEl(list, "showRequiredTool");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "blockInfoColor");
+        list.add(new DummyConfigElement.DummyCategoryElement("基本", "bhud.distance.basic", el(
+                "showDistanceHUD", "distanceHudXOffset", "distanceHudYOffset", "distancePrecision")));
+        List<IConfigElement> colorList = new ArrayList<>();
+        ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "distanceColor");
+        list.add(ColorPreviewHelper.createPreviewCategory("颜色", "bhud.distance.color", colorList,
+                new ColorPreviewHelper.ColorInfo[]{ new ColorPreviewHelper.ColorInfo("distanceColor", "距离颜色") }, ""));
+        list.add(new DummyConfigElement.DummyCategoryElement("附加信息", "bhud.distance.extra", el(
+                "showTargetInfo", "showBlockCoordinates", "showBlockHardness", "showRequiredTool")));
+        List<IConfigElement> colorList2 = new ArrayList<>();
+        ColorPreviewHelper.addColorElements(colorList2, cfg(), cat(), "targetInfoColor");
+        ColorPreviewHelper.addColorElements(colorList2, cfg(), cat(), "blockInfoColor");
+        list.add(ColorPreviewHelper.createPreviewCategory("额外颜色", "bhud.distance.extra_color", colorList2,
+                new ColorPreviewHelper.ColorInfo[]{
+                        new ColorPreviewHelper.ColorInfo("targetInfoColor", "目标信息颜色"),
+                        new ColorPreviewHelper.ColorInfo("blockInfoColor", "方块信息颜色"),
+                }, ""));
         return list;
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  模块9：按键显示
+    //  按键显示 — 子分类
     // ═══════════════════════════════════════════════════════════════
     private static List<IConfigElement> getKeysDisplayConfigElements() {
         List<IConfigElement> list = new ArrayList<>();
-        addEl(list, "showKeysDisplay");
-        addEl(list, "keysDisplayX");
-        addEl(list, "keysDisplayY");
-        addEl(list, "keysSize");
-        addEl(list, "keysSpacing");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "keysActiveColor");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "keysInactiveColor");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "keysTextColor");
-        addEl(list, "keysScale");
-        addEl(list, "showKeysBackground");
-        addEl(list, "keysOpacity");
+        list.add(new DummyConfigElement.DummyCategoryElement("基本", "bhud.keys.basic", el(
+                "showKeysDisplay", "keysDisplayX", "keysDisplayY", "keysScale")));
+        list.add(new DummyConfigElement.DummyCategoryElement("外观", "bhud.keys.appearance", el(
+                "keysSize", "keysSpacing", "showKeysBackground", "keysOpacity")));
+        List<IConfigElement> colorList = new ArrayList<>();
+        ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "keysActiveColor");
+        ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "keysInactiveColor");
+        ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "keysTextColor");
+        list.add(ColorPreviewHelper.createPreviewCategory("颜色", "bhud.keys.color", colorList,
+                new ColorPreviewHelper.ColorInfo[]{
+                        new ColorPreviewHelper.ColorInfo("keysActiveColor", "按下颜色"),
+                        new ColorPreviewHelper.ColorInfo("keysInactiveColor", "未按下颜色"),
+                        new ColorPreviewHelper.ColorInfo("keysTextColor", "文字颜色"),
+                }, ""));
         return list;
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  模块13：方块描边
+    //  方块描边 — 保持简单
     // ═══════════════════════════════════════════════════════════════
     private static List<IConfigElement> getBlockOutlineConfigElements() {
         List<IConfigElement> list = new ArrayList<>();
         addEl(list, "enableBlockHighlight");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "blockOutlineColor");
         addEl(list, "blockOutlineWidth");
         addEl(list, "drawVisibleFacesOnlyBlocks");
+        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "blockOutlineColor");
         return list;
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  模块14：实体高亮
+    //  实体高亮 — 子分类
     // ═══════════════════════════════════════════════════════════════
     private static List<IConfigElement> getEntityHighlightConfigElements() {
         List<IConfigElement> list = new ArrayList<>();
-        addEl(list, "enableEntityHighlight");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "entityOutlineColorHostile");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "entityOutlineColorNeutral");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "entityOutlineColorFriendly");
-        addEl(list, "entityOutlineWidth");
-        addEl(list, "drawVisibleFacesOnlyEntities");
-        addEl(list, "hideHitboxForInvisible");
+        list.add(new DummyConfigElement.DummyCategoryElement("基本", "bhud.entity.basic", el(
+                "enableEntityHighlight", "entityOutlineWidth", "hideHitboxForInvisible")));
+        list.add(new DummyConfigElement.DummyCategoryElement("可见面", "bhud.entity.face", el(
+                "drawVisibleFacesOnlyEntities")));
+        List<IConfigElement> colorList = new ArrayList<>();
+        ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "entityOutlineColorHostile");
+        ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "entityOutlineColorNeutral");
+        ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "entityOutlineColorFriendly");
+        list.add(ColorPreviewHelper.createPreviewCategory("颜色（按阵营）", "bhud.entity.color", colorList,
+                new ColorPreviewHelper.ColorInfo[]{
+                        new ColorPreviewHelper.ColorInfo("entityOutlineColorHostile", "敌对生物"),
+                        new ColorPreviewHelper.ColorInfo("entityOutlineColorNeutral", "中立生物"),
+                        new ColorPreviewHelper.ColorInfo("entityOutlineColorFriendly", "友好生物"),
+                }, ""));
         return list;
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  模块14b：RGB 动态流光
+    //  RGB — 子分类
     // ═══════════════════════════════════════════════════════════════
     private static List<IConfigElement> getRGBConfigElements() {
         List<IConfigElement> list = new ArrayList<>();
-        addEl(list, "enableRGBMode");
-        addEl(list, "rgbFlowMode");
-        addEl(list, "rgbColorAlgo");
-        addEl(list, "rgbStepMs");
-        addEl(list, "rgbSpeed");
-        addEl(list, "rgbApplyBlockOutline");
-        addEl(list, "rgbApplyEntityHitbox");
-        addEl(list, "keyBindToggleBlockOutline");
-        addEl(list, "keyBindToggleEntityHitbox");
-        addEl(list, "keyBindToggleRGB");
+        list.add(new DummyConfigElement.DummyCategoryElement("基本", "bhud.rgb.basic", el(
+                "enableRGBMode", "rgbFlowMode", "rgbColorAlgo", "rgbSpeed", "rgbStepMs")));
+        list.add(new DummyConfigElement.DummyCategoryElement("应用对象", "bhud.rgb.apply", el(
+                "rgbApplyBlockOutline", "rgbApplyEntityHitbox")));
+        list.add(new DummyConfigElement.DummyCategoryElement("快捷键", "bhud.rgb.keys", el(
+                "keyBindToggleBlockOutline", "keyBindToggleEntityHitbox", "keyBindToggleRGB")));
         return list;
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  模块18：目标血量显示 (Target HP)
+    //  目标血量 — 子分类
     // ═══════════════════════════════════════════════════════════════
     private static List<IConfigElement> getTargetHPConfigElements() {
         List<IConfigElement> list = new ArrayList<>();
-        addEl(list, "targetHPEnabled");
-        addEl(list, "targetHPStyle");
-        addEl(list, "targetHPMaxRange");
-        addEl(list, "targetHPShowPlayers");
-        addEl(list, "targetHPShowMobs");
-        addEl(list, "targetHPShowBosses");
-        addEl(list, "targetHPShowSelf");
-        addEl(list, "targetHPShowName");
-        addEl(list, "targetHPOffsetX");
-        addEl(list, "targetHPOffsetY");
-        addEl(list, "targetHPShowArmor");
-        addEl(list, "targetHPBarWidth");
-        addEl(list, "targetHPShowLabels");
-        addEl(list, "targetHPShowArmorLabels");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "targetHPColor");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "targetHPBackColor");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "targetHPTextColor");
+        list.add(new DummyConfigElement.DummyCategoryElement("基本", "bhud.targethp.basic", el(
+                "targetHPEnabled", "targetHPStyle", "targetHPMaxRange", "targetHPBarWidth")));
+        list.add(new DummyConfigElement.DummyCategoryElement("显示对象", "bhud.targethp.show", el(
+                "targetHPShowPlayers", "targetHPShowMobs", "targetHPShowBosses", "targetHPShowSelf")));
+        list.add(new DummyConfigElement.DummyCategoryElement("标签", "bhud.targethp.labels", el(
+                "targetHPShowName", "targetHPShowArmor", "targetHPShowLabels", "targetHPShowArmorLabels")));
+        list.add(new DummyConfigElement.DummyCategoryElement("位置", "bhud.targethp.pos", el(
+                "targetHPOffsetX", "targetHPOffsetY")));
+        List<IConfigElement> colorList = new ArrayList<>();
+        ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "targetHPColor");
+        ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "targetHPBackColor");
+        ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "targetHPTextColor");
+        list.add(ColorPreviewHelper.createPreviewCategory("颜色", "bhud.targethp.color", colorList,
+                new ColorPreviewHelper.ColorInfo[]{
+                        new ColorPreviewHelper.ColorInfo("targetHPColor", "血条颜色"),
+                        new ColorPreviewHelper.ColorInfo("targetHPBackColor", "背景颜色"),
+                        new ColorPreviewHelper.ColorInfo("targetHPTextColor", "文字颜色"),
+                }, ""));
         return list;
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  模块20：自定义准星 (Crosshair)
+    //  服务器信息 — 子分类
+    // ═══════════════════════════════════════════════════════════════
+    private static List<IConfigElement> getServerInfoConfigElements() {
+        List<IConfigElement> list = new ArrayList<>();
+        list.add(new DummyConfigElement.DummyCategoryElement("基本", "bhud.server.basic", el(
+                "serverInfoEnabled", "serverInfoOffsetX", "serverInfoOffsetY")));
+        list.add(new DummyConfigElement.DummyCategoryElement("显示选项", "bhud.server.display", el(
+                "serverInfoShowTPS", "serverInfoShowPing", "serverInfoShowIP",
+                "serverInfoHighTpsThreshold", "serverInfoMediumTpsThreshold")));
+        List<IConfigElement> colorList = new ArrayList<>();
+        ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "serverInfoTextColor");
+        list.add(ColorPreviewHelper.createPreviewCategory("颜色", "bhud.server.color", colorList,
+                new ColorPreviewHelper.ColorInfo[]{ new ColorPreviewHelper.ColorInfo("serverInfoTextColor", "文字颜色") }, ""));
+        return list;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  自定义准星 — 子分类
     // ═══════════════════════════════════════════════════════════════
     private static List<IConfigElement> getCrosshairConfigElements() {
         List<IConfigElement> list = new ArrayList<>();
-        addEl(list, "enableCrosshair");
-        addEl(list, "crosshairStyle");
-        addEl(list, "crosshairLength");
-        addEl(list, "crosshairGap");
-        addEl(list, "crosshairThickness");
-        addEl(list, "crosshairArmUp");
-        addEl(list, "crosshairArmDown");
-        addEl(list, "crosshairArmLeft");
-        addEl(list, "crosshairArmRight");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "crosshairColor");
-        addEl(list, "crosshairRGB");
-        addEl(list, "crosshairOutline");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "crosshairOutlineColor");
-        addEl(list, "crosshairOutlineWidth");
-        addEl(list, "crosshairRotation");
-        addEl(list, "crosshairSpread");
-        addEl(list, "crosshairSpreadAmount");
-        addEl(list, "crosshairSpreadWalk");
-        addEl(list, "crosshairSpreadJump");
-        addEl(list, "crosshairSpreadBow");
-        addEl(list, "crosshairXOffset");
-        addEl(list, "crosshairYOffset");
-        addEl(list, "crosshairAlwaysShow");
-        addEl(list, "crosshairShowInThirdPerson");
-        addEl(list, "crosshairDotSize");
-        addEl(list, "crosshairCircleRadius");
-        addEl(list, "crosshairCircleSegments");
+        list.add(new DummyConfigElement.DummyCategoryElement("基本", "bhud.crosshair.basic", el(
+                "enableCrosshair", "crosshairStyle", "crosshairLength", "crosshairGap", "crosshairThickness",
+                "crosshairAlwaysShow", "crosshairShowInThirdPerson")));
+        list.add(new DummyConfigElement.DummyCategoryElement("臂控制", "bhud.crosshair.arms", el(
+                "crosshairArmUp", "crosshairArmDown", "crosshairArmLeft", "crosshairArmRight", "crosshairRotation")));
+        list.add(new DummyConfigElement.DummyCategoryElement("扩散", "bhud.crosshair.spread", el(
+                "crosshairSpread", "crosshairSpreadAmount", "crosshairSpreadWalk",
+                "crosshairSpreadJump", "crosshairSpreadBow")));
+        list.add(new DummyConfigElement.DummyCategoryElement("样式细节", "bhud.crosshair.detail", el(
+                "crosshairXOffset", "crosshairYOffset", "crosshairDotSize",
+                "crosshairCircleRadius", "crosshairCircleSegments")));
+        List<IConfigElement> colorList = new ArrayList<>();
+        ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "crosshairColor");
+        addEl(colorList, "crosshairRGB");
+        addEl(colorList, "crosshairOutline");
+        ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "crosshairOutlineColor");
+        addEl(colorList, "crosshairOutlineWidth");
+        list.add(ColorPreviewHelper.createPreviewCategory("颜色 & 描边", "bhud.crosshair.color", colorList,
+                new ColorPreviewHelper.ColorInfo[]{
+                        new ColorPreviewHelper.ColorInfo("crosshairColor", "准星颜色"),
+                        new ColorPreviewHelper.ColorInfo("crosshairOutlineColor", "描边颜色"),
+                }, ""));
         return list;
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  模块21：命中标识 (Hit Marker)
+    //  命中标识 — 6 子分类（保持已有） + 开关
     // ═══════════════════════════════════════════════════════════════
     private static List<IConfigElement> getHitMarkerConfigElements() {
         List<IConfigElement> list = new ArrayList<>();
         addEl(list, "enableHitMarker");
 
-        // ── 🔊 音效 ──
-        list.add(new DummyConfigElement.DummyCategoryElement(
-                "音效", "hitmarker.sub.audio", getAudioElements()));
-
-        // ── 🎯 击中视觉效果 ──
-        list.add(ColorPreviewHelper.createPreviewCategory(
-                "击中视觉效果", "hitmarker.sub.visual_hit",
+        list.add(new DummyConfigElement.DummyCategoryElement("🔊 音效", "bhud.hitmarker.audio", getAudioElements()));
+        list.add(ColorPreviewHelper.createPreviewCategory("🎯 击中视觉效果", "bhud.hitmarker.hit",
                 getHitVisualElements(),
-                new ColorPreviewHelper.ColorInfo[]{
-                        new ColorPreviewHelper.ColorInfo("hitColor", "击中颜色")
-                },
-                "击中标识"
-        ));
-
-        // ── 💀 击杀视觉效果 ──
-        list.add(ColorPreviewHelper.createPreviewCategory(
-                "击杀视觉效果", "hitmarker.sub.visual_kill",
+                new ColorPreviewHelper.ColorInfo[]{ new ColorPreviewHelper.ColorInfo("hitColor", "击中颜色") }, ""));
+        list.add(ColorPreviewHelper.createPreviewCategory("💀 击杀视觉效果", "bhud.hitmarker.kill",
                 getKillVisualElements(),
-                new ColorPreviewHelper.ColorInfo[]{
-                        new ColorPreviewHelper.ColorInfo("killColor", "击杀颜色")
-                },
-                "击杀标识"
-        ));
-
-        // ── ⬜ 边框 ──
-        list.add(ColorPreviewHelper.createPreviewCategory(
-                "边框", "hitmarker.sub.border",
+                new ColorPreviewHelper.ColorInfo[]{ new ColorPreviewHelper.ColorInfo("killColor", "击杀颜色") }, ""));
+        list.add(ColorPreviewHelper.createPreviewCategory("⬜ 边框", "bhud.hitmarker.border",
                 getBorderElements(),
                 new ColorPreviewHelper.ColorInfo[]{
                         new ColorPreviewHelper.ColorInfo("hitMarkerBorderColor", "边框颜色"),
                         new ColorPreviewHelper.ColorInfo("hitMarkerKillBorderColor", "击杀边框颜色"),
-                },
-                "边框设置"
-        ));
-
-        // ── 💧 粒子 & 聊天检测 ──
-        list.add(new DummyConfigElement.DummyCategoryElement(
-                "粒子&聊天", "hitmarker.sub.effects", getEffectsElements()));
-
-        // ── 🔄 旋转 ──
-        list.add(new DummyConfigElement.DummyCategoryElement(
-                "旋转", "hitmarker.sub.rotation", getRotationElements()));
-
+                }, ""));
+        list.add(new DummyConfigElement.DummyCategoryElement("💧 粒子&聊天", "bhud.hitmarker.effects", getEffectsElements()));
+        list.add(new DummyConfigElement.DummyCategoryElement("🔄 旋转", "bhud.hitmarker.rotation", getRotationElements()));
         return list;
     }
 
     private static List<IConfigElement> getAudioElements() {
-        List<IConfigElement> l = new ArrayList<>();
-        addEl(l, "enableHitSounds");
-        addEl(l, "enableKillSound");
-        addEl(l, "soundVolume");
-        return l;
+        return el("enableHitSounds", "enableKillSound", "soundVolume");
     }
 
     private static List<IConfigElement> getHitVisualElements() {
         List<IConfigElement> l = new ArrayList<>();
-        addEl(l, "hitAlpha");
-        addEl(l, "hitSize");
+        addEl(l, "hitAlpha"); addEl(l, "hitSize");
         ColorPreviewHelper.addColorElements(l, cfg(), cat(), "hitColor");
         return l;
     }
 
     private static List<IConfigElement> getKillVisualElements() {
         List<IConfigElement> l = new ArrayList<>();
-        addEl(l, "killAlpha");
-        addEl(l, "killSize");
+        addEl(l, "killAlpha"); addEl(l, "killSize");
         ColorPreviewHelper.addColorElements(l, cfg(), cat(), "killColor");
         return l;
     }
 
     private static List<IConfigElement> getBorderElements() {
         List<IConfigElement> l = new ArrayList<>();
-        addEl(l, "hitMarkerEnableBorder");
-        addEl(l, "hitMarkerBorderWidth");
+        addEl(l, "hitMarkerEnableBorder"); addEl(l, "hitMarkerBorderWidth");
         ColorPreviewHelper.addColorElements(l, cfg(), cat(), "hitMarkerBorderColor");
         ColorPreviewHelper.addColorElements(l, cfg(), cat(), "hitMarkerKillBorderColor");
         return l;
     }
 
     private static List<IConfigElement> getEffectsElements() {
-        List<IConfigElement> l = new ArrayList<>();
-        addEl(l, "hitBloodIntensity");
-        addEl(l, "enableChatKillDetection");
-        return l;
+        return el("hitBloodIntensity", "enableChatKillDetection");
     }
 
     private static List<IConfigElement> getRotationElements() {
-        List<IConfigElement> l = new ArrayList<>();
-        addEl(l, "hitMarkerRandomRotate");
-        addEl(l, "hitMarkerRandomRotateStrength");
-        return l;
+        return el("hitMarkerRandomRotate", "hitMarkerRandomRotateStrength");
     }
 }
