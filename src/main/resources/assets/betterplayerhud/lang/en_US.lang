@@ -22,7 +22,7 @@ bhud.compass.elements=Element Toggle
 # ── Player HUD sub-categories ──
 bhud.player.basic=Basic
 bhud.player.pos=Position
-bhud.player.appearance=Appearance
+bhud.player.color=Colors
 
 # ── Distance sub-categories ──
 bhud.distance.basic=Basic
@@ -40,6 +40,10 @@ bhud.keys.key=Key Config
 bhud.entity.basic=Basic
 bhud.entity.face=Visible Faces
 bhud.entity.color=Colors (By Team)
+bhud.blockoutline=Block Outline
+bhud.blockoutline.basic=Basic
+bhud.blockoutline.face=Visible Faces
+bhud.blockoutline.color=Colors
 
 # ── RGB Flow sub-categories ──
 bhud.rgb.basic=Basic

@@ -63,13 +63,13 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
 
         // === 模块1：罗盘HUD ===
         elements.add(ColorPreviewHelper.createPreviewCategory(
-                "罗盘HUD设置", "bhud.compass", getCompassConfigElements(),
+                "bhud.compass", "bhud.compass", getCompassConfigElements(),
                 new ColorPreviewHelper.ColorInfo[]{ new ColorPreviewHelper.ColorInfo("compassColor", "罗盘颜色") },
                 "Compass HUD"));
 
         // === 模块2：玩家信息HUD ===
         elements.add(ColorPreviewHelper.createPreviewCategory(
-                "玩家信息HUD设置", "bhud.player", getPlayerConfigElements(),
+                "bhud.player", "bhud.player", getPlayerConfigElements(),
                 new ColorPreviewHelper.ColorInfo[]{
                         new ColorPreviewHelper.ColorInfo("healthColorSafe", "安全血量"),
                         new ColorPreviewHelper.ColorInfo("healthColorWarning", "警告血量"),
@@ -80,7 +80,7 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
 
         // === 模块7：距离HUD ===
         elements.add(ColorPreviewHelper.createPreviewCategory(
-                "距离HUD设置", "bhud.distance", getDistanceConfigElements(),
+                "bhud.distance", "bhud.distance", getDistanceConfigElements(),
                 new ColorPreviewHelper.ColorInfo[]{
                         new ColorPreviewHelper.ColorInfo("distanceColor", "距离颜色"),
                         new ColorPreviewHelper.ColorInfo("targetInfoColor", "目标信息颜色"),
@@ -89,7 +89,7 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
 
         // === 模块9：按键显示 ===
         elements.add(ColorPreviewHelper.createPreviewCategory(
-                "按键显示设置", "bhud.keys", getKeysDisplayConfigElements(),
+                "bhud.keys", "bhud.keys", getKeysDisplayConfigElements(),
                 new ColorPreviewHelper.ColorInfo[]{
                         new ColorPreviewHelper.ColorInfo("keysActiveColor", "按下颜色"),
                         new ColorPreviewHelper.ColorInfo("keysInactiveColor", "未按下颜色"),
@@ -98,13 +98,13 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
 
         // === 模块13：方块描边 ===
         elements.add(ColorPreviewHelper.createPreviewCategory(
-                "方块描边设置", "bhud.blockoutline", getBlockOutlineConfigElements(),
+                "bhud.blockoutline", "bhud.blockoutline", getBlockOutlineConfigElements(),
                 new ColorPreviewHelper.ColorInfo[]{ new ColorPreviewHelper.ColorInfo("blockOutlineColor", "描边颜色") },
                 "Block Outline"));
 
         // === 模块14：实体高亮 ===
         elements.add(ColorPreviewHelper.createPreviewCategory(
-                "实体碰撞箱高亮设置", "bhud.entity", getEntityHighlightConfigElements(),
+                "bhud.entity", "bhud.entity", getEntityHighlightConfigElements(),
                 new ColorPreviewHelper.ColorInfo[]{
                         new ColorPreviewHelper.ColorInfo("entityOutlineColorHostile", "敌对生物"),
                         new ColorPreviewHelper.ColorInfo("entityOutlineColorNeutral", "中立生物"),
@@ -113,12 +113,12 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
 
         // === RGB 动态流光 ===
         elements.add(ColorPreviewHelper.createPreviewCategory(
-                "RGB动态流光设置", "bhud.rgb", getRGBConfigElements(),
+                "bhud.rgb", "bhud.rgb", getRGBConfigElements(),
                 new ColorPreviewHelper.ColorInfo[0], "RGB Flow"));
 
         // === 模块18：目标血量 ===
         elements.add(ColorPreviewHelper.createPreviewCategory(
-                "目标血量显示设置", "bhud.targethp", getTargetHPConfigElements(),
+                "bhud.targethp", "bhud.targethp", getTargetHPConfigElements(),
                 new ColorPreviewHelper.ColorInfo[]{
                         new ColorPreviewHelper.ColorInfo("targetHPColor", "血条颜色"),
                         new ColorPreviewHelper.ColorInfo("targetHPBackColor", "背景颜色"),
@@ -127,20 +127,20 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
 
         // === 模块19：性能检测 ===
         elements.add(ColorPreviewHelper.createPreviewCategory(
-                "性能检测设置", "bhud.performance", getPerformanceConfigElements(),
+                "bhud.performance", "bhud.performance", getPerformanceConfigElements(),
                 new ColorPreviewHelper.ColorInfo[]{
                         new ColorPreviewHelper.ColorInfo("performanceTextColor", "文字颜色"),
                 }, "Performance"));
 
         // === 模块20：自定义准星 ===
         elements.add(ColorPreviewHelper.createPreviewCategory(
-                "自定义准星设置", "bhud.crosshair", getCrosshairConfigElements(),
+                "bhud.crosshair", "bhud.crosshair", getCrosshairConfigElements(),
                 new ColorPreviewHelper.ColorInfo[]{ new ColorPreviewHelper.ColorInfo("crosshairColor", "准星颜色") },
                 "Crosshair"));
 
         // === 模块21：命中标识 ===
         elements.add(ColorPreviewHelper.createPreviewCategory(
-                "命中标识设置", "bhud.hitmarker", getHitMarkerConfigElements(),
+                "bhud.hitmarker", "bhud.hitmarker", getHitMarkerConfigElements(),
                 new ColorPreviewHelper.ColorInfo[]{
                         new ColorPreviewHelper.ColorInfo("hitColor", "击中颜色"),
                         new ColorPreviewHelper.ColorInfo("killColor", "击杀颜色"),
@@ -156,13 +156,11 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
     // ═══════════════════════════════════════════════════════════════
     private static List<IConfigElement> getCompassConfigElements() {
         List<IConfigElement> list = new ArrayList<>();
-        list.add(new DummyConfigElement.DummyCategoryElement("基本", "bhud.compass.basic", el(
-                "showCompassHUD", "xPositionOffset", "yPositionOffset", "compassScale")));
-        list.add(new DummyConfigElement.DummyCategoryElement("显示选项", "bhud.compass.display", el(
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.compass.basic", "bhud.compass.basic", el(
+                "showCompassHUD", "xPosition", "yPosition", "scale")));
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.compass.display", "bhud.compass.display", el(
                 "displayStyle", "degreeMarkInterval", "dynamicScaling")));
-        List<IConfigElement> colorList = new ArrayList<>();
-        ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "compassColor");
-        list.add(new DummyConfigElement.DummyCategoryElement("元素开关", "bhud.compass.elements", el(
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.compass.elements", "bhud.compass.elements", el(
                 "showCompassNeedle", "showDegreeMarks", "showHorizon")));
         return list;
     }
@@ -172,17 +170,17 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
     // ═══════════════════════════════════════════════════════════════
     private static List<IConfigElement> getPlayerConfigElements() {
         List<IConfigElement> list = new ArrayList<>();
-        list.add(new DummyConfigElement.DummyCategoryElement("基本", "bhud.player.basic", el(
-                "showHealthHUD", "showArmorHUD", "showHungerHUD", "showPlayerHead")));
-        list.add(new DummyConfigElement.DummyCategoryElement("位置", "bhud.player.pos", el(
-                "healthHudXOffset", "healthHudYOffset", "headSize", "headTextSpacing")));
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.player.basic", "bhud.player.basic", el(
+                "showHealthHUD", "showArmorHUD", "showHungerHUD")));
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.player.pos", "bhud.player.pos", el(
+                "healthHudX", "healthHudY", "headSize", "headTextSpacing", "showPlayerHead")));
         List<IConfigElement> colorList = new ArrayList<>();
         ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "healthColorSafe");
         ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "healthColorWarning");
         ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "healthColorDanger");
         ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "armorColor");
         ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "hungerColor");
-        list.add(ColorPreviewHelper.createPreviewCategory("颜色", "bhud.player.color", colorList,
+        list.add(ColorPreviewHelper.createPreviewCategory("bhud.player.color", "bhud.player.color", colorList,
                 new ColorPreviewHelper.ColorInfo[]{
                         new ColorPreviewHelper.ColorInfo("healthColorSafe", "安全血量"),
                         new ColorPreviewHelper.ColorInfo("healthColorWarning", "警告血量"),
@@ -198,18 +196,18 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
     // ═══════════════════════════════════════════════════════════════
     private static List<IConfigElement> getDistanceConfigElements() {
         List<IConfigElement> list = new ArrayList<>();
-        list.add(new DummyConfigElement.DummyCategoryElement("基本", "bhud.distance.basic", el(
-                "showDistanceHUD", "distanceHudXOffset", "distanceHudYOffset", "distancePrecision")));
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.distance.basic", "bhud.distance.basic", el(
+                "showDistanceHUD", "distanceHudX", "distanceHudY", "distancePrecision")));
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.distance.extra", "bhud.distance.extra", el(
+                "showTargetInfo", "showBlockCoordinates", "showBlockHardness", "showRequiredTool")));
         List<IConfigElement> colorList = new ArrayList<>();
         ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "distanceColor");
-        list.add(ColorPreviewHelper.createPreviewCategory("颜色", "bhud.distance.color", colorList,
+        list.add(ColorPreviewHelper.createPreviewCategory("bhud.distance.color", "bhud.distance.color", colorList,
                 new ColorPreviewHelper.ColorInfo[]{ new ColorPreviewHelper.ColorInfo("distanceColor", "距离颜色") }, ""));
-        list.add(new DummyConfigElement.DummyCategoryElement("附加信息", "bhud.distance.extra", el(
-                "showTargetInfo", "showBlockCoordinates", "showBlockHardness", "showRequiredTool")));
         List<IConfigElement> colorList2 = new ArrayList<>();
         ColorPreviewHelper.addColorElements(colorList2, cfg(), cat(), "targetInfoColor");
         ColorPreviewHelper.addColorElements(colorList2, cfg(), cat(), "blockInfoColor");
-        list.add(ColorPreviewHelper.createPreviewCategory("额外颜色", "bhud.distance.extra_color", colorList2,
+        list.add(ColorPreviewHelper.createPreviewCategory("bhud.distance.extra_color", "bhud.distance.extra_color", colorList2,
                 new ColorPreviewHelper.ColorInfo[]{
                         new ColorPreviewHelper.ColorInfo("targetInfoColor", "目标信息颜色"),
                         new ColorPreviewHelper.ColorInfo("blockInfoColor", "方块信息颜色"),
@@ -222,15 +220,15 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
     // ═══════════════════════════════════════════════════════════════
     private static List<IConfigElement> getKeysDisplayConfigElements() {
         List<IConfigElement> list = new ArrayList<>();
-        list.add(new DummyConfigElement.DummyCategoryElement("基本", "bhud.keys.basic", el(
-                "showKeysDisplay", "keysDisplayX", "keysDisplayY", "keysScale")));
-        list.add(new DummyConfigElement.DummyCategoryElement("外观", "bhud.keys.appearance", el(
-                "keysSize", "keysSpacing", "showKeysBackground", "keysOpacity")));
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.keys.basic", "bhud.keys.basic", el(
+                "showKeysDisplay", "keysDisplayX", "keysDisplayY", "keysOpacity", "keysScale")));
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.keys.appearance", "bhud.keys.appearance", el(
+                "keysSize", "keysSpacing", "keysTextColor", "showKeysBackground")));
         List<IConfigElement> colorList = new ArrayList<>();
         ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "keysActiveColor");
         ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "keysInactiveColor");
         ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "keysTextColor");
-        list.add(ColorPreviewHelper.createPreviewCategory("颜色", "bhud.keys.color", colorList,
+        list.add(ColorPreviewHelper.createPreviewCategory("bhud.keys.color", "bhud.keys.color", colorList,
                 new ColorPreviewHelper.ColorInfo[]{
                         new ColorPreviewHelper.ColorInfo("keysActiveColor", "按下颜色"),
                         new ColorPreviewHelper.ColorInfo("keysInactiveColor", "未按下颜色"),
@@ -240,14 +238,18 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  方块描边 — 保持简单
+    //  方块描边 — 子分类
     // ═══════════════════════════════════════════════════════════════
     private static List<IConfigElement> getBlockOutlineConfigElements() {
         List<IConfigElement> list = new ArrayList<>();
-        addEl(list, "enableBlockHighlight");
-        addEl(list, "blockOutlineWidth");
-        addEl(list, "drawVisibleFacesOnlyBlocks");
-        ColorPreviewHelper.addColorElements(list, cfg(), cat(), "blockOutlineColor");
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.blockoutline.basic", "bhud.blockoutline.basic", el(
+                "enableBlockHighlight", "blockOutlineWidth")));
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.blockoutline.face", "bhud.blockoutline.face", el(
+                "drawVisibleFacesOnly", "drawVisibleFacesOnlyBlocks")));
+        List<IConfigElement> colorList = new ArrayList<>();
+        ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "blockOutlineColor");
+        list.add(ColorPreviewHelper.createPreviewCategory("bhud.blockoutline.color", "bhud.blockoutline.color", colorList,
+                new ColorPreviewHelper.ColorInfo[]{ new ColorPreviewHelper.ColorInfo("blockOutlineColor", "描边颜色") }, ""));
         return list;
     }
 
@@ -256,19 +258,19 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
     // ═══════════════════════════════════════════════════════════════
     private static List<IConfigElement> getEntityHighlightConfigElements() {
         List<IConfigElement> list = new ArrayList<>();
-        list.add(new DummyConfigElement.DummyCategoryElement("基本", "bhud.entity.basic", el(
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.entity.basic", "bhud.entity.basic", el(
                 "enableEntityHighlight", "entityOutlineWidth", "hideHitboxForInvisible")));
-        list.add(new DummyConfigElement.DummyCategoryElement("可见面", "bhud.entity.face", el(
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.entity.face", "bhud.entity.face", el(
                 "drawVisibleFacesOnlyEntities")));
         List<IConfigElement> colorList = new ArrayList<>();
         ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "entityOutlineColorHostile");
         ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "entityOutlineColorNeutral");
         ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "entityOutlineColorFriendly");
-        list.add(ColorPreviewHelper.createPreviewCategory("颜色（按阵营）", "bhud.entity.color", colorList,
+        list.add(ColorPreviewHelper.createPreviewCategory("bhud.entity.color", "bhud.entity.color", colorList,
                 new ColorPreviewHelper.ColorInfo[]{
-                        new ColorPreviewHelper.ColorInfo("entityOutlineColorHostile", "敌对生物"),
-                        new ColorPreviewHelper.ColorInfo("entityOutlineColorNeutral", "中立生物"),
-                        new ColorPreviewHelper.ColorInfo("entityOutlineColorFriendly", "友好生物"),
+                        new ColorPreviewHelper.ColorInfo("entityOutlineColorHostile", "敌对"),
+                        new ColorPreviewHelper.ColorInfo("entityOutlineColorNeutral", "中立"),
+                        new ColorPreviewHelper.ColorInfo("entityOutlineColorFriendly", "友好"),
                 }, ""));
         return list;
     }
@@ -278,12 +280,12 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
     // ═══════════════════════════════════════════════════════════════
     private static List<IConfigElement> getRGBConfigElements() {
         List<IConfigElement> list = new ArrayList<>();
-        list.add(new DummyConfigElement.DummyCategoryElement("基本", "bhud.rgb.basic", el(
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.rgb.basic", "bhud.rgb.basic", el(
                 "enableRGBMode", "rgbFlowMode", "rgbColorAlgo", "rgbSpeed", "rgbStepMs")));
-        list.add(new DummyConfigElement.DummyCategoryElement("应用对象", "bhud.rgb.apply", el(
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.rgb.apply", "bhud.rgb.apply", el(
                 "rgbApplyBlockOutline", "rgbApplyEntityHitbox")));
-        list.add(new DummyConfigElement.DummyCategoryElement("快捷键", "bhud.rgb.keys", el(
-                "keyBindToggleBlockOutline", "keyBindToggleEntityHitbox", "keyBindToggleRGB")));
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.rgb.keys", "bhud.rgb.keys", el(
+                "keyBindToggleRGB", "keyBindToggleBlockOutline", "keyBindToggleEntityHitbox")));
         return list;
     }
 
@@ -292,19 +294,19 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
     // ═══════════════════════════════════════════════════════════════
     private static List<IConfigElement> getTargetHPConfigElements() {
         List<IConfigElement> list = new ArrayList<>();
-        list.add(new DummyConfigElement.DummyCategoryElement("基本", "bhud.targethp.basic", el(
-                "targetHPEnabled", "targetHPStyle", "targetHPMaxRange", "targetHPBarWidth")));
-        list.add(new DummyConfigElement.DummyCategoryElement("显示对象", "bhud.targethp.show", el(
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.targethp.basic", "bhud.targethp.basic", el(
+                "targetHPEnabled", "targetHPStyle", "targetHPMaxRange")));
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.targethp.show", "bhud.targethp.show", el(
                 "targetHPShowPlayers", "targetHPShowMobs", "targetHPShowBosses", "targetHPShowSelf")));
-        list.add(new DummyConfigElement.DummyCategoryElement("标签", "bhud.targethp.labels", el(
-                "targetHPShowName", "targetHPShowArmor", "targetHPShowLabels", "targetHPShowArmorLabels")));
-        list.add(new DummyConfigElement.DummyCategoryElement("位置", "bhud.targethp.pos", el(
-                "targetHPOffsetX", "targetHPOffsetY")));
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.targethp.labels", "bhud.targethp.labels", el(
+                "targetHPShowName", "targetHPShowLabels", "targetHPShowArmorLabels", "targetHPShowFace", "targetHPFaceSize")));
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.targethp.pos", "bhud.targethp.pos", el(
+                "targetHPOffsetX", "targetHPOffsetY", "targetHPBarWidth", "targetHPShowArmor")));
         List<IConfigElement> colorList = new ArrayList<>();
         ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "targetHPColor");
         ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "targetHPBackColor");
         ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "targetHPTextColor");
-        list.add(ColorPreviewHelper.createPreviewCategory("颜色", "bhud.targethp.color", colorList,
+        list.add(ColorPreviewHelper.createPreviewCategory("bhud.targethp.color", "bhud.targethp.color", colorList,
                 new ColorPreviewHelper.ColorInfo[]{
                         new ColorPreviewHelper.ColorInfo("targetHPColor", "血条颜色"),
                         new ColorPreviewHelper.ColorInfo("targetHPBackColor", "背景颜色"),
@@ -318,15 +320,15 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
     // ═══════════════════════════════════════════════════════════════
     private static List<IConfigElement> getPerformanceConfigElements() {
         List<IConfigElement> list = new ArrayList<>();
-        list.add(new DummyConfigElement.DummyCategoryElement("基本", "bhud.performance.basic", el(
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.performance.basic", "bhud.performance.basic", el(
                 "showPerformanceHUD", "performanceHudX", "performanceHudY")));
-        list.add(new DummyConfigElement.DummyCategoryElement("显示开关", "bhud.performance.toggles", el(
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.performance.toggles", "bhud.performance.toggles", el(
                 "showFPS", "showXYZ", "showTPS", "showPing", "showServerIP")));
-        list.add(new DummyConfigElement.DummyCategoryElement("TPS颜色阈值", "bhud.performance.tpscolor", el(
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.performance.tpscolor", "bhud.performance.tpscolor", el(
                 "serverInfoGoodTpsThreshold", "serverInfoMediumTpsThreshold")));
         List<IConfigElement> colorList = new ArrayList<>();
         ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "performanceTextColor");
-        list.add(ColorPreviewHelper.createPreviewCategory("颜色", "bhud.performance.color", colorList,
+        list.add(ColorPreviewHelper.createPreviewCategory("bhud.performance.color", "bhud.performance.color", colorList,
                 new ColorPreviewHelper.ColorInfo[]{ new ColorPreviewHelper.ColorInfo("performanceTextColor", "文字颜色") }, ""));
         return list;
     }
@@ -336,24 +338,19 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
     // ═══════════════════════════════════════════════════════════════
     private static List<IConfigElement> getCrosshairConfigElements() {
         List<IConfigElement> list = new ArrayList<>();
-        list.add(new DummyConfigElement.DummyCategoryElement("基本", "bhud.crosshair.basic", el(
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.crosshair.basic", "bhud.crosshair.basic", el(
                 "enableCrosshair", "crosshairStyle", "crosshairLength", "crosshairGap", "crosshairThickness",
                 "crosshairAlwaysShow", "crosshairShowInThirdPerson")));
-        list.add(new DummyConfigElement.DummyCategoryElement("臂控制", "bhud.crosshair.arms", el(
-                "crosshairArmUp", "crosshairArmDown", "crosshairArmLeft", "crosshairArmRight", "crosshairRotation")));
-        list.add(new DummyConfigElement.DummyCategoryElement("扩散", "bhud.crosshair.spread", el(
-                "crosshairSpread", "crosshairSpreadAmount", "crosshairSpreadWalk",
-                "crosshairSpreadJump", "crosshairSpreadBow")));
-        list.add(new DummyConfigElement.DummyCategoryElement("样式细节", "bhud.crosshair.detail", el(
-                "crosshairXOffset", "crosshairYOffset", "crosshairDotSize",
-                "crosshairCircleRadius", "crosshairCircleSegments")));
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.crosshair.arms", "bhud.crosshair.arms", el(
+                "crosshairArmUp", "crosshairArmDown", "crosshairArmLeft", "crosshairArmRight", "crosshairXOffset", "crosshairYOffset")));
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.crosshair.spread", "bhud.crosshair.spread", el(
+                "crosshairSpread", "crosshairSpreadAmount", "crosshairSpreadWalk", "crosshairSpreadJump", "crosshairSpreadBow")));
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.crosshair.detail", "bhud.crosshair.detail", el(
+                "crosshairDotSize", "crosshairCircleRadius", "crosshairCircleSegments", "crosshairRotation")));
         List<IConfigElement> colorList = new ArrayList<>();
         ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "crosshairColor");
-        addEl(colorList, "crosshairRGB");
-        addEl(colorList, "crosshairOutline");
         ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "crosshairOutlineColor");
-        addEl(colorList, "crosshairOutlineWidth");
-        list.add(ColorPreviewHelper.createPreviewCategory("颜色 & 描边", "bhud.crosshair.color", colorList,
+        list.add(ColorPreviewHelper.createPreviewCategory("bhud.crosshair.color", "bhud.crosshair.color", colorList,
                 new ColorPreviewHelper.ColorInfo[]{
                         new ColorPreviewHelper.ColorInfo("crosshairColor", "准星颜色"),
                         new ColorPreviewHelper.ColorInfo("crosshairOutlineColor", "描边颜色"),
@@ -362,61 +359,30 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  命中标识 — 6 子分类（保持已有） + 开关
+    //  命中标识 — 子分类
     // ═══════════════════════════════════════════════════════════════
     private static List<IConfigElement> getHitMarkerConfigElements() {
         List<IConfigElement> list = new ArrayList<>();
-        addEl(list, "enableHitMarker");
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.hitmarker.audio", "bhud.hitmarker.audio", el(
+                "enableHitMarker", "enableHitSounds", "enableKillSound", "soundVolume")));
 
-        list.add(new DummyConfigElement.DummyCategoryElement("🔊 音效", "bhud.hitmarker.audio", getAudioElements()));
-        list.add(ColorPreviewHelper.createPreviewCategory("🎯 击中视觉效果", "bhud.hitmarker.hit",
-                getHitVisualElements(),
+        list.add(ColorPreviewHelper.createPreviewCategory("bhud.hitmarker.hit", "bhud.hitmarker.hit",
+                el("hitColor", "hitSize", "hitAlpha", "hitBloodIntensity"),
                 new ColorPreviewHelper.ColorInfo[]{ new ColorPreviewHelper.ColorInfo("hitColor", "击中颜色") }, ""));
-        list.add(ColorPreviewHelper.createPreviewCategory("💀 击杀视觉效果", "bhud.hitmarker.kill",
-                getKillVisualElements(),
+
+        list.add(ColorPreviewHelper.createPreviewCategory("bhud.hitmarker.kill", "bhud.hitmarker.kill",
+                el("killColor", "killSize", "killAlpha"),
                 new ColorPreviewHelper.ColorInfo[]{ new ColorPreviewHelper.ColorInfo("killColor", "击杀颜色") }, ""));
-        list.add(ColorPreviewHelper.createPreviewCategory("⬜ 边框", "bhud.hitmarker.border",
-                getBorderElements(),
+
+        list.add(ColorPreviewHelper.createPreviewCategory("bhud.hitmarker.border", "bhud.hitmarker.border",
+                el("hitMarkerEnableBorder", "hitMarkerBorderColor", "hitMarkerBorderWidth", "hitMarkerKillBorderColor"),
                 new ColorPreviewHelper.ColorInfo[]{
                         new ColorPreviewHelper.ColorInfo("hitMarkerBorderColor", "边框颜色"),
                         new ColorPreviewHelper.ColorInfo("hitMarkerKillBorderColor", "击杀边框颜色"),
                 }, ""));
-        list.add(new DummyConfigElement.DummyCategoryElement("💧 粒子&聊天", "bhud.hitmarker.effects", getEffectsElements()));
-        list.add(new DummyConfigElement.DummyCategoryElement("🔄 旋转", "bhud.hitmarker.rotation", getRotationElements()));
+
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.hitmarker.rotation", "bhud.hitmarker.rotation", el(
+                "hitMarkerRandomRotate", "hitMarkerRandomRotateStrength")));
         return list;
-    }
-
-    private static List<IConfigElement> getAudioElements() {
-        return el("enableHitSounds", "enableKillSound", "soundVolume");
-    }
-
-    private static List<IConfigElement> getHitVisualElements() {
-        List<IConfigElement> l = new ArrayList<>();
-        addEl(l, "hitAlpha"); addEl(l, "hitSize");
-        ColorPreviewHelper.addColorElements(l, cfg(), cat(), "hitColor");
-        return l;
-    }
-
-    private static List<IConfigElement> getKillVisualElements() {
-        List<IConfigElement> l = new ArrayList<>();
-        addEl(l, "killAlpha"); addEl(l, "killSize");
-        ColorPreviewHelper.addColorElements(l, cfg(), cat(), "killColor");
-        return l;
-    }
-
-    private static List<IConfigElement> getBorderElements() {
-        List<IConfigElement> l = new ArrayList<>();
-        addEl(l, "hitMarkerEnableBorder"); addEl(l, "hitMarkerBorderWidth");
-        ColorPreviewHelper.addColorElements(l, cfg(), cat(), "hitMarkerBorderColor");
-        ColorPreviewHelper.addColorElements(l, cfg(), cat(), "hitMarkerKillBorderColor");
-        return l;
-    }
-
-    private static List<IConfigElement> getEffectsElements() {
-        return el("hitBloodIntensity", "enableChatKillDetection");
-    }
-
-    private static List<IConfigElement> getRotationElements() {
-        return el("hitMarkerRandomRotate", "hitMarkerRandomRotateStrength");
     }
 }

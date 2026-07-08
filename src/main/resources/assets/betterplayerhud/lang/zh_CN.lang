@@ -22,7 +22,7 @@ bhud.compass.elements=元素开关
 # ── 玩家信息子分类 ──
 bhud.player.basic=基本
 bhud.player.pos=位置
-bhud.player.appearance=外观
+bhud.player.color=颜色
 
 # ── 距离子分类 ──
 bhud.distance.basic=基本
@@ -40,6 +40,10 @@ bhud.keys.key=按键设置
 bhud.entity.basic=基本
 bhud.entity.face=可见面
 bhud.entity.color=颜色（按阵营）
+bhud.blockoutline=方块描边
+bhud.blockoutline.basic=基本
+bhud.blockoutline.face=可见面
+bhud.blockoutline.color=颜色
 
 # ── RGB 流光子分类 ──
 bhud.rgb.basic=基本
