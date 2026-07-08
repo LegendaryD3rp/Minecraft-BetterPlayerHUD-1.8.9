@@ -25,12 +25,28 @@ public class HitMarkerRendererBHUD {
     private static final long KILL_DURATION = 500;
     private static boolean isKillMarker = false;
 
-    // 保证连续两次旋转角度不同
+    // 旋转角度：触发时定死，渲染时只读不重算
+    private static float currentHitAngle = 0;
     private static float lastHitAngle = Float.NaN;
 
     public static void showHitMarker() {
         hitMarkerTime = System.currentTimeMillis();
         isKillMarker = false;
+        currentHitAngle = generateRotateAngle(hitMarkerTime);
+    }
+
+    private static float generateRotateAngle(long seed) {
+        BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
+        if (!cfg.hitMarkerRandomRotate || cfg.hitMarkerRandomRotateStrength <= 0) return 0;
+        Random rng = new Random(seed);
+        float angle = (rng.nextBoolean() ? 1.0F : -1.0F) * (5.0F + rng.nextFloat() * 15.0F);
+        // 保证连续两次角度不同
+        if (angle == lastHitAngle) {
+            angle = -angle;
+            if (angle == 0.0F) angle = 5.0F;
+        }
+        lastHitAngle = angle;
+        return angle;
     }
 
     public static void showKillMarker() {
@@ -87,20 +103,11 @@ public class HitMarkerRendererBHUD {
         float g = ((color >> 8) & 0xFF) / 255.0f;
         float b = (color & 0xFF) / 255.0f;
 
-        // ── 随机旋转（同一次命中角度固定，不同次随机） ──
+        // ── 随机旋转（同一次命中角度固定，不同次随机；触发时已定死） ──
         GlStateManager.pushMatrix();
         GlStateManager.translate(cx, cy, 0.0F);
-        if (!isKill && cfg.hitMarkerRandomRotate && cfg.hitMarkerRandomRotateStrength > 0) {
-            Random rng = new Random(startTime);
-            float angle = (rng.nextBoolean() ? 1.0F : -1.0F) * (5.0F + rng.nextFloat() * 15.0F);
-            // 保证连续两次角度不同
-            if (angle == lastHitAngle) {
-                angle = -angle;
-                // 如果取反后恰好是 0（不可能，因范围 5~20），但安全处理
-                if (angle == 0.0F) angle = 5.0F;
-            }
-            lastHitAngle = angle;
-            GlStateManager.rotate(angle, 0.0F, 0.0F, 1.0F);
+        if (!isKill && currentHitAngle != 0) {
+            GlStateManager.rotate(currentHitAngle, 0.0F, 0.0F, 1.0F);
         }
         GlStateManager.translate(-cx, -cy, 0.0F);
 
