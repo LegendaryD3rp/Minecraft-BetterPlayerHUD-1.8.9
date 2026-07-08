@@ -29,12 +29,11 @@ public class CrosshairHandler {
 
     @SubscribeEvent
     public void onCrosshair(RenderGameOverlayEvent event) {
-        if (event.type == RenderGameOverlayEvent.ElementType.CROSSHAIRS
+        if (event.type == RenderGameOverlayEvent.ElementType.TEXT
                 && BetterPlayerHUD.config.enableCrosshair
                 && shouldShow()) {
             ScaledResolution sr = new ScaledResolution(mc);
             renderCrosshair(sr.getScaledWidth(), sr.getScaledHeight());
-            event.setCanceled(true);
         }
     }
 
