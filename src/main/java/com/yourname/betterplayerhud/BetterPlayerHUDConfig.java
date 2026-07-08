@@ -124,15 +124,17 @@ public class BetterPlayerHUDConfig {
     public boolean targetHPEnabled = true;
 
     // ================================================================
-    //  模块19：服务器信息 HUD（TPS / Ping / 服务器IP）
+    //  模块19：性能检测（FPS / 坐标 / TPS / Ping / 服务器IP）
     // ================================================================
-    public boolean showServerInfo = true;
-    public int serverInfoX = 5;
-    public int serverInfoY = 65;
-    public int serverInfoColor = 0xAAAAAA;
-    public boolean serverInfoShowTPS = true;
-    public boolean serverInfoShowPing = true;
-    public boolean serverInfoShowServerIP = true;
+    public boolean showPerformanceHUD = true;
+    public int performanceHudX = 5;
+    public int performanceHudY = 65;
+    public int performanceTextColor = 0xAAAAAA;
+    public boolean showFPS = true;
+    public boolean showXYZ = true;
+    public boolean showTPS = true;
+    public boolean showPing = true;
+    public boolean showServerIP = true;
     public int serverInfoTPSGoodColor = 0x55FF55;
     public int serverInfoTPSMediumColor = 0xFFFF55;
     public int serverInfoTPSBadColor = 0xFF5555;
@@ -610,27 +612,33 @@ public class BetterPlayerHUDConfig {
             p.comment = "面部头像尺寸(像素)"; targetHPFaceSize = p.getInt();
         }
 
-        // --- 模块19：服务器信息 HUD ---
+        // --- 模块19：性能检测 ---
         {
-            Property p = config.get(C, "showServerInfo", true);
-            p.comment = "是否显示服务器信息HUD（TPS/Ping/服务器IP）"; showServerInfo = p.getBoolean();
+            Property p = config.get(C, "showPerformanceHUD", true);
+            p.comment = "是否显示性能检测HUD（FPS/坐标/TPS/Ping/IP）"; showPerformanceHUD = p.getBoolean();
 
-            p = config.get(C, "serverInfoX", 5);
-            p.comment = "服务器信息 X 坐标"; serverInfoX = p.getInt();
+            p = config.get(C, "performanceHudX", 5);
+            p.comment = "X 坐标"; performanceHudX = p.getInt();
 
-            p = config.get(C, "serverInfoY", 65);
-            p.comment = "服务器信息 Y 坐标"; serverInfoY = p.getInt();
+            p = config.get(C, "performanceHudY", 65);
+            p.comment = "Y 坐标"; performanceHudY = p.getInt();
 
-            serverInfoColor = loadColor(C, "serverInfoColor", 170, 170, 170);
+            performanceTextColor = loadColor(C, "performanceTextColor", 170, 170, 170);
 
-            p = config.get(C, "serverInfoShowTPS", true);
-            p.comment = "是否显示TPS估算"; serverInfoShowTPS = p.getBoolean();
+            p = config.get(C, "showFPS", true);
+            p.comment = "是否显示FPS"; showFPS = p.getBoolean();
 
-            p = config.get(C, "serverInfoShowPing", true);
-            p.comment = "是否显示真实延迟"; serverInfoShowPing = p.getBoolean();
+            p = config.get(C, "showXYZ", true);
+            p.comment = "是否显示坐标"; showXYZ = p.getBoolean();
 
-            p = config.get(C, "serverInfoShowServerIP", true);
-            p.comment = "是否显示服务器IP"; serverInfoShowServerIP = p.getBoolean();
+            p = config.get(C, "showTPS", true);
+            p.comment = "是否显示实时TPS"; showTPS = p.getBoolean();
+
+            p = config.get(C, "showPing", true);
+            p.comment = "是否显示延迟"; showPing = p.getBoolean();
+
+            p = config.get(C, "showServerIP", true);
+            p.comment = "是否显示服务器IP"; showServerIP = p.getBoolean();
 
             serverInfoTPSGoodColor = loadColor(C, "serverInfoTPSGoodColor", 85, 255, 85);
             serverInfoTPSMediumColor = loadColor(C, "serverInfoTPSMediumColor", 255, 255, 85);
@@ -894,13 +902,15 @@ public class BetterPlayerHUDConfig {
         config.get(C, "targetHPFaceSize", 14).set(targetHPFaceSize);
 
         // --- 模块19 ---
-        config.get(C, "showServerInfo", true).set(showServerInfo);
-        config.get(C, "serverInfoX", 5).set(serverInfoX);
-        config.get(C, "serverInfoY", 65).set(serverInfoY);
-        saveColor(C, "serverInfoColor", serverInfoColor);
-        config.get(C, "serverInfoShowTPS", true).set(serverInfoShowTPS);
-        config.get(C, "serverInfoShowPing", true).set(serverInfoShowPing);
-        config.get(C, "serverInfoShowServerIP", true).set(serverInfoShowServerIP);
+        config.get(C, "showPerformanceHUD", true).set(showPerformanceHUD);
+        config.get(C, "performanceHudX", 5).set(performanceHudX);
+        config.get(C, "performanceHudY", 65).set(performanceHudY);
+        saveColor(C, "performanceTextColor", performanceTextColor);
+        config.get(C, "showFPS", true).set(showFPS);
+        config.get(C, "showXYZ", true).set(showXYZ);
+        config.get(C, "showTPS", true).set(showTPS);
+        config.get(C, "showPing", true).set(showPing);
+        config.get(C, "showServerIP", true).set(showServerIP);
         saveColor(C, "serverInfoTPSGoodColor", serverInfoTPSGoodColor);
         saveColor(C, "serverInfoTPSMediumColor", serverInfoTPSMediumColor);
         saveColor(C, "serverInfoTPSBadColor", serverInfoTPSBadColor);

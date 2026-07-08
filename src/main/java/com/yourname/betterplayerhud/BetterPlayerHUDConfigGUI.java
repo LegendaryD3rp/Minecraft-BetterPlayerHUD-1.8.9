@@ -125,12 +125,12 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
                         new ColorPreviewHelper.ColorInfo("targetHPTextColor", "文字颜色"),
                 }, "Target HP"));
 
-        // === 模块19：服务器信息 ===
+        // === 模块19：性能检测 ===
         elements.add(ColorPreviewHelper.createPreviewCategory(
-                "服务器信息设置", "bhud.server", getServerInfoConfigElements(),
+                "性能检测设置", "bhud.performance", getPerformanceConfigElements(),
                 new ColorPreviewHelper.ColorInfo[]{
-                        new ColorPreviewHelper.ColorInfo("serverInfoTextColor", "文字颜色"),
-                }, "Server Info"));
+                        new ColorPreviewHelper.ColorInfo("performanceTextColor", "文字颜色"),
+                }, "Performance"));
 
         // === 模块20：自定义准星 ===
         elements.add(ColorPreviewHelper.createPreviewCategory(
@@ -314,19 +314,20 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  服务器信息 — 子分类
+    //  性能检测 — 子分类
     // ═══════════════════════════════════════════════════════════════
-    private static List<IConfigElement> getServerInfoConfigElements() {
+    private static List<IConfigElement> getPerformanceConfigElements() {
         List<IConfigElement> list = new ArrayList<>();
-        list.add(new DummyConfigElement.DummyCategoryElement("基本", "bhud.server.basic", el(
-                "serverInfoEnabled", "serverInfoOffsetX", "serverInfoOffsetY")));
-        list.add(new DummyConfigElement.DummyCategoryElement("显示选项", "bhud.server.display", el(
-                "serverInfoShowTPS", "serverInfoShowPing", "serverInfoShowIP",
-                "serverInfoHighTpsThreshold", "serverInfoMediumTpsThreshold")));
+        list.add(new DummyConfigElement.DummyCategoryElement("基本", "bhud.performance.basic", el(
+                "showPerformanceHUD", "performanceHudX", "performanceHudY")));
+        list.add(new DummyConfigElement.DummyCategoryElement("显示开关", "bhud.performance.toggles", el(
+                "showFPS", "showXYZ", "showTPS", "showPing", "showServerIP")));
+        list.add(new DummyConfigElement.DummyCategoryElement("TPS颜色阈值", "bhud.performance.tpscolor", el(
+                "serverInfoGoodTpsThreshold", "serverInfoMediumTpsThreshold")));
         List<IConfigElement> colorList = new ArrayList<>();
-        ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "serverInfoTextColor");
-        list.add(ColorPreviewHelper.createPreviewCategory("颜色", "bhud.server.color", colorList,
-                new ColorPreviewHelper.ColorInfo[]{ new ColorPreviewHelper.ColorInfo("serverInfoTextColor", "文字颜色") }, ""));
+        ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "performanceTextColor");
+        list.add(ColorPreviewHelper.createPreviewCategory("颜色", "bhud.performance.color", colorList,
+                new ColorPreviewHelper.ColorInfo[]{ new ColorPreviewHelper.ColorInfo("performanceTextColor", "文字颜色") }, ""));
         return list;
     }
 

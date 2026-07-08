@@ -33,8 +33,8 @@ public class BetterPlayerHUD {
         // 注册配置 GUI 变更监听器（确保设置页面显示最新值）
         MinecraftForge.EVENT_BUS.register(new ConfigChangeHandler());
 
-        // 注册服务器信息 HUD（TPS / Ping / 服务器IP）
-        MinecraftForge.EVENT_BUS.register(new ServerInfoHUDHandler());
+        // 注册性能检测 HUD（FPS / 坐标 / TPS / Ping / 服务器IP）
+        MinecraftForge.EVENT_BUS.register(new PerformanceHUDHandler());
 
         // 注册自定义准星 HUD（模块20）
         MinecraftForge.EVENT_BUS.register(new CrosshairHandler());
