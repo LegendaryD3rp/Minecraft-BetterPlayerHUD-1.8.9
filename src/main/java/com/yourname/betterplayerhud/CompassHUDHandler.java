@@ -167,8 +167,18 @@ public class CompassHUDHandler {
 
         GlStateManager.popMatrix();
 
-        if (HUDEditManager.isEditing())
-            HUDEditManager.report("罗盘", xPos, yPos, 240, 30);
+        if (HUDEditManager.isEditing()) {
+            // 罗盘使用 GlStateManager.scale(scale) 围绕中心 (xPos+120, yPos+20) 缩放
+            // 实际渲染尺寸 = 逻辑尺寸 × scale
+            float s = BetterPlayerHUD.config.scale;
+            int cx = xPos + 120;
+            int cy = yPos + 20;
+            int actualW = (int)(240 * s);
+            int actualH = (int)(30 * s);
+            int actualX = cx - (int)(120 * s);
+            int actualY = cy - (int)(20 * s);
+            HUDEditManager.report("罗盘", actualX, actualY, actualW, actualH);
+        }
     }
 
     // 修正：直接使用Minecraft的角度系统（与F3完全一致）
