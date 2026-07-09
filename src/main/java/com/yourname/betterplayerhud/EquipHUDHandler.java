@@ -198,33 +198,76 @@ public class EquipHUDHandler {
         mc.fontRendererObj.drawStringWithShadow(text, cx - tw / 2, textY, 0xFFFFFFFF);
     }
 
-    /** 获取武器伤害描述，非武器返回 null */
+    /** 获取武器伤害描述，非武器返回 null（CompassMod 同款逻辑，硬编码物品ID映射） */
     private String getWeaponDamage(ItemStack stack) {
         Item item = stack.getItem();
+        float baseDamage = 0.0f;
 
         if (item instanceof ItemSword) {
-            // 剑：从属性修饰符读取真实攻击伤害（7.0），不能用 getDamageVsEntity()
-            // 那个方法在 MCP 1.8.9 中返回的是 material.getDamageVsEntity()（3.0）
-            float baseDmg = getToolDamage(stack) + 1.0f;
-            float sharpBonus = getSharpnessBonus(stack);
-            return DF.format(baseDmg + sharpBonus);
-        }
-
-        if (item instanceof ItemTool && !(item instanceof ItemBow)) {
-            // 工具类 (斧/镐/铲)：总伤害 = 属性修饰符 + 空手基础 1.0
-            float baseDmg = getToolDamage(stack) + 1.0f;
-            float sharpBonus = getSharpnessBonus(stack);
-            return DF.format(baseDmg + sharpBonus);
-        }
-
-        if (item instanceof ItemBow) {
-            // 弓：满蓄力最大伤害估算 10 + Power等级*2
+            baseDamage = getSwordBaseDamage((ItemSword) item);
+        } else if (item instanceof ItemAxe) {
+            baseDamage = getAxeBaseDamage((ItemAxe) item);
+        } else if (item instanceof ItemPickaxe) {
+            baseDamage = getPickaxeBaseDamage((ItemPickaxe) item);
+        } else if (item instanceof ItemSpade) {
+            baseDamage = getSpadeBaseDamage((ItemSpade) item);
+        } else if (item instanceof ItemBow) {
             int powerLevel = EnchantmentHelper.getEnchantmentLevel(Enchantment.power.effectId, stack);
-            float maxDmg = 10.0f + powerLevel * 2.0f;
-            return "弓 " + DF.format(maxDmg);
+            return "弓 " + DF.format(10.0f + powerLevel * 2.0f);
+        } else {
+            return null;
         }
 
-        return null;
+        float sharpnessBonus = getSharpnessBonus(stack);
+        return DF.format(baseDamage + sharpnessBonus);
+    }
+
+    /** 剑基础伤害（CompassMod 同款硬编码） */
+    private static float getSwordBaseDamage(ItemSword sword) {
+        switch (Item.getIdFromItem(sword)) {
+            case 268: return 4.0f; // 木剑
+            case 272: return 5.0f; // 石剑
+            case 267: return 6.0f; // 铁剑
+            case 276: return 7.0f; // 钻石剑
+            case 283: return 4.0f; // 金剑
+            default:  return 4.0f;
+        }
+    }
+
+    /** 斧基础伤害（CompassMod 同款硬编码） */
+    private static float getAxeBaseDamage(ItemAxe axe) {
+        switch (Item.getIdFromItem(axe)) {
+            case 271: return 3.0f; // 木斧
+            case 275: return 4.0f; // 石斧
+            case 258: return 5.0f; // 铁斧
+            case 279: return 6.0f; // 钻石斧
+            case 286: return 3.0f; // 金斧
+            default:  return 3.0f;
+        }
+    }
+
+    /** 镐基础伤害（CompassMod 同款硬编码） */
+    private static float getPickaxeBaseDamage(ItemPickaxe pickaxe) {
+        switch (Item.getIdFromItem(pickaxe)) {
+            case 270: return 2.0f; // 木镐
+            case 274: return 3.0f; // 石镐
+            case 257: return 4.0f; // 铁镐
+            case 278: return 5.0f; // 钻石镐
+            case 285: return 2.0f; // 金镐
+            default:  return 2.0f;
+        }
+    }
+
+    /** 锹基础伤害（CompassMod 同款硬编码） */
+    private static float getSpadeBaseDamage(ItemSpade spade) {
+        switch (Item.getIdFromItem(spade)) {
+            case 269: return 1.0f; // 木锹
+            case 273: return 2.0f; // 石锹
+            case 256: return 3.0f; // 铁锹
+            case 277: return 4.0f; // 钻石锹
+            case 284: return 1.0f; // 金锹
+            default:  return 1.0f;
+        }
     }
 
     /** 计算锋利附魔的额外伤害（1.8.9 MCP 公式：level * 1.25） */
@@ -232,22 +275,5 @@ public class EquipHUDHandler {
         int level = EnchantmentHelper.getEnchantmentLevel(Enchantment.sharpness.effectId, stack);
         if (level <= 0) return 0;
         return level * 1.25f;
-    }
-
-    /** 从 ItemTool 的属性修饰符取得武器伤害修正值（不含空手基础 1.0） */
-    private static float getToolDamage(ItemStack stack) {
-        // 1.8.9 中 ItemTool 没有 getDamageVsEntity，通过属性修饰符取得
-        com.google.common.collect.Multimap<String, net.minecraft.entity.ai.attributes.AttributeModifier> map =
-                stack.getAttributeModifiers();
-        java.util.Collection<net.minecraft.entity.ai.attributes.AttributeModifier> mods =
-                (java.util.Collection<net.minecraft.entity.ai.attributes.AttributeModifier>)
-                        (java.util.Collection<?>) map.get("generic.attackDamage");
-        double dmg = 0;
-        if (mods != null) {
-            for (net.minecraft.entity.ai.attributes.AttributeModifier mod : mods) {
-                dmg += mod.getAmount();
-            }
-        }
-        return (float) dmg;
     }
 }
