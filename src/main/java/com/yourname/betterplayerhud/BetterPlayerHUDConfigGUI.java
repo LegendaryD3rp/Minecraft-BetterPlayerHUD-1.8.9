@@ -435,6 +435,17 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
     //  模块24：危机警戒图标
     // ================================================================
     private static List<IConfigElement> getCrisisConfigElements() {
-        return el("enableCriticalHealth");
+        List<IConfigElement> list = new ArrayList<>();
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.crisis.basic", "bhud.crisis.basic", el(
+                "enableCriticalHealth", "crisisIconSize", "crisisFlashInterval")));
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.crisis.health", "bhud.crisis.health", el(
+                "crisisWarnHealth", "crisisHealthThreshold")));
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.crisis.hunger", "bhud.crisis.hunger", el(
+                "crisisWarnHunger", "crisisHungerThreshold")));
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.crisis.tnt", "bhud.crisis.tnt", el(
+                "crisisWarnTnt", "crisisTntRadius")));
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.crisis.bow", "bhud.crisis.bow", el(
+                "crisisWarnBow")));
+        return list;
     }
 }

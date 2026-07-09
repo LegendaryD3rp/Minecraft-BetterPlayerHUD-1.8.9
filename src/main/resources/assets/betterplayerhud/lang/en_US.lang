@@ -274,4 +274,18 @@ slotCountYOffset=Slot Count Y Offset
 
 # ── Crisis Warning ──
 bhud.crisis=Crisis Warning
-enableCriticalHealth=Show Crisis Icons (Heart/TNT/Bow/Hunger)
+bhud.crisis.basic=Basic
+bhud.crisis.health=Low Health
+bhud.crisis.hunger=Hunger
+bhud.crisis.tnt=TNT Detection
+bhud.crisis.bow=Draw Bow
+enableCriticalHealth=Enable Crisis Warning
+crisisWarnHealth=Warn Low Health
+crisisHealthThreshold=Health Threshold
+crisisWarnHunger=Warn Low Hunger
+crisisHungerThreshold=Hunger Threshold
+crisisWarnTnt=Warn TNT Nearby
+crisisTntRadius=TNT Detection Radius
+crisisWarnBow=Warn Drawing Bow
+crisisIconSize=Icon Size
+crisisFlashInterval=Flash Interval (ticks)

@@ -218,9 +218,18 @@ public class BetterPlayerHUDConfig {
     public int slotCountYOffset = 0;
 
     // ================================================================
-    //  模块24：残血心跳指示器
+    //  模块24：危机警戒图标
     // ================================================================
     public boolean enableCriticalHealth = true;
+    public boolean crisisWarnHealth = true;
+    public double crisisHealthThreshold = 2.0;
+    public boolean crisisWarnHunger = true;
+    public int crisisHungerThreshold = 6;
+    public boolean crisisWarnTnt = true;
+    public double crisisTntRadius = 10.0;
+    public boolean crisisWarnBow = true;
+    public int crisisIconSize = 24;
+    public int crisisFlashInterval = 20;
 
     // ================================================================
     //  模块21：命中标识 (Hit Marker)
@@ -789,10 +798,28 @@ public class BetterPlayerHUDConfig {
             p.comment = "物品数量Y偏移"; slotCountYOffset = p.getInt();
         }
 
-        // --- 模块24：残血心跳指示器 ---
+        // --- 模块24：危机警戒图标 ---
         {
             Property p = config.get(C, "enableCriticalHealth", true);
-            p.comment = "启用残血心跳指示器"; enableCriticalHealth = p.getBoolean();
+            p.comment = "启用危机警戒图标"; enableCriticalHealth = p.getBoolean();
+            p = config.get(C, "crisisWarnHealth", true);
+            p.comment = "低血量警戒"; crisisWarnHealth = p.getBoolean();
+            p = config.get(C, "crisisHealthThreshold", 2.0);
+            p.comment = "低血量阈值"; crisisHealthThreshold = p.getDouble();
+            p = config.get(C, "crisisWarnHunger", true);
+            p.comment = "饥饿警戒"; crisisWarnHunger = p.getBoolean();
+            p = config.get(C, "crisisHungerThreshold", 6);
+            p.comment = "饥饿阈值"; crisisHungerThreshold = p.getInt();
+            p = config.get(C, "crisisWarnTnt", true);
+            p.comment = "TNT附近警戒"; crisisWarnTnt = p.getBoolean();
+            p = config.get(C, "crisisTntRadius", 10.0);
+            p.comment = "TNT检测半径"; crisisTntRadius = p.getDouble();
+            p = config.get(C, "crisisWarnBow", true);
+            p.comment = "拉弓警戒"; crisisWarnBow = p.getBoolean();
+            p = config.get(C, "crisisIconSize", 24);
+            p.comment = "图标大小"; crisisIconSize = p.getInt();
+            p = config.get(C, "crisisFlashInterval", 20);
+            p.comment = "闪烁周期(ticks)"; crisisFlashInterval = p.getInt();
         }
 
         // --- 模块21：命中标识 ---
@@ -1026,8 +1053,17 @@ public class BetterPlayerHUDConfig {
         config.get(C, "heldItemYOffset", 0).set(heldItemYOffset);
         config.get(C, "slotCountYOffset", 0).set(slotCountYOffset);
 
-        // --- 模块24：残血心跳指示器 ---
+        // --- 模块24：危机警戒图标 ---
         config.get(C, "enableCriticalHealth", true).set(enableCriticalHealth);
+        config.get(C, "crisisWarnHealth", true).set(crisisWarnHealth);
+        config.get(C, "crisisHealthThreshold", 2.0).set(crisisHealthThreshold);
+        config.get(C, "crisisWarnHunger", true).set(crisisWarnHunger);
+        config.get(C, "crisisHungerThreshold", 6).set(crisisHungerThreshold);
+        config.get(C, "crisisWarnTnt", true).set(crisisWarnTnt);
+        config.get(C, "crisisTntRadius", 10.0).set(crisisTntRadius);
+        config.get(C, "crisisWarnBow", true).set(crisisWarnBow);
+        config.get(C, "crisisIconSize", 24).set(crisisIconSize);
+        config.get(C, "crisisFlashInterval", 20).set(crisisFlashInterval);
 
         // --- 模块21：命中标识 ---
         config.get(C, "enableHitMarker", true).set(enableHitMarker);

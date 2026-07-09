@@ -274,4 +274,18 @@ slotCountYOffset=物品数量 Y 偏移
 
 # ── 危机警戒图标 ──
 bhud.crisis=危机警戒图标
-enableCriticalHealth=危机时显示闪烁图标(生命/TNT/弓箭/饥饿)
+bhud.crisis.basic=基本设置
+bhud.crisis.health=低血量
+bhud.crisis.hunger=饥饿
+bhud.crisis.tnt=TNT检测
+bhud.crisis.bow=拉弓
+enableCriticalHealth=启用危机警戒
+crisisWarnHealth=低血量警戒
+crisisHealthThreshold=血量阈值
+crisisWarnHunger=饥饿警戒
+crisisHungerThreshold=饥饿阈值
+crisisWarnTnt=TNT附近警戒
+crisisTntRadius=TNT检测半径(格)
+crisisWarnBow=拉弓警戒
+crisisIconSize=图标大小
+crisisFlashInterval=闪烁周期(ticks)
