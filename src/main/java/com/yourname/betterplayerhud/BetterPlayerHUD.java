@@ -43,6 +43,9 @@ public class BetterPlayerHUD {
         MinecraftForge.EVENT_BUS.register(new HitMarkerRendererBHUD());
         MinecraftForge.EVENT_BUS.register(new HitMarkerEventHandler());
         MinecraftForge.EVENT_BUS.register(new HitMarkerChatListener());
+
+        // 注册药水效果 HUD（模块22）
+        MinecraftForge.EVENT_BUS.register(new PotionHUDHandler());
     }
 
     /**

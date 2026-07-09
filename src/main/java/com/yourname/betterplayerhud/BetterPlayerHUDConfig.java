@@ -199,6 +199,14 @@ public class BetterPlayerHUDConfig {
     public int crosshairCircleSegments = 24;
 
     // ================================================================
+    //  模块22：药水效果 HUD
+    // ================================================================
+    public boolean enablePotionHUD = true;
+    public int potionTextColor = 0xFFFFFFFF;
+    public int potionXOffset = 0;
+    public int potionYOffset = 0;
+
+    // ================================================================
     //  模块21：命中标识 (Hit Marker)
     // ================================================================
     public boolean enableHitMarker = true;
@@ -295,11 +303,6 @@ public class BetterPlayerHUDConfig {
         config.getCategory(C).remove("sprintStatusColor");
         config.getCategory(C).remove("targetHPColor");
         config.getCategory(C).remove("sneakStatusColor");
-        config.getCategory(C).remove("potionBackgroundColor");
-        config.getCategory(C).remove("potionTextColor");
-        config.getCategory(C).remove("potionGoodEffectColor");
-        config.getCategory(C).remove("potionBadEffectColor");
-        config.getCategory(C).remove("potionNeutralEffectColor");
         config.getCategory(C).remove("blockOutlineColor");
         config.getCategory(C).remove("entityOutlineColorHostile");
         config.getCategory(C).remove("entityOutlineColorNeutral");
@@ -732,6 +735,21 @@ public class BetterPlayerHUDConfig {
             p.comment = "圆形分段数"; crosshairCircleSegments = p.getInt();
         }
 
+        // --- 模块22：药水效果 HUD ---
+        {
+            Property p = config.get(C, "enablePotionHUD", true);
+            p.comment = "是否显示药水效果HUD"; enablePotionHUD = p.getBoolean();
+
+            p = config.get(C, "potionTextColor", 0xFFFFFFFF);
+            p.comment = "药水时长文字颜色"; potionTextColor = p.getInt();
+
+            p = config.get(C, "potionXOffset", 0);
+            p.comment = "药水HUD X轴偏移"; potionXOffset = p.getInt();
+
+            p = config.get(C, "potionYOffset", 0);
+            p.comment = "药水HUD Y轴偏移"; potionYOffset = p.getInt();
+        }
+
         // --- 模块21：命中标识 ---
         {
             Property p = config.get(C, "enableHitMarker", true);
@@ -946,6 +964,12 @@ public class BetterPlayerHUDConfig {
         config.get(C, "crosshairDotSize", 2).set(crosshairDotSize);
         config.get(C, "crosshairCircleRadius", 8).set(crosshairCircleRadius);
         config.get(C, "crosshairCircleSegments", 24).set(crosshairCircleSegments);
+
+        // --- 模块22：药水效果 HUD ---
+        config.get(C, "enablePotionHUD", true).set(enablePotionHUD);
+        saveColor(C, "potionTextColor", potionTextColor);
+        config.get(C, "potionXOffset", 0).set(potionXOffset);
+        config.get(C, "potionYOffset", 0).set(potionYOffset);
 
         // --- 模块21：命中标识 ---
         config.get(C, "enableHitMarker", true).set(enableHitMarker);

@@ -148,6 +148,10 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
                         new ColorPreviewHelper.ColorInfo("hitMarkerKillBorderColor", "击杀边框颜色"),
                 }, "Hit Marker"));
 
+        // === 模块22：药水效果 HUD ===
+        elements.add(new DummyConfigElement.DummyCategoryElement(
+                "bhud.potion", "bhud.potion", getPotionConfigElements()));
+
         return elements;
     }
 
@@ -384,6 +388,16 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
 
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.hitmarker.rotation", "bhud.hitmarker.rotation", el(
                 "hitMarkerRandomRotate", "hitMarkerRandomRotateStrength")));
+        return list;
+    }
+
+    // ================================================================
+    //  模块22：药水效果 HUD
+    // ================================================================
+    private static List<IConfigElement> getPotionConfigElements() {
+        List<IConfigElement> list = new ArrayList<>();
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.potion.basic", "bhud.potion.basic", el(
+                "enablePotionHUD", "potionTextColor", "potionXOffset", "potionYOffset")));
         return list;
     }
 }

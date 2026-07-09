@@ -249,3 +249,11 @@ hitMarkerBorderWidth=Border Width
 hitMarkerKillBorderColor=Kill Border Color
 hitMarkerRandomRotate=Enable Random Rotation
 hitMarkerRandomRotateStrength=Rotation Strength
+
+# ── Potion HUD ──
+bhud.potion=Potion HUD
+bhud.potion.basic=Basic
+enablePotionHUD=Enable Potion HUD
+potionTextColor=Text Color
+potionXOffset=X Offset
+potionYOffset=Y Offset
