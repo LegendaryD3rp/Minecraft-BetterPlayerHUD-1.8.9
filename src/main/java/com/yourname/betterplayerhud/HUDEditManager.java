@@ -1,10 +1,8 @@
 package com.yourname.betterplayerhud;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Gui;
-import net.minecraft.client.gui.ScaledResolution;
+import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.settings.KeyBinding;
-import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.fml.client.registry.ClientRegistry;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
@@ -12,6 +10,7 @@ import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 
 import java.awt.*;
+import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -19,32 +18,58 @@ import java.util.function.Consumer;
 /**
  * HUD 拖拽编辑模式
  *
- * 按 F7 切换编辑模式 → 所有可移动模块显示彩色拖拽框 + 名称
- * 鼠标点击拖拽框 → 拖动 → 释放后自动保存配置
- * 选中模块后，按住 Ctrl + 鼠标滚轮 → 调大小
+ * 按 F7 打开编辑 GUI（GuiEditScreen）→ 类似 ESC 菜单：
+ *   - 冻结游戏 & 释放鼠标 & 不改变视角
+ *   - 两步操作：点击选中模块 → 再拖拽移动
+ *   - 选中模块后 Ctrl+滚轮调大小
+ *   - R 键一键恢复当前模块的默认位置
+ *   - Shift+R 恢复全部模块
+ *   - 再次 F7 或 ESC 退出
+ *
+ * 坐标系一致性：
+ *   所有模块在编辑模式下统一使用「屏幕绝对坐标」(0,0 左上角)
+ *   拖拽松手时，PosConverter 将绝对坐标转为各模块的 config 语义
  */
 public class HUDEditManager {
 
     private static final Minecraft mc = Minecraft.getMinecraft();
     private static KeyBinding keyEditMode;
-    private static boolean isEditing = false;
 
-    /** 模块名 → 当期位置 */
+    /** 模块名 → 当期位置（屏幕绝对坐标） */
     private static final Map<String, Rectangle> currentPositions = new LinkedHashMap<>();
-    /** 模块名 → X/Y 设置器 */
+    /** 模块名 → X/Y config 设置器 */
     private static final Map<String, Consumer<Integer>> xSetters = new LinkedHashMap<>();
     private static final Map<String, Consumer<Integer>> ySetters = new LinkedHashMap<>();
     /** 模块名 → 大小调整器（Ctrl+滚轮用） */
     private static final Map<String, Consumer<Integer>> sizeSetters = new LinkedHashMap<>();
-
-    /** 拖拽状态 */
-    private static String dragging = null;
-    private static int dragOffX, dragOffY;
-
-    private static final int BORDER_COLOR = 0xCCFFFFFF;
+    /** 模块名 → 绝对坐标 → config 值转换器 */
+    private static final Map<String, PosConverter> posConverters = new LinkedHashMap<>();
+    /** 模块名 → 默认位置（用于重置） */
+    private static final Map<String, int[]> defaultPositions = new LinkedHashMap<>();
 
     /** 单例实例（用于 Forge 事件总线注册） */
     public static final HUDEditManager INSTANCE = new HUDEditManager();
+    /** 当前打开的编辑屏幕（null=未打开） */
+    private static GuiEditScreen activeScreen = null;
+
+    // ═══════════════════════════════════════════════════════════════
+    //  坐标转换接口
+    // ═══════════════════════════════════════════════════════════════
+
+    @FunctionalInterface
+    public interface PosConverter {
+        /**
+         * 将屏幕绝对坐标转换为当前模块的 config 字段值
+         * @param absX      拖拽后的绝对 X（屏幕像素）
+         * @param absY      拖拽后的绝对 Y
+         * @param sw        缩放后的屏幕宽度
+         * @param sh        缩放后的屏幕高度
+         * @return [configX, configY]
+         */
+        int[] convert(int absX, int absY, int sw, int sh);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
 
     private HUDEditManager() {}
 
@@ -53,13 +78,40 @@ public class HUDEditManager {
         ClientRegistry.registerKeyBinding(keyEditMode);
     }
 
-    public static boolean isEditing() { return isEditing; }
+    public static boolean isEditing() { return activeScreen != null; }
 
-    /** 注册一个可拖拽模块 */
-    public static void register(String name, Consumer<Integer> setX, Consumer<Integer> setY) {
+    /**
+     * 注册可拖拽模块（绝对坐标模块）
+     * @param name       显示名称
+     * @param setX       config X 设置器
+     * @param setY       config Y 设置器
+     * @param defaultX   默认 X（重置时恢复）
+     * @param defaultY   默认 Y
+     */
+    public static void register(String name, Consumer<Integer> setX, Consumer<Integer> setY,
+                                int defaultX, int defaultY) {
+        register(name, setX, setY, defaultX, defaultY,
+                (absX, absY, sw, sh) -> new int[]{absX, absY});  // identity 转换
+    }
+
+    /**
+     * 注册可拖拽模块（带坐标转换器，用于 offset 模块）
+     * @param name       显示名称
+     * @param setX       config X 设置器
+     * @param setY       config Y 设置器
+     * @param defaultX   默认 X（重置时恢复）
+     * @param defaultY   默认 Y
+     * @param converter  绝对坐标 → config 值转换器
+     */
+    public static void register(String name,
+                                Consumer<Integer> setX, Consumer<Integer> setY,
+                                int defaultX, int defaultY,
+                                PosConverter converter) {
         xSetters.put(name, setX);
         ySetters.put(name, setY);
         currentPositions.put(name, new Rectangle(0, 0, 0, 0));
+        posConverters.put(name, converter);
+        defaultPositions.put(name, new int[]{defaultX, defaultY});
     }
 
     /** 注册大小调整器（可选，Ctrl+滚轮用） */
@@ -67,9 +119,9 @@ public class HUDEditManager {
         sizeSetters.put(name, setSize);
     }
 
-    /** Handler 渲染完后调用，上报当前位置 */
+    /** Handler 渲染完后调用，上报当前位置（屏幕绝对坐标） */
     public static void report(String name, int x, int y, int w, int h) {
-        if (!isEditing) return;
+        if (activeScreen == null) return;
         Rectangle r = currentPositions.get(name);
         if (r != null) {
             r.setBounds(x, y, w, h);
@@ -79,126 +131,326 @@ public class HUDEditManager {
     @SubscribeEvent
     public void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
-
-        while (keyEditMode.isPressed()) {
-            isEditing = !isEditing;
-            if (!isEditing) {
-                dragging = null;
-                mc.mouseHelper.grabMouseCursor();
-            } else {
-                mc.mouseHelper.ungrabMouseCursor();
-            }
-        }
-
-        // 编辑模式下冻结玩家移动
-        if (isEditing && mc.thePlayer != null) {
-            mc.thePlayer.movementInput.moveForward = 0.0f;
-            mc.thePlayer.movementInput.moveStrafe = 0.0f;
-            mc.thePlayer.movementInput.jump = false;
-            mc.thePlayer.movementInput.sneak = false;
-        }
-
-        if (!isEditing) return;
         if (mc.thePlayer == null) return;
 
-        boolean pressed = Mouse.isButtonDown(0);
-        int rawX = Mouse.getX();
-        int rawY = Mouse.getY();
-        ScaledResolution sr = new ScaledResolution(mc);
-        int sx = rawX * sr.getScaledWidth() / mc.displayWidth;
-        // 正确公式：参考 GuiScreen.handleMouseInput()
-        int sy = sr.getScaledHeight() - rawY * sr.getScaledHeight() / mc.displayHeight - 1;
-
-        if (pressed && dragging == null) {
-            for (Map.Entry<String, Rectangle> e : currentPositions.entrySet()) {
-                Rectangle r = e.getValue();
-                if (r != null && r.contains(sx, sy)) {
-                    dragging = e.getKey();
-                    dragOffX = sx - r.x;
-                    dragOffY = sy - r.y;
-                    break;
-                }
+        while (keyEditMode.isPressed()) {
+            if (activeScreen == null) {
+                activeScreen = new GuiEditScreen();
+                mc.displayGuiScreen(activeScreen);
+            } else {
+                mc.displayGuiScreen(null);
+                activeScreen = null;
             }
-        } else if (!pressed && dragging != null) {
-            BetterPlayerHUD.config.saveConfig();
-            dragging = null;
         }
 
-        if (dragging != null) {
-            Rectangle r = currentPositions.get(dragging);
-            if (r != null) {
-                // 按住 Ctrl + 滚轮调大小
-                if (Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL)) {
-                    int dWheel = Mouse.getDWheel();
-                    if (dWheel != 0) {
-                        Consumer<Integer> setSize = sizeSetters.get(dragging);
-                        if (setSize != null) {
-                            int delta = dWheel > 0 ? 1 : -1;
-                            setSize.accept(delta);
-                        }
-                    }
-                } else {
-                    // 拖拽位置（仅在位置变化时更新）
-                    int newX = sx - dragOffX;
-                    int newY = sy - dragOffY;
-                    if (newX != r.x || newY != r.y) {
-                        r.setLocation(newX, newY);
-                        Consumer<Integer> setX = xSetters.get(dragging);
-                        Consumer<Integer> setY = ySetters.get(dragging);
-                        if (setX != null) setX.accept(newX);
-                        if (setY != null) setY.accept(newY);
-                    }
-                }
-            }
+        // 如果屏幕意外关闭（比如 ESC），同步状态
+        if (activeScreen != null && mc.currentScreen != activeScreen) {
+            activeScreen = null;
         }
     }
 
-    @SubscribeEvent
-    public void onRenderOverlay(RenderGameOverlayEvent.Post event) {
-        if (!isEditing) return;
-        if (event.type != RenderGameOverlayEvent.ElementType.TEXT) return;
+    // ═══════════════════════════════════════════════════════════════
+    //  编辑 GUI 屏幕
+    // ═══════════════════════════════════════════════════════════════
+    private static class GuiEditScreen extends GuiScreen {
 
-        // 保存 OpenGL 状态，防止破坏后续渲染管线
-        net.minecraft.client.renderer.GlStateManager.pushMatrix();
-        net.minecraft.client.renderer.GlStateManager.enableBlend();
-        net.minecraft.client.renderer.GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+        private String selected = null;       // 当前选中的模块名
+        private String dragging = null;        // 正在拖拽的模块名
+        private int dragOffX, dragOffY;
+        private String lastHovered = null;
 
-        ScaledResolution sr = new ScaledResolution(mc);
+        // 重置确认状态
+        private long resetPromptTime = 0;
+        private boolean resetAll = false;
 
-        for (Map.Entry<String, Rectangle> e : currentPositions.entrySet()) {
-            Rectangle r = e.getValue();
-            if (r == null || r.width <= 0 || r.height <= 0) continue;
+        private static final int BORDER_COLOR = 0xCCFFFFFF;
+        private static final int SELECTED_COLOR = 0xCC00FF00;
+        private static final int DRAGGING_COLOR = 0xFFFFAA00;
 
-            int color = e.getKey().hashCode() | 0x88000000;
+        GuiEditScreen() {
+            this.allowUserInput = false;
+        }
 
-            // 外边框
-            Gui.drawRect(r.x - 1, r.y - 1, r.x + r.width + 1, r.y + r.height + 1, BORDER_COLOR);
-            // 内部半透明填充
-            Gui.drawRect(r.x, r.y, r.x + r.width, r.y + r.height, color & 0x44FFFFFF);
+        @Override
+        public boolean doesGuiPauseGame() {
+            return false;
+        }
 
-            // 模块名称标签
-            String label = "[ " + e.getKey() + " ]";
-            int lw = mc.fontRendererObj.getStringWidth(label);
-            int lx = r.x + r.width / 2 - lw / 2;
-            int ly = r.y - mc.fontRendererObj.FONT_HEIGHT - 2;
-            mc.fontRendererObj.drawStringWithShadow(label, lx, ly, 0xFFFFFFFF);
+        @Override
+        public void drawScreen(int mouseX, int mouseY, float partialTicks) {
+            // 半透明背景遮罩
+            drawRect(0, 0, width, height, 0x88000000);
 
-            // 大小调整提示
-            if (sizeSetters.containsKey(e.getKey())) {
-                String sizeHint = "§7Ctrl+滚轮";
-                mc.fontRendererObj.drawStringWithShadow(sizeHint, r.x + 2, r.y + r.height - mc.fontRendererObj.FONT_HEIGHT - 1, 0xAAFFFFFF);
+            // 绘制所有模块的拖拽框
+            for (Map.Entry<String, Rectangle> e : currentPositions.entrySet()) {
+                Rectangle r = e.getValue();
+                if (r == null || r.width <= 0 || r.height <= 0) continue;
+
+                String name = e.getKey();
+                boolean isHovered = r.contains(mouseX, mouseY);
+                boolean isDraggingThis = name.equals(dragging);
+                boolean isSelectedThis = name.equals(selected) && !isDraggingThis;
+
+                // 填充色
+                int fillColor;
+                if (isDraggingThis) {
+                    fillColor = 0x66FFAA00;
+                } else if (isSelectedThis) {
+                    fillColor = 0x4400FF00;
+                } else if (isHovered) {
+                    fillColor = 0x44FFFFFF;
+                } else {
+                    fillColor = (name.hashCode() & 0x00FFFFFF) | 0x22000000;
+                }
+
+                // 外边框
+                int borderColor;
+                if (isDraggingThis) borderColor = DRAGGING_COLOR;
+                else if (isSelectedThis) borderColor = SELECTED_COLOR;
+                else borderColor = BORDER_COLOR;
+
+                drawRect(r.x - 1, r.y - 1, r.x + r.width + 1, r.y + r.height + 1, borderColor);
+                drawRect(r.x, r.y, r.x + r.width, r.y + r.height, fillColor);
+
+                // 选中态标记
+                if (isSelectedThis) {
+                    // 左上角绿色小三角标
+                    drawRect(r.x - 3, r.y - 3, r.x, r.y + 6, 0xFF00FF00);
+                    drawRect(r.x - 3, r.y - 3, r.x + 6, r.y, 0xFF00FF00);
+                }
+
+                // 模块名称标签
+                String label = "§l" + name;
+                int lw = fontRendererObj.getStringWidth(label);
+                int lx = r.x + r.width / 2 - lw / 2;
+                int ly = r.y - fontRendererObj.FONT_HEIGHT - 3;
+                drawRect(lx - 2, ly - 1, lx + lw + 2, ly + fontRendererObj.FONT_HEIGHT + 1, 0xAA000000);
+                fontRendererObj.drawStringWithShadow(label, lx, ly, 0xFFFFFF);
+
+                // 大小调整提示
+                if (sizeSetters.containsKey(name)) {
+                    String sizeHint = "§7Ctrl+滚轮";
+                    fontRendererObj.drawStringWithShadow(sizeHint,
+                            r.x + 3, r.y + r.height - fontRendererObj.FONT_HEIGHT - 2, 0xAAFFFFFF);
+                }
+
+                // 选中态下额外操作提示
+                if (isSelectedThis) {
+                    String selHint = "§a[ 已选中 · §fR§a重置 · §f拖拽§a移动 ]";
+                    int shw = fontRendererObj.getStringWidth(selHint);
+                    fontRendererObj.drawStringWithShadow(selHint,
+                            r.x + r.width / 2 - shw / 2, r.y + r.height + 2, 0xFFFFFF);
+                }
+            }
+
+            // ── 底部提示 ──
+            String hint;
+            if (selected != null) {
+                hint = "§e§lHUD 编辑 — 已选中 §b" + selected + " §e| 拖拽移动 | Ctrl+滚轮调大小 | R重置 | F7/ESC退出";
+            } else {
+                hint = "§e§lHUD 编辑 — §7点击模块选中 | 拖拽移动 | Ctrl+滚轮调大小 | R重置全部 | F7/ESC退出";
+            }
+            int hw = fontRendererObj.getStringWidth(hint);
+            drawRect(width / 2 - hw / 2 - 4, height - 20, width / 2 + hw / 2 + 4, height - 4, 0xAA000000);
+            fontRendererObj.drawStringWithShadow(hint, width / 2 - hw / 2, height - 16, 0xFFFFFF);
+
+            // ── 重置确认提示 ──
+            if (resetPromptTime > 0 && System.currentTimeMillis() - resetPromptTime < 3000) {
+                String prompt = resetAll
+                        ? "§c§l重置所有模块位置？再次按 R 确认 | 其他键取消"
+                        : "§c§l重置 " + selected + " 位置？再次按 R 确认 | 其他键取消";
+                int pw = fontRendererObj.getStringWidth(prompt);
+                drawRect(width / 2 - pw / 2 - 4, height / 2 - 14, width / 2 + pw / 2 + 4, height / 2 + 4, 0xCC000000);
+                fontRendererObj.drawStringWithShadow(prompt, width / 2 - pw / 2, height / 2 - 10, 0xFF5555);
+            }
+
+            // 鼠标悬停提示
+            if (lastHovered != null && !lastHovered.equals(dragging) && !lastHovered.equals(selected)) {
+                String hoverTip = "§7点击选中 " + lastHovered;
+                fontRendererObj.drawStringWithShadow(hoverTip, mouseX + 8, mouseY - 12, 0xFFFFFF);
             }
         }
 
-        // 底部提示文字
-        String hint = "§e§lHUD 编辑模式 — 拖拽位置 | Ctrl+滚轮调大小 | F7 退出";
-        mc.fontRendererObj.drawStringWithShadow(hint,
-                sr.getScaledWidth() / 2 - mc.fontRendererObj.getStringWidth(hint) / 2,
-                2, 0xFFFFFF);
+        @Override
+        protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
+            super.mouseClicked(mouseX, mouseY, mouseButton);
+            if (mouseButton != 0) return;
 
-        // ↑ 以上 drawStringWithShadow 已开 blend，但 drawRect 会关 blend
-        // 确保 blend 开启，避免影响后续 HUD 渲染
-        net.minecraft.client.renderer.GlStateManager.enableBlend();
-        net.minecraft.client.renderer.GlStateManager.popMatrix();
+            // 找到最上层被点击的模块
+            String clicked = null;
+            for (Map.Entry<String, Rectangle> e : currentPositions.entrySet()) {
+                Rectangle r = e.getValue();
+                if (r != null && r.contains(mouseX, mouseY)) {
+                    clicked = e.getKey();
+                    break;
+                }
+            }
+
+            if (clicked == null) {
+                // 点击空白 → 取消选中
+                selected = null;
+                return;
+            }
+
+            if (clicked.equals(selected)) {
+                // 点击已选中的模块 → 开始拖拽
+                Rectangle r = currentPositions.get(clicked);
+                dragging = clicked;
+                dragOffX = mouseX - r.x;
+                dragOffY = mouseY - r.y;
+            } else {
+                // 点击未选中的模块 → 选中
+                selected = clicked;
+                dragging = null;  // 确保不拖拽
+            }
+        }
+
+        @Override
+        protected void mouseClickMove(int mouseX, int mouseY, int clickedMouseButton, long timeSinceLastClick) {
+            if (clickedMouseButton != 0 || dragging == null) return;
+
+            Rectangle r = currentPositions.get(dragging);
+            if (r == null) return;
+
+            int newX = mouseX - dragOffX;
+            int newY = mouseY - dragOffY;
+
+            // 边界约束（不拖出屏幕）
+            newX = Math.max(0, Math.min(newX, width - r.width));
+            newY = Math.max(0, Math.min(newY, height - r.height));
+
+            if (newX != r.x || newY != r.y) {
+                r.setLocation(newX, newY);
+            }
+        }
+
+        @Override
+        protected void mouseReleased(int mouseX, int mouseY, int state) {
+            if (state != 0 || dragging == null) return;
+
+            // 拖拽结束 → 用 PosConverter 将绝对坐标转成 config 值
+            Rectangle r = currentPositions.get(dragging);
+            if (r != null) {
+                PosConverter converter = posConverters.get(dragging);
+                Consumer<Integer> setX = xSetters.get(dragging);
+                Consumer<Integer> setY = ySetters.get(dragging);
+                if (converter != null && setX != null && setY != null) {
+                    int[] cfg = converter.convert(r.x, r.y, width, height);
+                    setX.accept(cfg[0]);
+                    setY.accept(cfg[1]);
+                }
+                BetterPlayerHUD.config.saveConfig();
+            }
+            dragging = null;
+        }
+
+        @Override
+        public void handleMouseInput() throws IOException {
+            super.handleMouseInput();
+
+            int dWheel = Mouse.getEventDWheel();
+            if (dWheel == 0) return;
+
+            // Ctrl+滚轮调大小（选中或拖拽中的模块都生效）
+            String target = (dragging != null) ? dragging : selected;
+            if (target == null) return;
+
+            if (Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL)) {
+                Consumer<Integer> setSize = sizeSetters.get(target);
+                if (setSize != null) {
+                    int delta = dWheel > 0 ? 1 : -1;
+                    setSize.accept(delta);
+                    BetterPlayerHUD.config.saveConfig();
+                }
+            }
+        }
+
+        @Override
+        public void onGuiClosed() {
+            activeScreen = null;
+            if (dragging != null) {
+                BetterPlayerHUD.config.saveConfig();
+                dragging = null;
+            }
+            selected = null;
+        }
+
+        @Override
+        protected void keyTyped(char typedChar, int keyCode) throws IOException {
+            // F7 退出
+            if (keyCode == keyEditMode.getKeyCode()) {
+                mc.displayGuiScreen(null);
+                return;
+            }
+
+            // R 键：重置位置
+            if (keyCode == Keyboard.KEY_R) {
+                handleResetKey();
+                return;
+            }
+
+            // 按其他键 → 取消重置确认
+            if (resetPromptTime > 0) {
+                resetPromptTime = 0;
+            }
+
+            // ESC 由父类处理
+            super.keyTyped(typedChar, keyCode);
+        }
+
+        /** 处理重置按键逻辑（两次 R 确认） */
+        private void handleResetKey() {
+            long now = System.currentTimeMillis();
+
+            if (selected != null) {
+                // 有选中模块 → 重置单个
+                if (resetPromptTime > 0 && !resetAll && now - resetPromptTime < 3000) {
+                    // 二次确认 → 执行重置
+                    resetModulePosition(selected);
+                    resetPromptTime = 0;
+                } else {
+                    resetPromptTime = now;
+                    resetAll = false;
+                }
+            } else {
+                // 无选中 → 重置全部
+                if (resetPromptTime > 0 && resetAll && now - resetPromptTime < 3000) {
+                    for (String name : currentPositions.keySet()) {
+                        resetModulePosition(name);
+                    }
+                    resetPromptTime = 0;
+                } else {
+                    resetPromptTime = now;
+                    resetAll = true;
+                }
+            }
+        }
+
+        /** 将指定模块恢复默认位置 */
+        private void resetModulePosition(String name) {
+            int[] def = defaultPositions.get(name);
+            if (def == null) return;
+
+            Consumer<Integer> setX = xSetters.get(name);
+            Consumer<Integer> setY = ySetters.get(name);
+            if (setX != null) setX.accept(def[0]);
+            if (setY != null) setY.accept(def[1]);
+
+            // 也更新当前位置显示
+            Rectangle r = currentPositions.get(name);
+            if (r != null) {
+                // 对于 offset 模块，默认 0 偏移 → 先转换回绝对坐标
+                PosConverter converter = posConverters.get(name);
+                if (converter != null) {
+                    int[] abs = converter.convert(def[0], def[1], width, height);
+                    // 反向转换：对于 converter 来说 abs→cfg，但 def 已经是 cfg 值
+                    // 实际上我们需要 defCfg → abs 的转换...
+                    // 简单策略：先设 config，下帧 report 会更新位置
+                }
+                // 让下一帧 report 更新位置
+            }
+
+            BetterPlayerHUD.config.saveConfig();
+        }
     }
 }

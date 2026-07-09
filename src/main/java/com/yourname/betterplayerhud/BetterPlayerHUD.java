@@ -29,15 +29,47 @@ public class BetterPlayerHUD {
         MinecraftForge.EVENT_BUS.register(HUDEditManager.INSTANCE);
 
         // 注册可拖拽模块的偏移设置器（编辑模式使用）
-        HUDEditManager.register("罗盘", (x) -> config.xPosition = x, (y) -> config.yPosition = y);
-        HUDEditManager.register("状态栏", (x) -> config.healthHudX = x, (y) -> config.healthHudY = y);
-        HUDEditManager.register("距离信息", (x) -> config.distanceHudX = x, (y) -> config.distanceHudY = y);
-        HUDEditManager.register("按键显示", (x) -> config.keysDisplayX = x, (y) -> config.keysDisplayY = y);
-        HUDEditManager.register("目标血量", (x) -> config.targetHPOffsetX = x, (y) -> config.targetHPOffsetY = y);
-        HUDEditManager.register("性能检测", (x) -> config.performanceHudX = x, (y) -> config.performanceHudY = y);
-        HUDEditManager.register("药水效果", (x) -> config.potionXOffset = x, (y) -> config.potionYOffset = y);
-        HUDEditManager.register("装甲栏", (x) -> config.armorXOffset = x, (y) -> config.armorYOffset = y);
-        HUDEditManager.register("手持物品", (x) -> config.heldItemXOffset = x, (y) -> config.heldItemYOffset = y);
+        // 绝对坐标模块：编辑时的绝对坐标 = config 值（负值 = 右/下对齐）
+        HUDEditManager.register("罗盘",      (x) -> config.xPosition = x,       (y) -> config.yPosition = y,       0, 50);
+        HUDEditManager.register("状态栏",    (x) -> config.healthHudX = x,     (y) -> config.healthHudY = y,       10, -50);
+        HUDEditManager.register("距离信息",  (x) -> config.distanceHudX = x,   (y) -> config.distanceHudY = y,     490, 280);
+        HUDEditManager.register("按键显示",  (x) -> config.keysDisplayX = x,   (y) -> config.keysDisplayY = y,     10, 150);
+        HUDEditManager.register("性能检测",  (x) -> config.performanceHudX = x,(y) -> config.performanceHudY = y,  5, 65);
+
+        // Offset 模块：编辑时的绝对坐标 → PosConverter 转成偏移值
+        HUDEditManager.register("目标血量",
+                (x) -> config.targetHPOffsetX = x, (y) -> config.targetHPOffsetY = y,
+                0, 0,
+                (absX, absY, sw, sh) -> {
+                    // barY = (sh-10-2-5) + offsetY = sh-17 + offsetY → offsetY = absY - sh + 17
+                    // barX = sw/2 + offsetX - barWidth/2 → offsetX = absX - sw/2 + barWidth/2
+                    int bw = config.targetHPBarWidth;
+                    return new int[]{ absX - sw / 2 + bw / 2, absY - sh + 17 };
+                });
+        HUDEditManager.register("药水效果",
+                (x) -> config.potionXOffset = x, (y) -> config.potionYOffset = y,
+                0, 0,
+                (absX, absY, sw, sh) -> {
+                    // x = 2 + offsetX → offsetX = absX - 2
+                    // y = sh-20 + offsetY → offsetY = absY - sh + 20
+                    return new int[]{ absX - 2, absY - sh + 20 };
+                });
+        HUDEditManager.register("装甲栏",
+                (x) -> config.armorXOffset = x, (y) -> config.armorYOffset = y,
+                0, 0,
+                (absX, absY, sw, sh) -> {
+                    // hotbarLeft = sw/2 - 91 + offsetX → offsetX = absX - sw/2 + 91
+                    // hotbarY = sh-22 + offsetY → offsetY = absY - sh + 22
+                    return new int[]{ absX - sw / 2 + 91, absY - sh + 22 };
+                });
+        HUDEditManager.register("手持物品",
+                (x) -> config.heldItemXOffset = x, (y) -> config.heldItemYOffset = y,
+                0, 0,
+                (absX, absY, sw, sh) -> {
+                    // x = 2 + offsetX → offsetX = absX - 2
+                    // y = sh - fontHeight(9) - 2 + offsetY → offsetY = absY - sh + 11
+                    return new int[]{ absX - 2, absY - sh + 11 };
+                });
 
         // Ctrl+滚轮调大小（支持有scale/size参数的模块）
         HUDEditManager.setSize("罗盘", (d) -> {
