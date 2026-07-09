@@ -34,7 +34,7 @@ public class HUDEditManager {
     /** 模块名 → X/Y 设置器 */
     private static final Map<String, Consumer<Integer>> xSetters = new LinkedHashMap<>();
     private static final Map<String, Consumer<Integer>> ySetters = new LinkedHashMap<>();
-    /** 模块名 → 大小设置器（Ctrl+滚轮调） */
+    /** 模块名 → 大小调整器（Ctrl+滚轮用） */
     private static final Map<String, Consumer<Integer>> sizeSetters = new LinkedHashMap<>();
 
     /** 拖拽状态 */
@@ -79,7 +79,6 @@ public class HUDEditManager {
     @SubscribeEvent
     public void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
-        if (mc.thePlayer == null) return;
 
         while (keyEditMode.isPressed()) {
             isEditing = !isEditing;
@@ -91,19 +90,29 @@ public class HUDEditManager {
             }
         }
 
+        // 编辑模式下冻结玩家移动
+        if (isEditing && mc.thePlayer != null) {
+            mc.thePlayer.movementInput.moveForward = 0.0f;
+            mc.thePlayer.movementInput.moveStrafe = 0.0f;
+            mc.thePlayer.movementInput.jump = false;
+            mc.thePlayer.movementInput.sneak = false;
+        }
+
         if (!isEditing) return;
+        if (mc.thePlayer == null) return;
 
         boolean pressed = Mouse.isButtonDown(0);
         int rawX = Mouse.getX();
         int rawY = Mouse.getY();
         ScaledResolution sr = new ScaledResolution(mc);
         int sx = rawX * sr.getScaledWidth() / mc.displayWidth;
-        int sy = mc.displayHeight - rawY * sr.getScaledHeight() / mc.displayHeight;
+        // 正确公式：参考 GuiScreen.handleMouseInput()
+        int sy = sr.getScaledHeight() - rawY * sr.getScaledHeight() / mc.displayHeight - 1;
 
         if (pressed && dragging == null) {
             for (Map.Entry<String, Rectangle> e : currentPositions.entrySet()) {
                 Rectangle r = e.getValue();
-                if (r.contains(sx, sy)) {
+                if (r != null && r.contains(sx, sy)) {
                     dragging = e.getKey();
                     dragOffX = sx - r.x;
                     dragOffY = sy - r.y;
@@ -129,7 +138,7 @@ public class HUDEditManager {
                         }
                     }
                 } else {
-                    // 拖拽位置
+                    // 拖拽位置（仅在位置变化时更新）
                     int newX = sx - dragOffX;
                     int newY = sy - dragOffY;
                     if (newX != r.x || newY != r.y) {
@@ -149,32 +158,47 @@ public class HUDEditManager {
         if (!isEditing) return;
         if (event.type != RenderGameOverlayEvent.ElementType.TEXT) return;
 
+        // 保存 OpenGL 状态，防止破坏后续渲染管线
+        net.minecraft.client.renderer.GlStateManager.pushMatrix();
+        net.minecraft.client.renderer.GlStateManager.enableBlend();
+        net.minecraft.client.renderer.GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+
         ScaledResolution sr = new ScaledResolution(mc);
 
         for (Map.Entry<String, Rectangle> e : currentPositions.entrySet()) {
             Rectangle r = e.getValue();
-            if (r.width <= 0 || r.height <= 0) continue;
+            if (r == null || r.width <= 0 || r.height <= 0) continue;
 
             int color = e.getKey().hashCode() | 0x88000000;
+
+            // 外边框
             Gui.drawRect(r.x - 1, r.y - 1, r.x + r.width + 1, r.y + r.height + 1, BORDER_COLOR);
+            // 内部半透明填充
             Gui.drawRect(r.x, r.y, r.x + r.width, r.y + r.height, color & 0x44FFFFFF);
 
+            // 模块名称标签
             String label = "[ " + e.getKey() + " ]";
             int lw = mc.fontRendererObj.getStringWidth(label);
             int lx = r.x + r.width / 2 - lw / 2;
             int ly = r.y - mc.fontRendererObj.FONT_HEIGHT - 2;
             mc.fontRendererObj.drawStringWithShadow(label, lx, ly, 0xFFFFFFFF);
 
-            // 如果有大小调整器，标签旁显示大小提示
+            // 大小调整提示
             if (sizeSetters.containsKey(e.getKey())) {
-                String sizeHint = "§7Ctrl+滚轮调大小";
+                String sizeHint = "§7Ctrl+滚轮";
                 mc.fontRendererObj.drawStringWithShadow(sizeHint, r.x + 2, r.y + r.height - mc.fontRendererObj.FONT_HEIGHT - 1, 0xAAFFFFFF);
             }
         }
 
+        // 底部提示文字
         String hint = "§e§lHUD 编辑模式 — 拖拽位置 | Ctrl+滚轮调大小 | F7 退出";
         mc.fontRendererObj.drawStringWithShadow(hint,
                 sr.getScaledWidth() / 2 - mc.fontRendererObj.getStringWidth(hint) / 2,
                 2, 0xFFFFFF);
+
+        // ↑ 以上 drawStringWithShadow 已开 blend，但 drawRect 会关 blend
+        // 确保 blend 开启，避免影响后续 HUD 渲染
+        net.minecraft.client.renderer.GlStateManager.enableBlend();
+        net.minecraft.client.renderer.GlStateManager.popMatrix();
     }
 }
