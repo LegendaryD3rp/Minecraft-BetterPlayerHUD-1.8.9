@@ -85,6 +85,9 @@ public class HUDEditManager {
             isEditing = !isEditing;
             if (!isEditing) {
                 dragging = null;
+                mc.mouseHelper.grabMouseCursor();
+            } else {
+                mc.mouseHelper.ungrabMouseCursor();
             }
         }
 
