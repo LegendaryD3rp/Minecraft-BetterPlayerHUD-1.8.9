@@ -26,7 +26,7 @@ public class BetterPlayerHUD {
     public void init(FMLInitializationEvent event) {
         // 注册拖拽编辑模式
         HUDEditManager.init();
-        MinecraftForge.EVENT_BUS.register(HUDEditManager.class);
+        MinecraftForge.EVENT_BUS.register(HUDEditManager.INSTANCE);
 
         // 注册可拖拽模块的偏移设置器（编辑模式使用）
         HUDEditManager.register("罗盘", (x) -> config.xPosition = x, (y) -> config.yPosition = y);

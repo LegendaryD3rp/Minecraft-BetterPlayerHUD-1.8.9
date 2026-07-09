@@ -38,8 +38,12 @@ public class HUDEditManager {
     private static String dragging = null;
     private static int dragOffX, dragOffY;
 
-    private static final int BOX_COLOR = 0x44FFFFFF;
     private static final int BORDER_COLOR = 0xCCFFFFFF;
+
+    /** 单例实例（用于 Forge 事件总线注册） */
+    public static final HUDEditManager INSTANCE = new HUDEditManager();
+
+    private HUDEditManager() {}
 
     public static void init() {
         keyEditMode = new KeyBinding("key.hudEditMode", Keyboard.KEY_F7, "key.categories.betterplayerhud");
@@ -65,7 +69,7 @@ public class HUDEditManager {
     }
 
     @SubscribeEvent
-    public static void onClientTick(TickEvent.ClientTickEvent event) {
+    public void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
         if (mc.thePlayer == null) return;
 
@@ -115,7 +119,7 @@ public class HUDEditManager {
     }
 
     @SubscribeEvent
-    public static void onRenderOverlay(RenderGameOverlayEvent.Post event) {
+    public void onRenderOverlay(RenderGameOverlayEvent.Post event) {
         if (!isEditing) return;
         if (event.type != RenderGameOverlayEvent.ElementType.TEXT) return;
 
