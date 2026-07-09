@@ -133,6 +133,21 @@ public class HUDEditManager {
         if (event.phase != TickEvent.Phase.END) return;
         if (mc.thePlayer == null) return;
 
+        // 编辑模式下死亡 → 关闭编辑 GUI，让路给死亡屏幕
+        if (activeScreen != null && mc.thePlayer.getHealth() <= 0.0F) {
+            mc.displayGuiScreen(null);
+            activeScreen = null;
+            return;
+        }
+
+        // 编辑模式下冻结玩家移动（视角不动）
+        if (activeScreen != null) {
+            mc.thePlayer.movementInput.moveForward = 0.0f;
+            mc.thePlayer.movementInput.moveStrafe = 0.0f;
+            mc.thePlayer.movementInput.jump = false;
+            mc.thePlayer.movementInput.sneak = false;
+        }
+
         while (keyEditMode.isPressed()) {
             if (activeScreen == null) {
                 activeScreen = new GuiEditScreen();
@@ -168,23 +183,16 @@ public class HUDEditManager {
         private static final int DRAGGING_COLOR = 0xFFFFAA00;
 
         GuiEditScreen() {
-            this.allowUserInput = false;
+            this.allowUserInput = true;  // 必须=true，否则 Minecraft 1.8.9 不会将鼠标事件路由到 GuiScreen
         }
 
         @Override
         public boolean doesGuiPauseGame() {
-            return true;  // 暂停游戏，阻止视角转动和实体更新
+            return false;  // false：让 runTick() 继续跑，鼠标事件才能送达 GuiScreen
         }
 
         @Override
         public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-            // 死亡检测（doesGuiPauseGame=true 时 updateScreen/onClientTick 都不触发，
-            // 只有 drawScreen 始终运行）
-            if (mc.thePlayer != null && mc.thePlayer.getHealth() <= 0.0F) {
-                mc.displayGuiScreen(null);
-                return;
-            }
-
             // 半透明背景遮罩
             drawRect(0, 0, width, height, 0x88000000);
 
@@ -328,6 +336,15 @@ public class HUDEditManager {
 
             if (newX != r.x || newY != r.y) {
                 r.setLocation(newX, newY);
+                // 实时更新 config，让各 Handler 渲染到新位置
+                PosConverter converter = posConverters.get(dragging);
+                Consumer<Integer> setX = xSetters.get(dragging);
+                Consumer<Integer> setY = ySetters.get(dragging);
+                if (converter != null && setX != null && setY != null) {
+                    int[] cfg = converter.convert(newX, newY, width, height);
+                    setX.accept(cfg[0]);
+                    setY.accept(cfg[1]);
+                }
             }
         }
 
