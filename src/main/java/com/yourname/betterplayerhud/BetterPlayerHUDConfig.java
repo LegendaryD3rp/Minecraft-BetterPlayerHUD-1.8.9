@@ -99,9 +99,6 @@ public class BetterPlayerHUDConfig {
     public int entityOutlineColorFriendly = 0xFF00FF00;
     public float entityOutlineWidth = 2.0f;
     public boolean drawVisibleFacesOnlyEntities = false;
-    // 以下为原共用字段，保留兼容性（已废弃，使用上面按阵营区分的颜色）
-    public int entityOutlineColor = 0xFF00FF00;
-    public boolean drawVisibleFacesOnly = false;
 
     // ================================================================
     //  模块14b：RGB 动态流光 & 隐身隐藏（描边/碰撞箱专用）

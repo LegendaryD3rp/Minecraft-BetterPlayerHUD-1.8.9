@@ -21,6 +21,7 @@ import java.util.function.Consumer;
  *
  * 按 F7 切换编辑模式 → 所有可移动模块显示彩色拖拽框 + 名称
  * 鼠标点击拖拽框 → 拖动 → 释放后自动保存配置
+ * 选中模块后，按住 Ctrl + 鼠标滚轮 → 调大小
  */
 public class HUDEditManager {
 
@@ -33,6 +34,8 @@ public class HUDEditManager {
     /** 模块名 → X/Y 设置器 */
     private static final Map<String, Consumer<Integer>> xSetters = new LinkedHashMap<>();
     private static final Map<String, Consumer<Integer>> ySetters = new LinkedHashMap<>();
+    /** 模块名 → 大小设置器（Ctrl+滚轮调） */
+    private static final Map<String, Consumer<Integer>> sizeSetters = new LinkedHashMap<>();
 
     /** 拖拽状态 */
     private static String dragging = null;
@@ -57,6 +60,11 @@ public class HUDEditManager {
         xSetters.put(name, setX);
         ySetters.put(name, setY);
         currentPositions.put(name, new Rectangle(0, 0, 0, 0));
+    }
+
+    /** 注册大小调整器（可选，Ctrl+滚轮用） */
+    public static void setSize(String name, Consumer<Integer> setSize) {
+        sizeSetters.put(name, setSize);
     }
 
     /** Handler 渲染完后调用，上报当前位置 */
@@ -107,13 +115,28 @@ public class HUDEditManager {
         if (dragging != null) {
             Rectangle r = currentPositions.get(dragging);
             if (r != null) {
-                int newX = sx - dragOffX;
-                int newY = sy - dragOffY;
-                r.setLocation(newX, newY);
-                Consumer<Integer> setX = xSetters.get(dragging);
-                Consumer<Integer> setY = ySetters.get(dragging);
-                if (setX != null) setX.accept(newX);
-                if (setY != null) setY.accept(newY);
+                // 按住 Ctrl + 滚轮调大小
+                if (Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL)) {
+                    int dWheel = Mouse.getDWheel();
+                    if (dWheel != 0) {
+                        Consumer<Integer> setSize = sizeSetters.get(dragging);
+                        if (setSize != null) {
+                            int delta = dWheel > 0 ? 1 : -1;
+                            setSize.accept(delta);
+                        }
+                    }
+                } else {
+                    // 拖拽位置
+                    int newX = sx - dragOffX;
+                    int newY = sy - dragOffY;
+                    if (newX != r.x || newY != r.y) {
+                        r.setLocation(newX, newY);
+                        Consumer<Integer> setX = xSetters.get(dragging);
+                        Consumer<Integer> setY = ySetters.get(dragging);
+                        if (setX != null) setX.accept(newX);
+                        if (setY != null) setY.accept(newY);
+                    }
+                }
             }
         }
     }
@@ -138,9 +161,15 @@ public class HUDEditManager {
             int lx = r.x + r.width / 2 - lw / 2;
             int ly = r.y - mc.fontRendererObj.FONT_HEIGHT - 2;
             mc.fontRendererObj.drawStringWithShadow(label, lx, ly, 0xFFFFFFFF);
+
+            // 如果有大小调整器，标签旁显示大小提示
+            if (sizeSetters.containsKey(e.getKey())) {
+                String sizeHint = "§7Ctrl+滚轮调大小";
+                mc.fontRendererObj.drawStringWithShadow(sizeHint, r.x + 2, r.y + r.height - mc.fontRendererObj.FONT_HEIGHT - 1, 0xAAFFFFFF);
+            }
         }
 
-        String hint = "§e§lHUD 编辑模式 — 拖拽模块调整位置 | F7 退出";
+        String hint = "§e§lHUD 编辑模式 — 拖拽位置 | Ctrl+滚轮调大小 | F7 退出";
         mc.fontRendererObj.drawStringWithShadow(hint,
                 sr.getScaledWidth() / 2 - mc.fontRendererObj.getStringWidth(hint) / 2,
                 2, 0xFFFFFF);

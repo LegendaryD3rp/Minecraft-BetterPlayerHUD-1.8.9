@@ -39,6 +39,20 @@ public class BetterPlayerHUD {
         HUDEditManager.register("装甲栏", (x) -> config.armorXOffset = x, (y) -> config.armorYOffset = y);
         HUDEditManager.register("手持物品", (x) -> config.heldItemXOffset = x, (y) -> config.heldItemYOffset = y);
 
+        // Ctrl+滚轮调大小（支持有scale/size参数的模块）
+        HUDEditManager.setSize("罗盘", (d) -> {
+            config.scale = Math.max(0.25f, Math.min(4.0f, config.scale + d * 0.05f));
+        });
+        HUDEditManager.setSize("按键显示", (d) -> {
+            config.keysSize = Math.max(10, Math.min(80, config.keysSize + d * 2));
+        });
+        HUDEditManager.setSize("目标血量", (d) -> {
+            config.targetHPBarWidth = Math.max(20, Math.min(200, config.targetHPBarWidth + d * 4));
+        });
+        HUDEditManager.setSize("状态栏", (d) -> {
+            config.headSize = Math.max(8, Math.min(48, config.headSize + d * 2));
+        });
+
         // 注册精简版 HUD 处理器
         MinecraftForge.EVENT_BUS.register(new PlayerHUDHandler());
         MinecraftForge.EVENT_BUS.register(new CompassHUDHandler());

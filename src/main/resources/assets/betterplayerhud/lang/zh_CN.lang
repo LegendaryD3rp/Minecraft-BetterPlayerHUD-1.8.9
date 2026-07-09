@@ -18,6 +18,7 @@ bhud.hitmarker=命中标识设置
 bhud.compass.basic=基本
 bhud.compass.display=显示选项
 bhud.compass.elements=元素开关
+bhud.compass.color=颜色
 
 # ── 玩家信息子分类 ──
 bhud.player.basic=基本
@@ -73,10 +74,10 @@ bhud.crosshair.color=颜色 & 描边
 
 # ── 命中标识子分类 ──
 bhud.hitmarker.audio=🔊 音效
+bhud.hitmarker.killchat=🔔 聊天检测
 bhud.hitmarker.hit=🎯 击中视觉效果
 bhud.hitmarker.kill=💀 击杀视觉效果
 bhud.hitmarker.border=⬜ 边框
-bhud.hitmarker.effects=💧 粒子 & 聊天
 bhud.hitmarker.rotation=🔄 旋转
 
 # ================================================================

@@ -174,6 +174,11 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
                 "displayStyle", "degreeMarkInterval", "dynamicScaling", "showExactAngle")));
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.compass.elements", "bhud.compass.elements", el(
                 "showCompassNeedle", "showDegreeMarks", "showHorizon")));
+        List<IConfigElement> colorList = new ArrayList<>();
+        ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "compassColor");
+        list.add(ColorPreviewHelper.createPreviewCategory("bhud.compass.color", "bhud.compass.color", colorList,
+                new ColorPreviewHelper.ColorInfo[]{ new ColorPreviewHelper.ColorInfo("compassColor", "罗盘颜色") },
+                ""));
         return list;
     }
 
@@ -361,7 +366,8 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
     private static List<IConfigElement> getCrosshairConfigElements() {
         List<IConfigElement> list = new ArrayList<>();
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.crosshair.basic", "bhud.crosshair.basic", el(
-                "enableCrosshair", "crosshairStyle", "crosshairLength", "crosshairGap", "crosshairThickness",
+                "enableCrosshair", "crosshairStyle", "crosshairOutline", "crosshairOutlineWidth", "crosshairRGB",
+                "crosshairLength", "crosshairGap", "crosshairThickness",
                 "crosshairAlwaysShow", "crosshairShowInThirdPerson")));
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.crosshair.arms", "bhud.crosshair.arms", el(
                 "crosshairArmUp", "crosshairArmDown", "crosshairArmLeft", "crosshairArmRight", "crosshairXOffset", "crosshairYOffset")));
@@ -388,6 +394,8 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
         List<IConfigElement> list = new ArrayList<>();
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.hitmarker.audio", "bhud.hitmarker.audio", el(
                 "enableHitMarker", "enableHitSounds", "enableKillSound", "soundVolume")));
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.hitmarker.killchat", "bhud.hitmarker.killchat", el(
+                "enableChatKillDetection")));
 
         list.add(ColorPreviewHelper.createPreviewCategory("bhud.hitmarker.hit", "bhud.hitmarker.hit",
                 el("hitColor", "hitSize", "hitAlpha", "hitBloodIntensity"),

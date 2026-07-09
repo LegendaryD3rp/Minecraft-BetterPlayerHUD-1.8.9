@@ -18,6 +18,7 @@ bhud.hitmarker=Hit Marker Settings
 bhud.compass.basic=Basic
 bhud.compass.display=Display Options
 bhud.compass.elements=Element Toggle
+bhud.compass.color=Compass Color
 
 # ── Player HUD sub-categories ──
 bhud.player.basic=Basic
@@ -73,10 +74,10 @@ bhud.crosshair.color=Colors & Outline
 
 # ── Hit Marker sub-categories ──
 bhud.hitmarker.audio=🔊 Audio
+bhud.hitmarker.killchat=🔔 Chat Detection
 bhud.hitmarker.hit=🎯 Hit Effects
 bhud.hitmarker.kill=💀 Kill Effects
 bhud.hitmarker.border=⬜ Border
-bhud.hitmarker.effects=💧 Particles & Chat
 bhud.hitmarker.rotation=🔄 Rotation
 
 # ================================================================
