@@ -203,8 +203,9 @@ public class EquipHUDHandler {
         Item item = stack.getItem();
 
         if (item instanceof ItemSword) {
-            // 剑：总伤害 = 武器伤害 + 空手基础 1.0
-            float baseDmg = ((ItemSword) item).getDamageVsEntity() + 1.0f;
+            // 剑：从属性修饰符读取真实攻击伤害（7.0），不能用 getDamageVsEntity()
+            // 那个方法在 MCP 1.8.9 中返回的是 material.getDamageVsEntity()（3.0）
+            float baseDmg = getToolDamage(stack) + 1.0f;
             float sharpBonus = getSharpnessBonus(stack);
             return DF.format(baseDmg + sharpBonus);
         }
