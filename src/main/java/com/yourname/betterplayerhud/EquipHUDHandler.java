@@ -158,7 +158,7 @@ public class EquipHUDHandler {
         }
     }
 
-    /** 物品栏上方：当前格物品数量 / 背包总计 */
+    /** 物品栏上方：当前格物品数量 / 背包总计（在物品名正上方） */
     private void renderSlotCountAboveHotbar(int screenWidth, int screenHeight) {
         int slot = mc.thePlayer.inventory.currentItem;
         ItemStack held = mc.thePlayer.inventory.getStackInSlot(slot);
@@ -167,7 +167,6 @@ public class EquipHUDHandler {
         int stackSize = held.stackSize;
 
         // 统计背包中相同 item + damage + NBT 的总数
-        // 注意：不统计副手（1.8.9 无副手槽）
         int total = 0;
         ItemStack[] mainInv = mc.thePlayer.inventory.mainInventory;
         for (ItemStack s : mainInv) {
@@ -179,17 +178,13 @@ public class EquipHUDHandler {
         String text = stackSize + "/" + total;
         int tw = mc.fontRendererObj.getStringWidth(text);
 
-        // 物品栏参数
-        int hotbarY = screenHeight - 22;
-        int hotbarLeft = screenWidth / 2 - 91;
-        int slotSize = 20;
+        // 原版物品名位置：height-59(创造) / height-45(生存)，放在名字正上方
+        int nameY = screenHeight - 59;
+        if (!mc.playerController.shouldDrawHUD()) nameY += 14;
+        int cx = screenWidth / 2;
+        int textY = nameY - mc.fontRendererObj.FONT_HEIGHT - 4;
 
-        // 选中格中心坐标
-        int cx = hotbarLeft + slot * slotSize + slotSize / 2;
-        int textX = cx - tw / 2;
-        int textY = hotbarY - mc.fontRendererObj.FONT_HEIGHT - 2;
-
-        mc.fontRendererObj.drawStringWithShadow(text, textX, textY, 0xFFFFFFFF);
+        mc.fontRendererObj.drawStringWithShadow(text, cx - tw / 2, textY, 0xFFFFFFFF);
     }
 
     /** 获取武器伤害描述，非武器返回 null */
