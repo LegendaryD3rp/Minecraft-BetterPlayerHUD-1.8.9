@@ -284,6 +284,32 @@ public class HUDEditManager {
                 String hoverTip = "§7点击选中 " + lastHovered;
                 fontRendererObj.drawStringWithShadow(hoverTip, mouseX + 8, mouseY - 12, 0xFFFFFF);
             }
+
+            // ═══════════════════════════════════════════════════════════
+            //  帧率级拖拽更新（代替 mouseClickMove 的刻率级更新）
+            //  改在这里更新，利用帧循环（60+ FPS）实现平滑跟随
+            // ═══════════════════════════════════════════════════════════
+            if (dragging != null) {
+                Rectangle r = currentPositions.get(dragging);
+                if (r != null) {
+                    int newX = mouseX - dragOffX;
+                    int newY = mouseY - dragOffY;
+                    newX = Math.max(0, Math.min(newX, width - r.width));
+                    newY = Math.max(0, Math.min(newY, height - r.height));
+                    if (newX != r.x || newY != r.y) {
+                        r.setLocation(newX, newY);
+                        // 实时更新 config
+                        PosConverter converter = posConverters.get(dragging);
+                        Consumer<Integer> setX = xSetters.get(dragging);
+                        Consumer<Integer> setY = ySetters.get(dragging);
+                        if (converter != null && setX != null && setY != null) {
+                            int[] cfg = converter.convert(newX, newY, width, height);
+                            setX.accept(cfg[0]);
+                            setY.accept(cfg[1]);
+                        }
+                    }
+                }
+            }
         }
 
         @Override

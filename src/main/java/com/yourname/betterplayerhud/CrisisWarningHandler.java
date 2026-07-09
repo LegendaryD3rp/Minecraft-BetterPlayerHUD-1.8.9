@@ -28,10 +28,10 @@ public class CrisisWarningHandler {
     private static final ItemStack ICON_HUNGER = new ItemStack(Items.rotten_flesh);
 
     /** 心形纹理在 Gui.icons 中的 UV */
-    private static final int HEART_U = 70;
+    private static final int HEART_U = 52;
     private static final int HEART_V_NORMAL = 0;
     private static final int HEART_V_HARDCORE = 45;
-    private static final int HALF_HEART_U = 79;
+    private static final int HALF_HEART_U = 61;
 
     @SubscribeEvent
     public void onRenderGameOverlay(RenderGameOverlayEvent.Post event) {
