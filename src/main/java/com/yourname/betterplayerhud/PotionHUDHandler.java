@@ -75,6 +75,7 @@ public class PotionHUDHandler {
         if (HUDEditManager.isEditing())
             HUDEditManager.report("药水效果", x, y, 160, startY - y + 24 + 2);
 
+        GlStateManager.disableBlend();
         GlStateManager.enableAlpha();
     }
 }
