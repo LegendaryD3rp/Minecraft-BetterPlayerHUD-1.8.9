@@ -211,6 +211,11 @@ public class BetterPlayerHUDConfig {
     // ================================================================
     public boolean enableArmorHUD = true;
     public boolean enableHeldItemHUD = true;
+    public int armorXOffset = 0;
+    public int armorYOffset = 0;
+    public int heldItemXOffset = 0;
+    public int heldItemYOffset = 0;
+    public int slotCountYOffset = 0;
 
     // ================================================================
     //  模块21：命中标识 (Hit Marker)
@@ -763,6 +768,17 @@ public class BetterPlayerHUDConfig {
 
             p = config.get(C, "enableHeldItemHUD", true);
             p.comment = "是否在左下方显示手持物品信息"; enableHeldItemHUD = p.getBoolean();
+
+            p = config.get(C, "armorXOffset", 0);
+            p.comment = "装甲栏X偏移"; armorXOffset = p.getInt();
+            p = config.get(C, "armorYOffset", 0);
+            p.comment = "装甲栏Y偏移"; armorYOffset = p.getInt();
+            p = config.get(C, "heldItemXOffset", 0);
+            p.comment = "手持物品信息X偏移"; heldItemXOffset = p.getInt();
+            p = config.get(C, "heldItemYOffset", 0);
+            p.comment = "手持物品信息Y偏移"; heldItemYOffset = p.getInt();
+            p = config.get(C, "slotCountYOffset", 0);
+            p.comment = "物品数量Y偏移"; slotCountYOffset = p.getInt();
         }
 
         // --- 模块21：命中标识 ---
@@ -989,6 +1005,11 @@ public class BetterPlayerHUDConfig {
         // --- 模块23：装备&手持物品 HUD ---
         config.get(C, "enableArmorHUD", true).set(enableArmorHUD);
         config.get(C, "enableHeldItemHUD", true).set(enableHeldItemHUD);
+        config.get(C, "armorXOffset", 0).set(armorXOffset);
+        config.get(C, "armorYOffset", 0).set(armorYOffset);
+        config.get(C, "heldItemXOffset", 0).set(heldItemXOffset);
+        config.get(C, "heldItemYOffset", 0).set(heldItemYOffset);
+        config.get(C, "slotCountYOffset", 0).set(slotCountYOffset);
 
         // --- 模块21：命中标识 ---
         config.get(C, "enableHitMarker", true).set(enableHitMarker);

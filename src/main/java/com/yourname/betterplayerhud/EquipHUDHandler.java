@@ -66,9 +66,10 @@ public class EquipHUDHandler {
     // ================================================================
 
     private void renderArmorAroundHotbar(int screenWidth, int screenHeight) {
+        BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
         // 物品栏位置（Forge 1.8.9 标准）
-        int hotbarY = screenHeight - 22;
-        int hotbarLeft = screenWidth / 2 - 91;
+        int hotbarY = screenHeight - 22 + cfg.armorYOffset;
+        int hotbarLeft = screenWidth / 2 - 91 + cfg.armorXOffset;
 
         // 装甲槽排序：0=靴子 1=护腿 2=胸甲 3=头盔
         ItemStack[] armor = mc.thePlayer.inventory.armorInventory;
@@ -126,11 +127,12 @@ public class EquipHUDHandler {
     // ================================================================
 
     private void renderHeldItemInfo(int screenWidth, int screenHeight) {
+        BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
         ItemStack held = mc.thePlayer.getHeldItem();
         if (held == null) return;
 
-        int x = 2;
-        int y = screenHeight - mc.fontRendererObj.FONT_HEIGHT - 2;
+        int x = 2 + cfg.heldItemXOffset;
+        int y = screenHeight - mc.fontRendererObj.FONT_HEIGHT - 2 + cfg.heldItemYOffset;
 
         // 图标
         RenderHelper.enableGUIStandardItemLighting();
@@ -160,6 +162,7 @@ public class EquipHUDHandler {
 
     /** 物品栏上方：当前格物品数量 / 背包总计（在物品名正上方） */
     private void renderSlotCountAboveHotbar(int screenWidth, int screenHeight) {
+        BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
         int slot = mc.thePlayer.inventory.currentItem;
         ItemStack held = mc.thePlayer.inventory.getStackInSlot(slot);
         if (held == null) return;
@@ -182,7 +185,7 @@ public class EquipHUDHandler {
         int nameY = screenHeight - 59;
         if (!mc.playerController.shouldDrawHUD()) nameY += 14;
         int cx = screenWidth / 2;
-        int textY = nameY - mc.fontRendererObj.FONT_HEIGHT - 4;
+        int textY = nameY - mc.fontRendererObj.FONT_HEIGHT - 4 + cfg.slotCountYOffset;
 
         mc.fontRendererObj.drawStringWithShadow(text, cx - tw / 2, textY, 0xFFFFFFFF);
     }

@@ -262,5 +262,12 @@ potionYOffset=Y 偏移
 
 # ── 装备&手持物品 HUD ──
 bhud.equip=装备&手持物品
+bhud.equip.basic=基本
+bhud.equip.pos=位置偏移
 enableArmorHUD=装甲栏（物品栏两侧）
 enableHeldItemHUD=手持物品信息（左下方）
+armorXOffset=装甲 X 偏移
+armorYOffset=装甲 Y 偏移
+heldItemXOffset=手持信息 X 偏移
+heldItemYOffset=手持信息 Y 偏移
+slotCountYOffset=物品数量 Y 偏移

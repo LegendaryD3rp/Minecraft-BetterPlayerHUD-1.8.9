@@ -262,5 +262,12 @@ potionYOffset=Y Offset
 
 # ── Equip HUD ──
 bhud.equip=Equip & Item Info
+bhud.equip.basic=Basic
+bhud.equip.pos=Position Offsets
 enableArmorHUD=Show Armor (around hotbar)
 enableHeldItemHUD=Show Held Item Info (bottom-left)
+armorXOffset=Armor X Offset
+armorYOffset=Armor Y Offset
+heldItemXOffset=Held Item X Offset
+heldItemYOffset=Held Item Y Offset
+slotCountYOffset=Slot Count Y Offset

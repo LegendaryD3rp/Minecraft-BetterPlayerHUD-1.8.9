@@ -409,7 +409,12 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
     //  模块23：装备&手持物品 HUD
     // ================================================================
     private static List<IConfigElement> getEquipConfigElements() {
-        return el("enableArmorHUD", "enableHeldItemHUD");
+        List<IConfigElement> list = new ArrayList<>();
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.equip.basic", "bhud.equip.basic", el(
+                "enableArmorHUD", "enableHeldItemHUD")));
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.equip.pos", "bhud.equip.pos", el(
+                "armorXOffset", "armorYOffset", "heldItemXOffset", "heldItemYOffset", "slotCountYOffset")));
+        return list;
     }
 
     // ================================================================
