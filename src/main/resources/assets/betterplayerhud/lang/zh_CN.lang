@@ -61,6 +61,7 @@ bhud.targethp.color=颜色
 bhud.performance.basic=基本
 bhud.performance.toggles=显示开关
 bhud.performance.tpscolor=TPS 阈值
+bhud.performance.tpscolorvalue=TPS 颜色
 bhud.performance.color=颜色
 
 # ── 自定义准星子分类 ──
@@ -179,6 +180,7 @@ targetHPOffsetX=X 偏移
 targetHPOffsetY=Y 偏移
 targetHPShowArmor=显示护甲
 targetHPBarWidth=条宽度
+targetHPBgAlpha=背景透明度
 targetHPShowLabels=显示标签
 targetHPShowArmorLabels=显示护甲标签
 targetHPShowFace=显示面部

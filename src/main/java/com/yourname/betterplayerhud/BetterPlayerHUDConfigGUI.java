@@ -167,7 +167,7 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.compass.basic", "bhud.compass.basic", el(
                 "showCompassHUD", "xPosition", "yPosition", "scale")));
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.compass.display", "bhud.compass.display", el(
-                "displayStyle", "degreeMarkInterval", "dynamicScaling")));
+                "displayStyle", "degreeMarkInterval", "dynamicScaling", "showExactAngle")));
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.compass.elements", "bhud.compass.elements", el(
                 "showCompassNeedle", "showDegreeMarks", "showHorizon")));
         return list;
@@ -231,7 +231,7 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.keys.basic", "bhud.keys.basic", el(
                 "showKeysDisplay", "keysDisplayX", "keysDisplayY", "keysOpacity", "keysScale")));
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.keys.appearance", "bhud.keys.appearance", el(
-                "keysSize", "keysSpacing", "keysTextColor", "showKeysBackground")));
+                "keysSize", "keysSpacing", "showKeysBackground")));
         List<IConfigElement> colorList = new ArrayList<>();
         ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "keysActiveColor");
         ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "keysInactiveColor");
@@ -309,7 +309,7 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.targethp.labels", "bhud.targethp.labels", el(
                 "targetHPShowName", "targetHPShowLabels", "targetHPShowArmorLabels", "targetHPShowFace", "targetHPFaceSize")));
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.targethp.pos", "bhud.targethp.pos", el(
-                "targetHPOffsetX", "targetHPOffsetY", "targetHPBarWidth", "targetHPShowArmor")));
+                "targetHPOffsetX", "targetHPOffsetY", "targetHPBarWidth", "targetHPShowArmor", "targetHPBgAlpha")));
         List<IConfigElement> colorList = new ArrayList<>();
         ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "targetHPColor");
         ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "targetHPBackColor");
@@ -334,6 +334,16 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
                 "showFPS", "showXYZ", "showTPS", "showPing", "showServerIP")));
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.performance.tpscolor", "bhud.performance.tpscolor", el(
                 "serverInfoGoodTpsThreshold", "serverInfoMediumTpsThreshold")));
+        List<IConfigElement> tpsColorList = new ArrayList<>();
+        ColorPreviewHelper.addColorElements(tpsColorList, cfg(), cat(), "serverInfoTPSGoodColor");
+        ColorPreviewHelper.addColorElements(tpsColorList, cfg(), cat(), "serverInfoTPSMediumColor");
+        ColorPreviewHelper.addColorElements(tpsColorList, cfg(), cat(), "serverInfoTPSBadColor");
+        list.add(ColorPreviewHelper.createPreviewCategory("bhud.performance.tpscolorvalue", "bhud.performance.tpscolorvalue", tpsColorList,
+                new ColorPreviewHelper.ColorInfo[]{
+                        new ColorPreviewHelper.ColorInfo("serverInfoTPSGoodColor", "良好TPS颜色"),
+                        new ColorPreviewHelper.ColorInfo("serverInfoTPSMediumColor", "中等TPS颜色"),
+                        new ColorPreviewHelper.ColorInfo("serverInfoTPSBadColor", "差TPS颜色"),
+                }, ""));
         List<IConfigElement> colorList = new ArrayList<>();
         ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "performanceTextColor");
         list.add(ColorPreviewHelper.createPreviewCategory("bhud.performance.color", "bhud.performance.color", colorList,

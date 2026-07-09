@@ -61,6 +61,7 @@ bhud.targethp.color=Colors
 bhud.performance.basic=Basic
 bhud.performance.toggles=Display Toggles
 bhud.performance.tpscolor=TPS Thresholds
+bhud.performance.tpscolorvalue=TPS Colors
 bhud.performance.color=Colors
 
 # ── Crosshair sub-categories ──
@@ -179,6 +180,7 @@ targetHPOffsetX=X Offset
 targetHPOffsetY=Y Offset
 targetHPShowArmor=Show Armor
 targetHPBarWidth=Bar Width
+targetHPBgAlpha=Background Alpha
 targetHPShowLabels=Show Labels
 targetHPShowArmorLabels=Show Armor Labels
 targetHPShowFace=Show Face
