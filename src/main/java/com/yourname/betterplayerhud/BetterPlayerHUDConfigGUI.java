@@ -152,6 +152,10 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
         elements.add(new DummyConfigElement.DummyCategoryElement(
                 "bhud.potion", "bhud.potion", getPotionConfigElements()));
 
+        // === 模块23：装备&手持物品 HUD ===
+        elements.add(new DummyConfigElement.DummyCategoryElement(
+                "bhud.equip", "bhud.equip", getEquipConfigElements()));
+
         return elements;
     }
 
@@ -389,6 +393,13 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.hitmarker.rotation", "bhud.hitmarker.rotation", el(
                 "hitMarkerRandomRotate", "hitMarkerRandomRotateStrength")));
         return list;
+    }
+
+    // ================================================================
+    //  模块23：装备&手持物品 HUD
+    // ================================================================
+    private static List<IConfigElement> getEquipConfigElements() {
+        return el("enableArmorHUD", "enableHeldItemHUD");
     }
 
     // ================================================================

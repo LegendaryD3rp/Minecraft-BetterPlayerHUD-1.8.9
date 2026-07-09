@@ -1,0 +1,207 @@
+package com.yourname.betterplayerhud;
+
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Gui;
+import net.minecraft.client.gui.ScaledResolution;
+import net.minecraft.client.renderer.RenderHelper;
+import net.minecraft.enchantment.Enchantment;
+import net.minecraft.enchantment.EnchantmentHelper;
+import net.minecraft.item.*;
+import net.minecraftforge.client.event.RenderGameOverlayEvent;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
+
+import java.text.DecimalFormat;
+
+/**
+ * 装备&手持物品 HUD
+ *
+ * 装甲栏贴在物品栏两侧：
+ *   头盔     护腿
+ *  [=== 物品栏 ===]
+ *   胸甲     靴子
+ *
+ * 手持物品信息在屏幕左下方：
+ *   [图标] 物品名 x数量  |  伤害值
+ */
+@SideOnly(Side.CLIENT)
+public class EquipHUDHandler {
+
+    private static final Minecraft mc = Minecraft.getMinecraft();
+    private static final DecimalFormat DF = new DecimalFormat("#.#");
+
+    // ================================================================
+    //  事件 — Post(ALL) 确保在 Hotbar 渲染后
+    // ================================================================
+
+    @SubscribeEvent
+    public void onRender(RenderGameOverlayEvent.Post event) {
+        if (event.type != RenderGameOverlayEvent.ElementType.ALL) return;
+        if (mc.thePlayer == null || mc.thePlayer.inventory == null) return;
+        if (mc.gameSettings.hideGUI) return;
+
+        BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
+
+        ScaledResolution sr = new ScaledResolution(mc);
+        int w = sr.getScaledWidth();
+        int h = sr.getScaledHeight();
+
+        if (cfg.enableArmorHUD) {
+            renderArmorAroundHotbar(w, h);
+        }
+
+        if (cfg.enableHeldItemHUD) {
+            renderHeldItemInfo(w, h);
+        }
+    }
+
+    // ================================================================
+    //  装甲栏：贴在物品栏两侧
+    // ================================================================
+
+    private void renderArmorAroundHotbar(int screenWidth, int screenHeight) {
+        // 物品栏位置（Forge 1.8.9 标准）
+        int hotbarY = screenHeight - 22;
+        int hotbarLeft = screenWidth / 2 - 91;
+
+        // 装甲槽排序：0=靴子 1=护腿 2=胸甲 3=头盔
+        ItemStack[] armor = mc.thePlayer.inventory.armorInventory;
+
+        // 左侧：头盔(上) 胸甲(下)
+        // 右侧：护腿(上) 靴子(下)
+        int slotSize = 20;
+        int gapX = 4;  // 与物品栏的间距
+        int gapY = 2;  // 上下间距
+
+        // 左列 X
+        int leftX = hotbarLeft - gapX - slotSize;
+        // 右列 X
+        int rightX = hotbarLeft + 182 + gapX;
+
+        // 头盔（左列，上面）
+        renderSlot(armor[3], leftX, hotbarY - slotSize - gapY);
+        // 胸甲（左列，下面，与物品栏平齐）
+        renderSlot(armor[2], leftX, hotbarY);
+
+        // 护腿（右列，上面）
+        renderSlot(armor[1], rightX, hotbarY - slotSize - gapY);
+        // 靴子（右列，下面，与物品栏平齐）
+        renderSlot(armor[0], rightX, hotbarY);
+    }
+
+    /** 画一个物品图标 + 耐久数字 */
+    private void renderSlot(ItemStack stack, int x, int y) {
+        // 半透明背景
+        Gui.drawRect(x, y, x + 20, y + 20, 0x44000000);
+
+        if (stack != null) {
+            RenderHelper.enableGUIStandardItemLighting();
+            mc.getRenderItem().renderItemAndEffectIntoGUI(stack, x + 2, y + 2);
+            mc.getRenderItem().renderItemOverlays(mc.fontRendererObj, stack, x + 2, y + 2);
+
+            // 已损耐久显示：剩余耐久
+            if (stack.isItemStackDamageable()) {
+                int maxDmg = stack.getMaxDamage();
+                int curDmg = stack.getItemDamage();
+                int remaining = maxDmg - curDmg;
+                if (remaining < maxDmg) {  // 有损耗才显示
+                    String durStr = String.valueOf(remaining);
+                    int tw = mc.fontRendererObj.getStringWidth(durStr);
+                    mc.fontRendererObj.drawStringWithShadow(durStr,
+                            x + 20 - tw, y + 20 - mc.fontRendererObj.FONT_HEIGHT, 0xFFFFFFFF);
+                }
+            }
+            RenderHelper.disableStandardItemLighting();
+        }
+    }
+
+    // ================================================================
+    //  手持物品信息：屏幕左下方
+    // ================================================================
+
+    private void renderHeldItemInfo(int screenWidth, int screenHeight) {
+        ItemStack held = mc.thePlayer.getHeldItem();
+        if (held == null) return;
+
+        int x = 2;
+        int y = screenHeight - mc.fontRendererObj.FONT_HEIGHT - 2;
+
+        // 图标
+        RenderHelper.enableGUIStandardItemLighting();
+        mc.getRenderItem().renderItemAndEffectIntoGUI(held, x, y - 2);
+        mc.getRenderItem().renderItemOverlays(mc.fontRendererObj, held, x, y - 2);
+        RenderHelper.disableStandardItemLighting();
+
+        // 文字：物品名
+        int tx = x + 20;
+        String name = held.getDisplayName();
+        mc.fontRendererObj.drawStringWithShadow(name, tx, y + 1, 0xFFFFFFFF);
+        tx += mc.fontRendererObj.getStringWidth(name) + 4;
+
+        // 如果有数量 >1，显示 xN
+        if (held.stackSize > 1) {
+            String countStr = "x" + held.stackSize;
+            mc.fontRendererObj.drawStringWithShadow(countStr, tx, y + 1, 0xAAAAAAFF);
+            tx += mc.fontRendererObj.getStringWidth(countStr) + 4;
+        }
+
+        // 如果是武器，显示伤害
+        String damageStr = getWeaponDamage(held);
+        if (damageStr != null) {
+            mc.fontRendererObj.drawStringWithShadow("§7" + damageStr, tx, y + 1, 0xFFFFFFAA);
+        }
+    }
+
+    /** 获取武器伤害描述，非武器返回 null */
+    private String getWeaponDamage(ItemStack stack) {
+        Item item = stack.getItem();
+
+        if (item instanceof ItemSword) {
+            // 剑：基础伤害 + 1 (空手基础)
+            float baseDmg = ((ItemSword) item).getDamageVsEntity() + 1;
+            float sharpBonus = getSharpnessBonus(stack);
+            return DF.format(baseDmg + sharpBonus);
+        }
+
+        if (item instanceof ItemTool && !(item instanceof ItemBow)) {
+            // 工具类 (斧/镐/铲)：从属性修饰符取得伤害
+            float baseDmg = getToolDamage(stack);
+            float sharpBonus = getSharpnessBonus(stack);
+            return DF.format(baseDmg + sharpBonus);
+        }
+
+        if (item instanceof ItemBow) {
+            // 弓：满蓄力约 10(无暴击)~15(暴击)
+            int powerLevel = EnchantmentHelper.getEnchantmentLevel(Enchantment.power.effectId, stack);
+            float maxDmg = 10.0f + powerLevel * 2.0f;
+            return "弓 " + DF.format(maxDmg);
+        }
+
+        return null;
+    }
+
+    /** 计算锋利附魔的额外伤害 (1.8.9 公式) */
+    private static float getSharpnessBonus(ItemStack stack) {
+        int level = EnchantmentHelper.getEnchantmentLevel(Enchantment.sharpness.effectId, stack);
+        if (level <= 0) return 0;
+        return (level - 1) * 0.5f + 1.0f;
+    }
+
+    /** 从 ItemTool 的属性修饰符取得总伤害 (含空手基础 1) */
+    private static float getToolDamage(ItemStack stack) {
+        // 1.8.9 中 ItemTool 没有 getDamageVsEntity，通过属性修饰符取得
+        com.google.common.collect.Multimap<String, net.minecraft.entity.ai.attributes.AttributeModifier> map =
+                stack.getAttributeModifiers();
+        java.util.Collection<net.minecraft.entity.ai.attributes.AttributeModifier> mods =
+                (java.util.Collection<net.minecraft.entity.ai.attributes.AttributeModifier>)
+                        (java.util.Collection<?>) map.get("generic.attackDamage");
+        double dmg = 0;
+        if (mods != null) {
+            for (net.minecraft.entity.ai.attributes.AttributeModifier mod : mods) {
+                dmg += mod.getAmount();
+            }
+        }
+        return (float) dmg + 1.0f;  // +1 空手基础
+    }
+}

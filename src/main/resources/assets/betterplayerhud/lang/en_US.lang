@@ -257,3 +257,8 @@ enablePotionHUD=Enable Potion HUD
 potionTextColor=Text Color
 potionXOffset=X Offset
 potionYOffset=Y Offset
+
+# ── Equip HUD ──
+bhud.equip=Equip & Item Info
+enableArmorHUD=Show Armor (around hotbar)
+enableHeldItemHUD=Show Held Item Info (bottom-left)

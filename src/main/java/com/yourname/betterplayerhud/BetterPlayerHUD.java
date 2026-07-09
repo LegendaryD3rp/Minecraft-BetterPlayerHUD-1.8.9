@@ -46,6 +46,9 @@ public class BetterPlayerHUD {
 
         // 注册药水效果 HUD（模块22）
         MinecraftForge.EVENT_BUS.register(new PotionHUDHandler());
+
+        // 注册装备&手持物品 HUD（模块23）
+        MinecraftForge.EVENT_BUS.register(new EquipHUDHandler());
     }
 
     /**

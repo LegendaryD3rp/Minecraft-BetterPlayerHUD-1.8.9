@@ -257,3 +257,8 @@ enablePotionHUD=启用药水HUD
 potionTextColor=文字颜色
 potionXOffset=X 偏移
 potionYOffset=Y 偏移
+
+# ── 装备&手持物品 HUD ──
+bhud.equip=装备&手持物品
+enableArmorHUD=装甲栏（物品栏两侧）
+enableHeldItemHUD=手持物品信息（左下方）

@@ -207,6 +207,12 @@ public class BetterPlayerHUDConfig {
     public int potionYOffset = 0;
 
     // ================================================================
+    //  模块23：装备&手持物品 HUD
+    // ================================================================
+    public boolean enableArmorHUD = true;
+    public boolean enableHeldItemHUD = true;
+
+    // ================================================================
     //  模块21：命中标识 (Hit Marker)
     // ================================================================
     public boolean enableHitMarker = true;
@@ -750,6 +756,15 @@ public class BetterPlayerHUDConfig {
             p.comment = "药水HUD Y轴偏移"; potionYOffset = p.getInt();
         }
 
+        // --- 模块23：装备&手持物品 HUD ---
+        {
+            Property p = config.get(C, "enableArmorHUD", true);
+            p.comment = "是否在物品栏两侧显示装甲"; enableArmorHUD = p.getBoolean();
+
+            p = config.get(C, "enableHeldItemHUD", true);
+            p.comment = "是否在左下方显示手持物品信息"; enableHeldItemHUD = p.getBoolean();
+        }
+
         // --- 模块21：命中标识 ---
         {
             Property p = config.get(C, "enableHitMarker", true);
@@ -970,6 +985,10 @@ public class BetterPlayerHUDConfig {
         saveColor(C, "potionTextColor", potionTextColor);
         config.get(C, "potionXOffset", 0).set(potionXOffset);
         config.get(C, "potionYOffset", 0).set(potionYOffset);
+
+        // --- 模块23：装备&手持物品 HUD ---
+        config.get(C, "enableArmorHUD", true).set(enableArmorHUD);
+        config.get(C, "enableHeldItemHUD", true).set(enableHeldItemHUD);
 
         // --- 模块21：命中标识 ---
         config.get(C, "enableHitMarker", true).set(enableHitMarker);
