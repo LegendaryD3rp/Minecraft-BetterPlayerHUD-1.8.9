@@ -195,8 +195,8 @@ public class EquipHUDHandler {
         Item item = stack.getItem();
 
         if (item instanceof ItemSword) {
-            // 剑：基础伤害 + 1 (空手基础)
-            float baseDmg = ((ItemSword) item).getDamageVsEntity() + 1;
+            // 剑：武器伤害修正值（不含空手基础1.0）
+            float baseDmg = ((ItemSword) item).getDamageVsEntity();
             float sharpBonus = getSharpnessBonus(stack);
             return DF.format(baseDmg + sharpBonus);
         }
@@ -209,7 +209,7 @@ public class EquipHUDHandler {
         }
 
         if (item instanceof ItemBow) {
-            // 弓：满蓄力约 10(无暴击)~15(暴击)
+            // 弓：满蓄力最大伤害估算 10 + Power等级*2
             int powerLevel = EnchantmentHelper.getEnchantmentLevel(Enchantment.power.effectId, stack);
             float maxDmg = 10.0f + powerLevel * 2.0f;
             return "弓 " + DF.format(maxDmg);
@@ -218,14 +218,14 @@ public class EquipHUDHandler {
         return null;
     }
 
-    /** 计算锋利附魔的额外伤害 (1.8.9 公式) */
+    /** 计算锋利附魔的额外伤害（1.8.9 MCP 公式：level * 1.25） */
     private static float getSharpnessBonus(ItemStack stack) {
         int level = EnchantmentHelper.getEnchantmentLevel(Enchantment.sharpness.effectId, stack);
         if (level <= 0) return 0;
-        return (level - 1) * 0.5f + 1.0f;
+        return level * 1.25f;
     }
 
-    /** 从 ItemTool 的属性修饰符取得总伤害 (含空手基础 1) */
+    /** 从 ItemTool 的属性修饰符取得武器伤害修正值（不含空手基础 1.0） */
     private static float getToolDamage(ItemStack stack) {
         // 1.8.9 中 ItemTool 没有 getDamageVsEntity，通过属性修饰符取得
         com.google.common.collect.Multimap<String, net.minecraft.entity.ai.attributes.AttributeModifier> map =
@@ -239,6 +239,6 @@ public class EquipHUDHandler {
                 dmg += mod.getAmount();
             }
         }
-        return (float) dmg + 1.0f;  // +1 空手基础
+        return (float) dmg;
     }
 }

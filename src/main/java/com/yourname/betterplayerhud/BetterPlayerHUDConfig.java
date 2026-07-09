@@ -209,7 +209,7 @@ public class BetterPlayerHUDConfig {
     // ================================================================
     //  模块23：装备&手持物品 HUD
     // ================================================================
-    public boolean enableArmorHUD = true;
+    public boolean enableArmorHUD = false;
     public boolean enableHeldItemHUD = true;
     public int armorXOffset = 0;
     public int armorYOffset = 0;
@@ -766,7 +766,7 @@ public class BetterPlayerHUDConfig {
 
         // --- 模块23：装备&手持物品 HUD ---
         {
-            Property p = config.get(C, "enableArmorHUD", true);
+            Property p = config.get(C, "enableArmorHUD", false);
             p.comment = "是否在物品栏两侧显示装甲"; enableArmorHUD = p.getBoolean();
 
             p = config.get(C, "enableHeldItemHUD", true);
