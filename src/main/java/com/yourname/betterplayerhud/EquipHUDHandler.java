@@ -132,36 +132,38 @@ public class EquipHUDHandler {
     private void renderHeldItemInfo(int screenWidth, int screenHeight) {
         BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
         ItemStack held = mc.thePlayer.getHeldItem();
-        if (held == null) return;
 
         int x = 2 + cfg.heldItemXOffset;
         int y = screenHeight - mc.fontRendererObj.FONT_HEIGHT - 2 + cfg.heldItemYOffset;
 
-        // 图标
-        RenderHelper.enableGUIStandardItemLighting();
-        mc.getRenderItem().renderItemAndEffectIntoGUI(held, x, y - 2);
-        mc.getRenderItem().renderItemOverlays(mc.fontRendererObj, held, x, y - 2);
-        RenderHelper.disableStandardItemLighting();
+        if (held != null) {
+            // 图标
+            RenderHelper.enableGUIStandardItemLighting();
+            mc.getRenderItem().renderItemAndEffectIntoGUI(held, x, y - 2);
+            mc.getRenderItem().renderItemOverlays(mc.fontRendererObj, held, x, y - 2);
+            RenderHelper.disableStandardItemLighting();
 
-        // 文字：物品名
-        int tx = x + 20;
-        String name = held.getDisplayName();
-        mc.fontRendererObj.drawStringWithShadow(name, tx, y + 1, 0xFFFFFFFF);
-        tx += mc.fontRendererObj.getStringWidth(name) + 4;
+            // 文字：物品名
+            int tx = x + 20;
+            String name = held.getDisplayName();
+            mc.fontRendererObj.drawStringWithShadow(name, tx, y + 1, 0xFFFFFFFF);
+            tx += mc.fontRendererObj.getStringWidth(name) + 4;
 
-        // 如果有数量 >1，显示 xN
-        if (held.stackSize > 1) {
-            String countStr = "x" + held.stackSize;
-            mc.fontRendererObj.drawStringWithShadow(countStr, tx, y + 1, 0xAAAAAAFF);
-            tx += mc.fontRendererObj.getStringWidth(countStr) + 4;
+            // 可堆叠物品 → 始终显示数量（如 64）
+            if (held.getItem() != null && held.getMaxStackSize() > 1) {
+                String countStr = String.valueOf(held.stackSize);
+                mc.fontRendererObj.drawStringWithShadow(countStr, tx, y + 1, 0xAAAAAAFF);
+                tx += mc.fontRendererObj.getStringWidth(countStr) + 4;
+            }
+
+            // 如果是武器，显示伤害 (总伤害 = 武器伤害 + 空手基础 1.0)
+            String damageStr = getWeaponDamage(held);
+            if (damageStr != null) {
+                mc.fontRendererObj.drawStringWithShadow("§7" + damageStr, tx, y + 1, 0xFFFFFFAA);
+            }
         }
 
-        // 如果是武器，显示伤害
-        String damageStr = getWeaponDamage(held);
-        if (damageStr != null) {
-            mc.fontRendererObj.drawStringWithShadow("§7" + damageStr, tx, y + 1, 0xFFFFFFAA);
-        }
-
+        // 即使空手也 report，确保 F7 编辑模式下能看到模块
         if (HUDEditManager.isEditing())
             HUDEditManager.report("手持物品", x, y - 2, 200, 12);
     }
@@ -201,15 +203,15 @@ public class EquipHUDHandler {
         Item item = stack.getItem();
 
         if (item instanceof ItemSword) {
-            // 剑：武器伤害修正值（不含空手基础1.0）
-            float baseDmg = ((ItemSword) item).getDamageVsEntity();
+            // 剑：总伤害 = 武器伤害 + 空手基础 1.0
+            float baseDmg = ((ItemSword) item).getDamageVsEntity() + 1.0f;
             float sharpBonus = getSharpnessBonus(stack);
             return DF.format(baseDmg + sharpBonus);
         }
 
         if (item instanceof ItemTool && !(item instanceof ItemBow)) {
-            // 工具类 (斧/镐/铲)：从属性修饰符取得伤害
-            float baseDmg = getToolDamage(stack);
+            // 工具类 (斧/镐/铲)：总伤害 = 属性修饰符 + 空手基础 1.0
+            float baseDmg = getToolDamage(stack) + 1.0f;
             float sharpBonus = getSharpnessBonus(stack);
             return DF.format(baseDmg + sharpBonus);
         }
