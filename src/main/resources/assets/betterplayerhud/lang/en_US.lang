@@ -221,6 +221,7 @@ crosshairSpreadAmount=Spread Amount
 crosshairSpreadWalk=Spread While Walking
 crosshairSpreadJump=Spread While Jumping
 crosshairSpreadBow=Spread While Bowing
+crosshairSpreadBowInverted=Invert Bow Spread
 crosshairXOffset=X Offset
 crosshairYOffset=Y Offset
 crosshairAlwaysShow=Always Show

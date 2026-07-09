@@ -189,6 +189,7 @@ public class BetterPlayerHUDConfig {
     public boolean crosshairSpreadWalk = true;
     public boolean crosshairSpreadJump = true;
     public boolean crosshairSpreadBow = true;
+    public boolean crosshairSpreadBowInverted = false;
     public int crosshairXOffset = 0;
     public int crosshairYOffset = 0;
     public boolean crosshairAlwaysShow = false;

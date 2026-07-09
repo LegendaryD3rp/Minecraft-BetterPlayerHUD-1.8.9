@@ -156,7 +156,11 @@ public class CrosshairHandler {
             if (mc.thePlayer.getHeldItem() != null && mc.thePlayer.getHeldItem().getItem() instanceof ItemBow) {
                 int useCount = mc.thePlayer.getItemInUseCount();
                 float charge = (72000 - useCount) / 20.0f;
-                spread += (1 - Math.min(charge, 1)) * 8;
+                if (cfg.crosshairSpreadBowInverted) {
+                    spread += Math.min(charge, 1) * 8;
+                } else {
+                    spread += (1 - Math.min(charge, 1)) * 8;
+                }
             }
         }
 

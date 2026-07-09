@@ -221,6 +221,7 @@ crosshairSpreadAmount=扩散程度
 crosshairSpreadWalk=行走扩散
 crosshairSpreadJump=跳跃扩散
 crosshairSpreadBow=拉弓扩散
+crosshairSpreadBowInverted=反向拉弓扩散（随蓄力扩大）
 crosshairXOffset=X 偏移
 crosshairYOffset=Y 偏移
 crosshairAlwaysShow=始终显示

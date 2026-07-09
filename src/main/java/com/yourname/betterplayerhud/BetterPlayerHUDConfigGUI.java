@@ -344,7 +344,8 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.crosshair.arms", "bhud.crosshair.arms", el(
                 "crosshairArmUp", "crosshairArmDown", "crosshairArmLeft", "crosshairArmRight", "crosshairXOffset", "crosshairYOffset")));
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.crosshair.spread", "bhud.crosshair.spread", el(
-                "crosshairSpread", "crosshairSpreadAmount", "crosshairSpreadWalk", "crosshairSpreadJump", "crosshairSpreadBow")));
+                "crosshairSpread", "crosshairSpreadAmount", "crosshairSpreadWalk", "crosshairSpreadJump",
+                "crosshairSpreadBow", "crosshairSpreadBowInverted")));
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.crosshair.detail", "bhud.crosshair.detail", el(
                 "crosshairDotSize", "crosshairCircleRadius", "crosshairCircleSegments", "crosshairRotation")));
         List<IConfigElement> colorList = new ArrayList<>();
