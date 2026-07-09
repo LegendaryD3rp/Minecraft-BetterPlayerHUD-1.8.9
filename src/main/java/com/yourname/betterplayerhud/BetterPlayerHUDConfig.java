@@ -725,6 +725,9 @@ public class BetterPlayerHUDConfig {
             p = config.get(C, "crosshairSpreadBow", true);
             p.comment = "拉弓时扩散"; crosshairSpreadBow = p.getBoolean();
 
+            p = config.get(C, "crosshairSpreadBowInverted", false);
+            p.comment = "反向拉弓扩散（随蓄力扩大）"; crosshairSpreadBowInverted = p.getBoolean();
+
             p = config.get(C, "crosshairXOffset", 0);
             p.comment = "水平偏移"; crosshairXOffset = p.getInt();
             p = config.get(C, "crosshairYOffset", 0);
@@ -988,6 +991,7 @@ public class BetterPlayerHUDConfig {
         config.get(C, "crosshairSpreadWalk", true).set(crosshairSpreadWalk);
         config.get(C, "crosshairSpreadJump", true).set(crosshairSpreadJump);
         config.get(C, "crosshairSpreadBow", true).set(crosshairSpreadBow);
+        config.get(C, "crosshairSpreadBowInverted", false).set(crosshairSpreadBowInverted);
         config.get(C, "crosshairXOffset", 0).set(crosshairXOffset);
         config.get(C, "crosshairYOffset", 0).set(crosshairYOffset);
         config.get(C, "crosshairAlwaysShow", false).set(crosshairAlwaysShow);

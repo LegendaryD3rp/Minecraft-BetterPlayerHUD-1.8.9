@@ -98,28 +98,28 @@ public class EquipHUDHandler {
 
     /** 画一个物品图标 + 耐久数字 */
     private void renderSlot(ItemStack stack, int x, int y) {
+        if (stack == null) return;
+
         // 半透明背景
         Gui.drawRect(x, y, x + 20, y + 20, 0x44000000);
 
-        if (stack != null) {
-            RenderHelper.enableGUIStandardItemLighting();
-            mc.getRenderItem().renderItemAndEffectIntoGUI(stack, x + 2, y + 2);
-            mc.getRenderItem().renderItemOverlays(mc.fontRendererObj, stack, x + 2, y + 2);
+        RenderHelper.enableGUIStandardItemLighting();
+        mc.getRenderItem().renderItemAndEffectIntoGUI(stack, x + 2, y + 2);
+        mc.getRenderItem().renderItemOverlays(mc.fontRendererObj, stack, x + 2, y + 2);
 
-            // 已损耐久显示：剩余耐久
-            if (stack.isItemStackDamageable()) {
-                int maxDmg = stack.getMaxDamage();
-                int curDmg = stack.getItemDamage();
-                int remaining = maxDmg - curDmg;
-                if (remaining < maxDmg) {  // 有损耗才显示
-                    String durStr = String.valueOf(remaining);
-                    int tw = mc.fontRendererObj.getStringWidth(durStr);
-                    mc.fontRendererObj.drawStringWithShadow(durStr,
-                            x + 20 - tw, y + 20 - mc.fontRendererObj.FONT_HEIGHT, 0xFFFFFFFF);
-                }
+        // 已损耐久显示：剩余耐久
+        if (stack.isItemStackDamageable()) {
+            int maxDmg = stack.getMaxDamage();
+            int curDmg = stack.getItemDamage();
+            int remaining = maxDmg - curDmg;
+            if (remaining < maxDmg) {  // 有损耗才显示
+                String durStr = String.valueOf(remaining);
+                int tw = mc.fontRendererObj.getStringWidth(durStr);
+                mc.fontRendererObj.drawStringWithShadow(durStr,
+                        x + 20 - tw, y + 20 - mc.fontRendererObj.FONT_HEIGHT, 0xFFFFFFFF);
             }
-            RenderHelper.disableStandardItemLighting();
         }
+        RenderHelper.disableStandardItemLighting();
     }
 
     // ================================================================
