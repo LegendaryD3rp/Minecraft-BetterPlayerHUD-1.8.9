@@ -156,6 +156,10 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
         elements.add(new DummyConfigElement.DummyCategoryElement(
                 "bhud.equip", "bhud.equip", getEquipConfigElements()));
 
+        // === 模块24：危机警戒图标 ===
+        elements.add(new DummyConfigElement.DummyCategoryElement(
+                "bhud.crisis", "bhud.crisis", getCrisisConfigElements()));
+
         return elements;
     }
 
@@ -425,5 +429,12 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.potion.basic", "bhud.potion.basic", el(
                 "enablePotionHUD", "potionTextColor", "potionXOffset", "potionYOffset")));
         return list;
+    }
+
+    // ================================================================
+    //  模块24：危机警戒图标
+    // ================================================================
+    private static List<IConfigElement> getCrisisConfigElements() {
+        return el("enableCriticalHealth");
     }
 }

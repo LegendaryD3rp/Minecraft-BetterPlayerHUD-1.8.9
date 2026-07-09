@@ -271,3 +271,7 @@ armorYOffset=Armor Y Offset
 heldItemXOffset=Held Item X Offset
 heldItemYOffset=Held Item Y Offset
 slotCountYOffset=Slot Count Y Offset
+
+# ── Crisis Warning ──
+bhud.crisis=Crisis Warning
+enableCriticalHealth=Show Crisis Icons (Heart/TNT/Bow/Hunger)

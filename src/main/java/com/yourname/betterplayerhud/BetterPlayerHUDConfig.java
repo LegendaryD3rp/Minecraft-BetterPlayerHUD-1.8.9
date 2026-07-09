@@ -218,6 +218,11 @@ public class BetterPlayerHUDConfig {
     public int slotCountYOffset = 0;
 
     // ================================================================
+    //  模块24：残血心跳指示器
+    // ================================================================
+    public boolean enableCriticalHealth = true;
+
+    // ================================================================
     //  模块21：命中标识 (Hit Marker)
     // ================================================================
     public boolean enableHitMarker = true;
@@ -784,6 +789,12 @@ public class BetterPlayerHUDConfig {
             p.comment = "物品数量Y偏移"; slotCountYOffset = p.getInt();
         }
 
+        // --- 模块24：残血心跳指示器 ---
+        {
+            Property p = config.get(C, "enableCriticalHealth", true);
+            p.comment = "启用残血心跳指示器"; enableCriticalHealth = p.getBoolean();
+        }
+
         // --- 模块21：命中标识 ---
         {
             Property p = config.get(C, "enableHitMarker", true);
@@ -1014,6 +1025,9 @@ public class BetterPlayerHUDConfig {
         config.get(C, "heldItemXOffset", 0).set(heldItemXOffset);
         config.get(C, "heldItemYOffset", 0).set(heldItemYOffset);
         config.get(C, "slotCountYOffset", 0).set(slotCountYOffset);
+
+        // --- 模块24：残血心跳指示器 ---
+        config.get(C, "enableCriticalHealth", true).set(enableCriticalHealth);
 
         // --- 模块21：命中标识 ---
         config.get(C, "enableHitMarker", true).set(enableHitMarker);

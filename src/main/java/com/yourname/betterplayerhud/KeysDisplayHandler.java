@@ -176,6 +176,9 @@ public class KeysDisplayHandler {
         fr.drawStringWithShadow(cpsText, cpsX, cpsY, cpsColor);
 
         GlStateManager.popMatrix();
+
+        if (HUDEditManager.isEditing())
+            HUDEditManager.report("按键显示", xPos, yPos, displayWidth, cpsY + 10 - yPos);
     }
 
     private void renderKeysLayout(int startX, int startY, int keySize, int keySpacing, FontRenderer fr) {

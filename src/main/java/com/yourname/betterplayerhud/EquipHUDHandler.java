@@ -94,6 +94,9 @@ public class EquipHUDHandler {
         renderSlot(armor[1], rightX, hotbarY - slotSize - gapY);
         // 靴子（右列，下面，与物品栏平齐）
         renderSlot(armor[0], rightX, hotbarY);
+
+        if (HUDEditManager.isEditing())
+            HUDEditManager.report("装甲栏", leftX, hotbarY - slotSize - gapY, rightX + slotSize - leftX, slotSize * 2 + gapY);
     }
 
     /** 画一个物品图标 + 耐久数字 */
@@ -158,6 +161,9 @@ public class EquipHUDHandler {
         if (damageStr != null) {
             mc.fontRendererObj.drawStringWithShadow("§7" + damageStr, tx, y + 1, 0xFFFFFFAA);
         }
+
+        if (HUDEditManager.isEditing())
+            HUDEditManager.report("手持物品", x, y - 2, 200, 12);
     }
 
     /** 物品栏上方：当前格物品数量 / 背包总计（在物品名正上方） */

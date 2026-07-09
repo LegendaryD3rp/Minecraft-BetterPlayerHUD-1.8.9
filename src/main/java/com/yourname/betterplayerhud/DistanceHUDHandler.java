@@ -85,6 +85,9 @@ public class DistanceHUDHandler {
                     color
             );
         }
+
+        if (HUDEditManager.isEditing())
+            HUDEditManager.report("距离信息", xPos, yPos, 120, displayLines.size() * 10 + 2);
     }
 
     private List<String> getDisplayLines(MovingObjectPosition mouseOver, double distance) {

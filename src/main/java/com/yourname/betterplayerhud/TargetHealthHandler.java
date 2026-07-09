@@ -219,6 +219,9 @@ public class TargetHealthHandler {
                          0x80000000);
             mc.fontRendererObj.drawString(display, txtX, txtY, textColor, true);
         }
+
+        if (HUDEditManager.isEditing())
+            HUDEditManager.report("目标血量", x - 30, expBarTop - gapToExp - barHeight - 30 - 10, barWidth + 60, 120);
     }
 
     private boolean shouldShow(EntityLivingBase entity) {

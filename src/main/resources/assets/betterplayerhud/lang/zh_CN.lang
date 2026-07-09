@@ -271,3 +271,7 @@ armorYOffset=装甲 Y 偏移
 heldItemXOffset=手持信息 X 偏移
 heldItemYOffset=手持信息 Y 偏移
 slotCountYOffset=物品数量 Y 偏移
+
+# ── 危机警戒图标 ──
+bhud.crisis=危机警戒图标
+enableCriticalHealth=危机时显示闪烁图标(生命/TNT/弓箭/饥饿)

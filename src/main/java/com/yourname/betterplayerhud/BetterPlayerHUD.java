@@ -6,6 +6,8 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.TickEvent;
+
 import java.io.File;
 
 @Mod(modid = BetterPlayerHUD.MODID, version = BetterPlayerHUD.VERSION, guiFactory = "com.yourname.betterplayerhud.BetterPlayerHUDGuiFactory")
@@ -22,6 +24,21 @@ public class BetterPlayerHUD {
 
     @Mod.EventHandler
     public void init(FMLInitializationEvent event) {
+        // 注册拖拽编辑模式
+        HUDEditManager.init();
+        MinecraftForge.EVENT_BUS.register(HUDEditManager.class);
+
+        // 注册可拖拽模块的偏移设置器（编辑模式使用）
+        HUDEditManager.register("罗盘", (x) -> config.xPosition = x, (y) -> config.yPosition = y);
+        HUDEditManager.register("状态栏", (x) -> config.healthHudX = x, (y) -> config.healthHudY = y);
+        HUDEditManager.register("距离信息", (x) -> config.distanceHudX = x, (y) -> config.distanceHudY = y);
+        HUDEditManager.register("按键显示", (x) -> config.keysDisplayX = x, (y) -> config.keysDisplayY = y);
+        HUDEditManager.register("目标血量", (x) -> config.targetHPOffsetX = x, (y) -> config.targetHPOffsetY = y);
+        HUDEditManager.register("性能检测", (x) -> config.performanceHudX = x, (y) -> config.performanceHudY = y);
+        HUDEditManager.register("药水效果", (x) -> config.potionXOffset = x, (y) -> config.potionYOffset = y);
+        HUDEditManager.register("装甲栏", (x) -> config.armorXOffset = x, (y) -> config.armorYOffset = y);
+        HUDEditManager.register("手持物品", (x) -> config.heldItemXOffset = x, (y) -> config.heldItemYOffset = y);
+
         // 注册精简版 HUD 处理器
         MinecraftForge.EVENT_BUS.register(new PlayerHUDHandler());
         MinecraftForge.EVENT_BUS.register(new CompassHUDHandler());
@@ -49,6 +66,9 @@ public class BetterPlayerHUD {
 
         // 注册装备&手持物品 HUD（模块23）
         MinecraftForge.EVENT_BUS.register(new EquipHUDHandler());
+
+        // 注册危机警戒图标（模块24）
+        MinecraftForge.EVENT_BUS.register(new CrisisWarningHandler());
     }
 
     /**

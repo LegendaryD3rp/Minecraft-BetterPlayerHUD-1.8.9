@@ -41,6 +41,7 @@ public class PotionHUDHandler {
         BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
         int x = 2 + cfg.potionXOffset;
         int y = screenHeight - 18 - 2 + cfg.potionYOffset;  // 底部贴边
+        int startY = y;
 
         GlStateManager.enableBlend();
         GlStateManager.disableAlpha();
@@ -70,6 +71,9 @@ public class PotionHUDHandler {
 
             y -= 24;  // 往上排
         }
+
+        if (HUDEditManager.isEditing())
+            HUDEditManager.report("药水效果", x, y, 160, startY - y + 24 + 2);
 
         GlStateManager.enableAlpha();
     }

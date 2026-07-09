@@ -166,6 +166,9 @@ public class CompassHUDHandler {
         }
 
         GlStateManager.popMatrix();
+
+        if (HUDEditManager.isEditing())
+            HUDEditManager.report("罗盘", xPos, yPos, 240, 30);
     }
 
     // 修正：直接使用Minecraft的角度系统（与F3完全一致）

@@ -173,6 +173,9 @@ public class PerformanceHUDHandler {
             String ip = (cachedServerIP != null && !cachedServerIP.isEmpty()) ? cachedServerIP : "Singleplayer";
             fr.drawStringWithShadow(ip, baseX, y, color);
         }
+
+        if (HUDEditManager.isEditing())
+            HUDEditManager.report("性能检测", baseX, baseY, 130, y + 10 - baseY);
     }
 
     // ================================================================

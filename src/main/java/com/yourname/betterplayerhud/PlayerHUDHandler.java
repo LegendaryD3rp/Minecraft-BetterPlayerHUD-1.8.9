@@ -125,6 +125,9 @@ public class PlayerHUDHandler {
         int nameX = adjustedHudLeft; // 名称与血条左对齐
 
         fr.drawStringWithShadow(username, nameX, nameY, 0xAAAAAA);
+
+        if (HUDEditManager.isEditing())
+            HUDEditManager.report("状态栏", hudLeft, hudTop, barWidth + headSize + headSpacing + 20, barHeight + 20);
     }
 
     /**
