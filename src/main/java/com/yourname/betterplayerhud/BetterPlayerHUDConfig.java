@@ -225,6 +225,9 @@ public class BetterPlayerHUDConfig {
     public boolean crisisWarnTnt = true;
     public double crisisTntRadius = 10.0;
     public boolean crisisWarnBow = true;
+    /** 箭矢飞行物附近警戒 */
+    public boolean crisisWarnArrow = true;
+    public double crisisArrowRadius = 10.0;
     public int crisisIconSize = 24;
     public int crisisFlashInterval = 20;
 
@@ -813,6 +816,10 @@ public class BetterPlayerHUDConfig {
             p.comment = "TNT检测半径"; crisisTntRadius = p.getDouble();
             p = config.get(C, "crisisWarnBow", true);
             p.comment = "拉弓警戒"; crisisWarnBow = p.getBoolean();
+            p = config.get(C, "crisisWarnArrow", true);
+            p.comment = "箭矢警戒"; crisisWarnArrow = p.getBoolean();
+            p = config.get(C, "crisisArrowRadius", 10.0);
+            p.comment = "箭矢检测半径"; crisisArrowRadius = p.getDouble();
             p = config.get(C, "crisisIconSize", 24);
             p.comment = "图标大小"; crisisIconSize = p.getInt();
             p = config.get(C, "crisisFlashInterval", 20);
@@ -1059,6 +1066,8 @@ public class BetterPlayerHUDConfig {
         config.get(C, "crisisWarnTnt", true).set(crisisWarnTnt);
         config.get(C, "crisisTntRadius", 10.0).set(crisisTntRadius);
         config.get(C, "crisisWarnBow", true).set(crisisWarnBow);
+        config.get(C, "crisisWarnArrow", true).set(crisisWarnArrow);
+        config.get(C, "crisisArrowRadius", 10.0).set(crisisArrowRadius);
         config.get(C, "crisisIconSize", 24).set(crisisIconSize);
         config.get(C, "crisisFlashInterval", 20).set(crisisFlashInterval);
 

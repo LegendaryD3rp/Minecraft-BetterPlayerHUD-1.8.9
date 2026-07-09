@@ -454,6 +454,8 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
                 "crisisWarnTnt", "crisisTntRadius")));
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.crisis.bow", "bhud.crisis.bow", el(
                 "crisisWarnBow")));
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.crisis.arrow", "bhud.crisis.arrow", el(
+                "crisisWarnArrow", "crisisArrowRadius")));
         return list;
     }
 }

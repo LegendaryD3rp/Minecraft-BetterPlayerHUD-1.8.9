@@ -6,6 +6,7 @@ import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.entity.item.EntityTNTPrimed;
+import net.minecraft.entity.projectile.EntityArrow;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemBow;
@@ -13,21 +14,16 @@ import net.minecraft.item.ItemStack;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
-/**
- * 危机警戒图标 — 屏幕正上方闪烁显示危机状态
- *
- * 四种警戒：低血量 | 饥饿 | 附近TNT | 拉弓
- * 所有阈值/大小/开关均可配置
- */
 public class CrisisWarningHandler {
 
     private static final Minecraft mc = Minecraft.getMinecraft();
 
     private static final ItemStack ICON_TNT = new ItemStack(Blocks.tnt);
     private static final ItemStack ICON_BOW = new ItemStack(Items.bow);
+    private static final ItemStack ICON_ARROW = new ItemStack(Items.arrow);
     private static final ItemStack ICON_HUNGER = new ItemStack(Items.rotten_flesh);
 
-    /** 心形纹理在 Gui.icons 中的 UV */
+    /** 心形纹理在 Gui.icons 中的 UV（9x9 区域） */
     private static final int HEART_U = 52;
     private static final int HEART_V_NORMAL = 0;
     private static final int HEART_V_HARDCORE = 45;
@@ -54,8 +50,8 @@ public class CrisisWarningHandler {
         int gap = iconSize / 3;
         if (gap < 4) gap = 4;
 
-        // 收集激活的图标
-        java.util.List<Integer> types = new java.util.ArrayList<>(); // 0=heart, 1=hunger, 2=tnt, 3=bow
+        // 收集激活的图标（0=heart, 1=hunger, 2=tnt, 3=bow, 4=arrow）
+        java.util.List<Integer> types = new java.util.ArrayList<>();
         java.util.List<ItemStack> stacks = new java.util.ArrayList<>();
 
         // 低血量
@@ -88,6 +84,24 @@ public class CrisisWarningHandler {
                 && mc.thePlayer.getHeldItem().getItem() instanceof ItemBow) {
             types.add(3); stacks.add(ICON_BOW);
         }
+        // 附近非己射出的飞行箭矢
+        if (cfg.crisisWarnArrow) {
+            double radiusSq = cfg.crisisArrowRadius * cfg.crisisArrowRadius;
+            boolean arrowNear = false;
+            double px = mc.thePlayer.posX, py = mc.thePlayer.posY, pz = mc.thePlayer.posZ;
+            for (Object o : mc.theWorld.loadedEntityList) {
+                if (o instanceof EntityArrow) {
+                    EntityArrow arrow = (EntityArrow) o;
+                    // 排除自己射出的箭
+                    if (arrow.shootingEntity == mc.thePlayer) continue;
+                    double dx = arrow.posX - px, dy = arrow.posY - py, dz = arrow.posZ - pz;
+                    if (dx * dx + dy * dy + dz * dz <= radiusSq) {
+                        arrowNear = true; break;
+                    }
+                }
+            }
+            if (arrowNear) { types.add(4); stacks.add(ICON_ARROW); }
+        }
 
         if (types.isEmpty()) return;
 
@@ -103,14 +117,13 @@ public class CrisisWarningHandler {
             int type = types.get(i);
 
             if (type == 0) {
-                // 心形：从 Gui.icons 放大绘制
+                // 心形：从 Gui.icons 取 9x9 区域放大到 iconSize
                 mc.getTextureManager().bindTexture(Gui.icons);
                 boolean hardcore = mc.theWorld.getWorldInfo().isHardcoreModeEnabled();
                 int v = hardcore ? HEART_V_HARDCORE : HEART_V_NORMAL;
                 boolean isHalf = mc.thePlayer.getHealth() <= (float) cfg.crisisHealthThreshold / 2.0f;
                 int u = isHalf ? HALF_HEART_U : HEART_U;
-                // Texture 源是 9x9，放大到 iconSize
-                Gui.drawModalRectWithCustomSizedTexture(ix, topY, (float) u, (float) v, iconSize, iconSize, 256.0f, 256.0f);
+                Gui.drawScaledCustomSizeModalRect(ix, topY, (float) u, (float) v, 9, 9, iconSize, iconSize, 256.0f, 256.0f);
             } else {
                 // 物品图标：用 GlStateManager 缩放
                 GlStateManager.pushMatrix();
