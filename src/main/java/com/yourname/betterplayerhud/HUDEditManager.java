@@ -173,11 +173,18 @@ public class HUDEditManager {
 
         @Override
         public boolean doesGuiPauseGame() {
-            return false;
+            return true;  // 暂停游戏，阻止视角转动和实体更新
         }
 
         @Override
         public void drawScreen(int mouseX, int mouseY, float partialTicks) {
+            // 死亡检测（doesGuiPauseGame=true 时 updateScreen/onClientTick 都不触发，
+            // 只有 drawScreen 始终运行）
+            if (mc.thePlayer != null && mc.thePlayer.getHealth() <= 0.0F) {
+                mc.displayGuiScreen(null);
+                return;
+            }
+
             // 半透明背景遮罩
             drawRect(0, 0, width, height, 0x88000000);
 
