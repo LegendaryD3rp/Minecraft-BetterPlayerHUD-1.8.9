@@ -202,6 +202,10 @@ public class HUDEditManager {
         private int dragOffX, dragOffY;
         private String lastHovered = null;
 
+        // 重置确认状态
+        private long resetPromptTime = 0;
+        private boolean resetAll = false;
+
         private static final int BORDER_COLOR = 0xCCFFFFFF;
         private static final int SELECTED_COLOR = 0xCC00FF00;
         private static final int DRAGGING_COLOR = 0xFFFFAA00;
@@ -298,6 +302,16 @@ public class HUDEditManager {
             int hw = fontRendererObj.getStringWidth(hint);
             drawRect(width / 2 - hw / 2 - 4, height - 20, width / 2 + hw / 2 + 4, height - 4, 0xAA000000);
             fontRendererObj.drawStringWithShadow(hint, width / 2 - hw / 2, height - 16, 0xFFFFFF);
+
+            // ── 重置确认提示 ──
+            if (resetPromptTime > 0 && System.currentTimeMillis() - resetPromptTime < 3000) {
+                String prompt = resetAll
+                        ? "§c§l重置所有模块位置？再次按 R 确认 | 其他键取消"
+                        : "§c§l重置 " + selected + " 位置？再次按 R 确认 | 其他键取消";
+                int pw = fontRendererObj.getStringWidth(prompt);
+                drawRect(width / 2 - pw / 2 - 4, height / 2 - 14, width / 2 + pw / 2 + 4, height / 2 + 4, 0xCC000000);
+                fontRendererObj.drawStringWithShadow(prompt, width / 2 - pw / 2, height / 2 - 10, 0xFF5555);
+            }
 
             // 鼠标悬停提示
             if (lastHovered != null && !lastHovered.equals(dragging) && !lastHovered.equals(selected)) {
@@ -459,19 +473,39 @@ public class HUDEditManager {
                 return;
             }
 
+            // 按其他键 → 取消重置确认
+            if (resetPromptTime > 0) {
+                resetPromptTime = 0;
+            }
+
             // ESC 由父类处理
             super.keyTyped(typedChar, keyCode);
         }
 
-        /** 处理重置按键逻辑 — 按一次立即重置 */
+        /** 处理重置按键逻辑（两次 R 确认） */
         private void handleResetKey() {
+            long now = System.currentTimeMillis();
+
             if (selected != null) {
                 // 有选中模块 → 重置单个
-                resetModulePosition(selected);
+                if (resetPromptTime > 0 && !resetAll && now - resetPromptTime < 3000) {
+                    // 二次确认 → 执行重置
+                    resetModulePosition(selected);
+                    resetPromptTime = 0;
+                } else {
+                    resetPromptTime = now;
+                    resetAll = false;
+                }
             } else {
                 // 无选中 → 重置全部
-                for (String name : currentPositions.keySet()) {
-                    resetModulePosition(name);
+                if (resetPromptTime > 0 && resetAll && now - resetPromptTime < 3000) {
+                    for (String name : currentPositions.keySet()) {
+                        resetModulePosition(name);
+                    }
+                    resetPromptTime = 0;
+                } else {
+                    resetPromptTime = now;
+                    resetAll = true;
                 }
             }
         }
