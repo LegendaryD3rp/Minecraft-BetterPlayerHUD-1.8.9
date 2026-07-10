@@ -70,6 +70,8 @@ public class BetterPlayerHUD {
                     // y = sh - fontHeight(9) - 2 + offsetY → offsetY = absY - sh + 11
                     return new int[]{ absX - 2, absY - sh + 11 };
                 });
+        // 危机警戒（位置由 handler 动态计算，注册只用于 F7 显示 placeholder）
+        HUDEditManager.register("危机警戒", (x) -> {}, (y) -> {}, 0, 0);
 
         // Ctrl+滚轮调大小（支持有scale/size参数的模块）
         HUDEditManager.setSize("罗盘", (d) -> {

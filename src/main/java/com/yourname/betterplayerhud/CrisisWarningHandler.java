@@ -103,7 +103,15 @@ public class CrisisWarningHandler {
             if (arrowNear) { types.add(4); stacks.add(ICON_ARROW); }
         }
 
-        if (types.isEmpty()) return;
+        if (types.isEmpty()) {
+            // 编辑模式下显示 placeholder（一个图标的宽度）
+            if (HUDEditManager.isEditing()) {
+                int placeholderW = iconSize;
+                int px = centerX - placeholderW / 2;
+                HUDEditManager.report("危机警戒", px, topY, placeholderW, iconSize);
+            }
+            return;
+        }
 
         // 计算总宽度居中
         int totalW = types.size() * iconSize + (types.size() - 1) * gap;
@@ -135,6 +143,11 @@ public class CrisisWarningHandler {
                 RenderHelper.disableStandardItemLighting();
                 GlStateManager.popMatrix();
             }
+        }
+
+        // 上报实际位置（编辑模式）
+        if (HUDEditManager.isEditing()) {
+            HUDEditManager.report("危机警戒", startX, topY, totalW, iconSize);
         }
 
         GlStateManager.disableBlend();

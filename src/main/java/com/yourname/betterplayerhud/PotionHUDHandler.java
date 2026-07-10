@@ -32,7 +32,18 @@ public class PotionHUDHandler {
         if (mc.thePlayer == null) return;
 
         java.util.Collection<PotionEffect> effects = mc.thePlayer.getActivePotionEffects();
-        if (effects == null || effects.isEmpty()) return;
+
+        // 编辑模式下即使无药水也上报 placeholder
+        if ((effects == null || effects.isEmpty())) {
+            if (HUDEditManager.isEditing()) {
+                ScaledResolution sr2 = new ScaledResolution(mc);
+                int sh = sr2.getScaledHeight();
+                int x = 2 + BetterPlayerHUD.config.potionXOffset;
+                int y = sh - 18 - 2 + BetterPlayerHUD.config.potionYOffset;
+                HUDEditManager.report("药水效果", x, y, 160, 26);
+            }
+            return;
+        }
 
         ScaledResolution sr = new ScaledResolution(mc);
         int screenHeight = sr.getScaledHeight();

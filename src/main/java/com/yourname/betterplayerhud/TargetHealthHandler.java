@@ -42,7 +42,19 @@ public class TargetHealthHandler {
 
         // ── 取瞄准目标 ──
         Entity hit = mc.objectMouseOver == null ? null : mc.objectMouseOver.entityHit;
-        if (!(hit instanceof EntityLivingBase)) return;
+
+        // 编辑模式下即使无目标也上报 placeholder
+        if (!(hit instanceof EntityLivingBase)) {
+            if (HUDEditManager.isEditing()) {
+                ScaledResolution sr2 = new ScaledResolution(mc);
+                int sw = sr2.getScaledWidth(), sh = sr2.getScaledHeight();
+                HUDEditManager.report("目标血量",
+                        sw / 2 - 70,
+                        sh - 10 - 2 - 3 - 5 - 2 - 3 - 2 - 10 - 10,
+                        140, 40);
+            }
+            return;
+        }
         EntityLivingBase target = (EntityLivingBase) hit;
         if (!shouldShow(target)) return;
 
