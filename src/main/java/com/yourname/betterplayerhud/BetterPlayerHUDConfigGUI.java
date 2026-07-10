@@ -429,8 +429,7 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.equip.pos", "bhud.equip.pos", el(
                 "armorXOffset", "armorYOffset", "heldItemXOffset", "heldItemYOffset")));
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.equip.slotcount", "bhud.equip.slotcount", el(
-                "slotCountLeftEnabled", "slotCountLeftX", "slotCountLeftY",
-                "slotCountRightEnabled", "slotCountRightX", "slotCountRightY")));
+                "showItemCountLeft", "showItemCountRight", "itemCountX", "itemCountY")));
         return list;
     }
 

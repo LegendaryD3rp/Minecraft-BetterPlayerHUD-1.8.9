@@ -105,11 +105,11 @@ public class CrisisWarningHandler {
         }
 
         if (types.isEmpty()) {
-            // 编辑模式下显示 placeholder（一个图标的宽度）
+            // 编辑模式下显示 placeholder（固定最大宽度，保证拖拽不偏移）
             if (HUDEditManager.isEditing()) {
-                int placeholderW = iconSize;
-                int px = centerX - placeholderW / 2 + cfg.crisisXOffset;
-                HUDEditManager.report("危机警戒", px, topY, placeholderW, iconSize);
+                int rw = crisisReportWidth(iconSize);
+                int px = centerX - rw / 2 + cfg.crisisXOffset;
+                HUDEditManager.report("危机警戒", px, topY, rw, iconSize);
             }
             return;
         }
@@ -146,11 +146,20 @@ public class CrisisWarningHandler {
             }
         }
 
-        // 上报实际位置（编辑模式）
+        // 上报固定宽度矩形（编辑模式用，保证拖拽不偏移）
         if (HUDEditManager.isEditing()) {
-            HUDEditManager.report("危机警戒", startX, topY, totalW, iconSize);
+            int rw = crisisReportWidth(iconSize);
+            int rx = centerX - rw / 2 + cfg.crisisXOffset;
+            HUDEditManager.report("危机警戒", rx, topY, rw, iconSize);
         }
 
         GlStateManager.disableBlend();
+    }
+
+    /** 计算编辑模式下的固定报告宽度（基于最多5个图标的占位） */
+    private static int crisisReportWidth(int iconSize) {
+        int gap = iconSize / 3;
+        if (gap < 4) gap = 4;
+        return 5 * iconSize + 4 * gap;
     }
 }

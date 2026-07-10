@@ -56,9 +56,9 @@ public class EquipHUDHandler {
             renderHeldItemInfo(w, h);
         }
 
-        // 物品栏横条左右侧物品数量统计
-        if (cfg.enableHeldItemHUD) {
-            renderSlotCountPanels(w, h);
+        // 物品栏当前栏位物品数量统计
+        if (cfg.enableHeldItemHUD && (cfg.showItemCountLeft || cfg.showItemCountRight)) {
+            renderItemCount(w, h);
         }
     }
 
@@ -220,111 +220,66 @@ public class EquipHUDHandler {
     }
 
     // ================================================================
-    //  物品栏横条左右侧物品数量统计
-    //  左面板：slots 0-4，右面板：slots 5-8
-    //  每格显示 [图标] 背包中该物品的总数
+    //  物品栏当前栏位物品数量
+    //  显示格式：[当前格数量]/[背包中该物品总数]，示例：64/128
+    //  左右两部分可单独开关
     // ================================================================
 
-    private void renderSlotCountPanels(int screenWidth, int screenHeight) {
+    private void renderItemCount(int screenWidth, int screenHeight) {
         BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
+        ItemStack held = mc.thePlayer.getHeldItem();
+        if (held == null) return;
 
-        // 左面板
-        if (cfg.slotCountLeftEnabled) {
-            renderSlotCountHalf(cfg, screenWidth, screenHeight, 0, 4,
-                    cfg.slotCountLeftX, cfg.slotCountLeftY, "物品栏左");
-        }
-        // 右面板
-        if (cfg.slotCountRightEnabled) {
-            renderSlotCountHalf(cfg, screenWidth, screenHeight, 5, 8,
-                    cfg.slotCountRightX, cfg.slotCountRightY, "物品栏右");
-        }
-    }
-
-    /** 渲染半侧物品栏数量统计 */
-    private void renderSlotCountHalf(BetterPlayerHUDConfig cfg, int sw, int sh,
-                                     int slotStart, int slotEnd,
-                                     int offsetX, int offsetY, String editName) {
-        // 默认位置：贴住物品栏横条两侧上方
-        // 左面板 X = hotbarLeft + 3 · · · hotbarLeft + slotStart * 20 + offsetX
-        int hotbarLeft = sw / 2 - 91;
-        int hotbarY = sh - 22;
-
-        // 每个物品栏格宽度 20，第 slotStart 格的左上 X
-        int baseX = hotbarLeft + slotStart * 20 + offsetX;
-        int baseY = hotbarY - 12 + offsetY;  // 略高于物品栏
-
-        int lineH = 10;   // 文字行高
-        int iconSize = 9; // 缩小版图标
-
-        java.util.List<String> lines = new java.util.ArrayList<>();
-        java.util.List<Integer> counts = new java.util.ArrayList<>();
-        java.util.List<ItemStack> icons = new java.util.ArrayList<>();
-
+        // 统计背包+盔甲栏中该物品的总数
+        int total = 0;
         ItemStack[] mainInv = mc.thePlayer.inventory.mainInventory;
-
-        for (int slot = slotStart; slot <= slotEnd; slot++) {
-            ItemStack stack = mainInv[slot];
-            if (stack == null) continue;
-
-            // 统计背包中共有多少个相同物品
-            int total = 0;
-            for (ItemStack s : mainInv) {
-                if (s != null && s.isItemEqual(stack) && ItemStack.areItemStackTagsEqual(s, stack)) {
-                    total += s.stackSize;
-                }
+        for (ItemStack s : mainInv) {
+            if (s != null && s.isItemEqual(held) && ItemStack.areItemStackTagsEqual(s, held)) {
+                total += s.stackSize;
             }
-            // 也统计盔甲栏和副手（如果有）
-            for (ItemStack s : mc.thePlayer.inventory.armorInventory) {
-                if (s != null && s.isItemEqual(stack) && ItemStack.areItemStackTagsEqual(s, stack)) {
-                    total += s.stackSize;
-                }
+        }
+        for (ItemStack s : mc.thePlayer.inventory.armorInventory) {
+            if (s != null && s.isItemEqual(held) && ItemStack.areItemStackTagsEqual(s, held)) {
+                total += s.stackSize;
             }
-
-            String name = stack.getDisplayName();
-            if (name.length() > 12) name = name.substring(0, 12) + "..";
-            String text = stack.stackSize + "/" + total;
-            lines.add(text);
-            counts.add(total);
-            icons.add(stack);
         }
 
-        if (lines.isEmpty()) return;
+        // 组装文本
+        String left = String.valueOf(held.stackSize);
+        String right = String.valueOf(total);
+        String fullLeft = "§e" + left;  // 高亮
+        String fullRight = "§7" + right;
 
-        int panelW = 0;
-        for (String l : lines) {
-            int lw = mc.fontRendererObj.getStringWidth(l);
-            if (lw > panelW) panelW = lw;
-        }
-        panelW += iconSize + 4;
-        int panelH = lines.size() * lineH;
+        int lw = mc.fontRendererObj.getStringWidth(fullLeft);
+        int rw = mc.fontRendererObj.getStringWidth(fullRight);
+        int slashW = mc.fontRendererObj.getStringWidth("§8/");
+        int totalW = lw + (cfg.showItemCountLeft && cfg.showItemCountRight ? slashW : 0) + rw;
+
+        // 位置：物品栏正上方居中 + 偏移
+        int hotbarLeft = screenWidth / 2 - 91;
+        int hotbarY = screenHeight - 22;
+        int baseX = hotbarLeft + 3 + cfg.itemCountX;  // 略左偏，贴近物品栏
+        int baseY = hotbarY - 10 + cfg.itemCountY;
 
         // 编辑模式下上报
         if (HUDEditManager.isEditing()) {
-            HUDEditManager.report(editName, baseX, baseY, panelW, panelH);
+            HUDEditManager.report("物品数量", baseX, baseY, totalW + 8, 10);
         }
 
         GlStateManager.enableBlend();
         GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
 
-        for (int i = 0; i < lines.size(); i++) {
-            int y = baseY + i * lineH;
-            // 画缩小版物品图标
-            ItemStack icon = icons.get(i);
-            if (icon != null && icon.getItem() != null) {
-                GlStateManager.pushMatrix();
-                float sc = (float) iconSize / 16.0f;
-                GlStateManager.translate(baseX, y, 0);
-                GlStateManager.scale(sc, sc, 1.0f);
-                RenderHelper.enableGUIStandardItemLighting();
-                mc.getRenderItem().renderItemAndEffectIntoGUI(icon, 0, 0);
-                RenderHelper.disableStandardItemLighting();
-                GlStateManager.popMatrix();
-            }
-            // 总数文字
-            mc.fontRendererObj.drawStringWithShadow(
-                    String.valueOf(counts.get(i)),
-                    baseX + iconSize + 2, y + 1,
-                    0xFFFFFFAA);
+        int tx = baseX + 4;
+        if (cfg.showItemCountLeft) {
+            mc.fontRendererObj.drawStringWithShadow(fullLeft, tx, baseY, 0xFFFFFF);
+            tx += lw;
+        }
+        if (cfg.showItemCountLeft && cfg.showItemCountRight) {
+            mc.fontRendererObj.drawStringWithShadow("§8/", tx, baseY, 0x888888);
+            tx += slashW;
+        }
+        if (cfg.showItemCountRight) {
+            mc.fontRendererObj.drawStringWithShadow(fullRight, tx, baseY, 0xFFFFFF);
         }
 
         GlStateManager.disableBlend();

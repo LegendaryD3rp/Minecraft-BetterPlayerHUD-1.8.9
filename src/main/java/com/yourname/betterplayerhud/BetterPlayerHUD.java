@@ -46,10 +46,12 @@ public class BetterPlayerHUD {
                 (x) -> config.targetHPOffsetX = x, (y) -> config.targetHPOffsetY = y,
                 0, 0,
                 (absX, absY, sw, sh) -> {
-                    // barY = (sh-10-2-5) + offsetY = sh-17 + offsetY → offsetY = absY - sh + 17
-                    // barX = sw/2 + offsetX - barWidth/2 → offsetX = absX - sw/2 + barWidth/2
+                    // 渲染: x = sw/2 + offsetX - barWidth/2
+                    // 报告: reportX = x - 30 → offsetX = absX - sw/2 + bw/2 + 30
+                    // 渲染: barY = (sh-29)-3-5 + offsetY = sh-37+offsetY
+                    // 报告: reportY = barY - 40 → offsetY = absY + 40 - sh + 37 = absY - sh + 77
                     int bw = config.targetHPBarWidth;
-                    return new int[]{ absX - sw / 2 + bw / 2, absY - sh + 17 };
+                    return new int[]{ absX - sw / 2 + bw / 2 + 30, absY - sh + 77 };
                 });
         HUDEditManager.setDefaultSize("目标血量", 140, 40);
         HUDEditManager.register("药水效果",
@@ -81,23 +83,21 @@ public class BetterPlayerHUD {
         HUDEditManager.setDefaultSize("手持物品", 200, 30);
 
         // 物品栏横条左右侧数量统计
-        HUDEditManager.register("物品栏左",
-                (x) -> config.slotCountLeftX = x, (y) -> config.slotCountLeftY = y, 0, 0);
-        HUDEditManager.setDefaultSize("物品栏左", 80, 30);
-        HUDEditManager.register("物品栏右",
-                (x) -> config.slotCountRightX = x, (y) -> config.slotCountRightY = y, 0, 0);
-        HUDEditManager.setDefaultSize("物品栏右", 80, 30);
+        HUDEditManager.register("物品数量",
+                (x) -> config.itemCountX = x, (y) -> config.itemCountY = y, 0, 0);
+        HUDEditManager.setDefaultSize("物品数量", 80, 10);
 
         // 危机警戒（偏移模式：居中坐标 + offset）
         HUDEditManager.register("危机警戒",
                 (x) -> config.crisisXOffset = x, (y) -> config.crisisYOffset = y,
                 0, 0,
                 (absX, absY, sw, sh) -> {
-                    // 居中坐标 = sw/2 - totalW/2 + offsetX
-                    // 反向计算：offsetX = absX - sw/2 + totalW/2
-                    // 但 totalW 取决于活跃类型数，非固定，这里简化为假定 2 个图标
-                    int guessW = config.crisisIconSize * 2 + Math.max(config.crisisIconSize / 3, 4);
-                    return new int[]{ absX - sw / 2 + guessW / 2, absY - sh / 2 + 60 };
+                    // 报告使用固定宽度 = 5*iconSize + 4*gap
+                    int iconSize = config.crisisIconSize;
+                    int gap = iconSize / 3;
+                    if (gap < 4) gap = 4;
+                    int rw = 5 * iconSize + 4 * gap;  // 必须与 CrisisWarningHandler.crisisReportWidth() 一致
+                    return new int[]{ absX - sw / 2 + rw / 2, absY - sh / 2 + 60 };
                 });
         HUDEditManager.setDefaultSize("危机警戒", 60, 24);
 
@@ -129,6 +129,21 @@ public class BetterPlayerHUD {
         HUDEditManager.registerSizeReset("按键显示", () -> config.keysSize = 24);
         HUDEditManager.registerSizeReset("目标血量", () -> config.targetHPBarWidth = 80);
         HUDEditManager.registerSizeReset("状态栏", () -> config.headSize = 16);
+        HUDEditManager.setSize("危机警戒", (d, r) -> {
+            int oldSize = config.crisisIconSize;
+            config.crisisIconSize = Math.max(12, Math.min(48, config.crisisIconSize + d * 2));
+            // 更新编辑框（固定宽度占位）
+            if (r != null) {
+                int ns = config.crisisIconSize;
+                int gap = ns / 3;
+                if (gap < 4) gap = 4;
+                int rw = 5 * ns + 4 * gap;
+                // 保持中心不变
+                int cx = r.x + r.width / 2;
+                r.setBounds(cx - rw / 2, r.y, rw, ns);
+            }
+        });
+        HUDEditManager.registerSizeReset("危机警戒", () -> config.crisisIconSize = 24);
 
         // 注册精简版 HUD 处理器
         MinecraftForge.EVENT_BUS.register(new PlayerHUDHandler());

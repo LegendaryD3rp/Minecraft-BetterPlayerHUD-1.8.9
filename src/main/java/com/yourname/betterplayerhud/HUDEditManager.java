@@ -165,12 +165,20 @@ public class HUDEditManager {
                 int offsetY = BetterPlayerHUD.config.keysDisplayY;
                 int yPos = offsetY >= 0 ? offsetY : sh + offsetY - dh;
                 r.setBounds(xPos, yPos, dw, dh);
+            } else if ("物品数量".equals(name)) {
+                int hotbarLeft = sw / 2 - 91;
+                int bx = hotbarLeft + 3 + BetterPlayerHUD.config.itemCountX;
+                int by = sh - 22 - 10 + BetterPlayerHUD.config.itemCountY;
+                r.setBounds(bx, by, 80, 10);
             } else if ("危机警戒".equals(name)) {
-                int iconSize = 16;
+                int iconSize = BetterPlayerHUD.config.crisisIconSize;
+                int gap = iconSize / 3;
+                if (gap < 4) gap = 4;
+                int rw = 5 * iconSize + 4 * gap;
                 int cx = sw / 2;
-                int px = cx - iconSize / 2 + BetterPlayerHUD.config.crisisXOffset;
+                int px = cx - rw / 2 + BetterPlayerHUD.config.crisisXOffset;
                 int py = sh / 2 - 60 + BetterPlayerHUD.config.crisisYOffset;
-                r.setBounds(px, py, iconSize, iconSize);
+                r.setBounds(px, py, rw, iconSize);
             } else if ("目标血量".equals(name)) {
                 int bw = 140;
                 int bx = sw / 2 - bw / 2;
@@ -583,12 +591,20 @@ public class HUDEditManager {
                 int px = 2 + BetterPlayerHUD.config.potionXOffset;
                 int py = height - 20 + BetterPlayerHUD.config.potionYOffset;
                 r.setBounds(px, py, 160, 26);
+            } else if ("物品数量".equals(name)) {
+                int hotbarLeft = width / 2 - 91;
+                int bx = hotbarLeft + 3 + BetterPlayerHUD.config.itemCountX;
+                int by = height - 22 - 10 + BetterPlayerHUD.config.itemCountY;
+                r.setBounds(bx, by, 80, 10);
             } else if ("危机警戒".equals(name)) {
-                int iconSize = 16;
+                int iconSize = BetterPlayerHUD.config.crisisIconSize;
+                int gap = iconSize / 3;
+                if (gap < 4) gap = 4;
+                int rw = 5 * iconSize + 4 * gap;
                 int cx = width / 2;
-                int px = cx - iconSize / 2 + BetterPlayerHUD.config.crisisXOffset;
+                int px = cx - rw / 2 + BetterPlayerHUD.config.crisisXOffset;
                 int py = height / 2 - 60 + BetterPlayerHUD.config.crisisYOffset;
-                r.setBounds(px, py, iconSize, iconSize);
+                r.setBounds(px, py, rw, iconSize);
             } else if ("目标血量".equals(name)) {
                 int bw = 140;
                 int bx = width / 2 - bw / 2;

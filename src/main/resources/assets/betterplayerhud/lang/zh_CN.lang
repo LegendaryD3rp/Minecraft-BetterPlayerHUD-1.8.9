@@ -275,13 +275,10 @@ armorXOffset=装甲 X 偏移
 armorYOffset=装甲 Y 偏移
 heldItemXOffset=手持信息 X 偏移
 heldItemYOffset=手持信息 Y 偏移
-slotCountLeftEnabled=启用左面板(0-4格)
-slotCountLeftX=左面板 X 偏移
-slotCountLeftY=左面板 Y 偏移
-slotCountRightEnabled=启用右面板(5-8格)
-slotCountRightX=右面板 X 偏移
-slotCountRightY=右面板 Y 偏移
-slotCountYOffset=物品数量 Y 偏移
+showItemCountLeft=显示当前格数量
+showItemCountRight=显示背包总数
+itemCountX=物品数量 X 偏移
+itemCountY=物品数量 Y 偏移
 
 # ── 危机警戒图标 ──
 bhud.crisis=危机警戒图标

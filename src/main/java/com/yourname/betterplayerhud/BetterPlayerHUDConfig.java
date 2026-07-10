@@ -213,12 +213,10 @@ public class BetterPlayerHUDConfig {
     public int heldItemXOffset = 0;
     public int heldItemYOffset = 0;
     /** 物品栏横条左右侧物品数量统计 */
-    public boolean slotCountLeftEnabled = true;
-    public int slotCountLeftX = 0;
-    public int slotCountLeftY = 0;
-    public boolean slotCountRightEnabled = true;
-    public int slotCountRightX = 0;
-    public int slotCountRightY = 0;
+    public boolean showItemCountLeft = true;
+    public boolean showItemCountRight = true;
+    public int itemCountX = 0;
+    public int itemCountY = 0;
     public boolean showHeldItemEnchants = true;
     public boolean showArmorBackground = true;
 
@@ -814,18 +812,14 @@ public class BetterPlayerHUDConfig {
             p.comment = "手持物品信息X偏移"; heldItemXOffset = p.getInt();
             p = config.get(C, "heldItemYOffset", 0);
             p.comment = "手持物品信息Y偏移"; heldItemYOffset = p.getInt();
-            p = config.get(C, "slotCountLeftEnabled", true);
-            p.comment = "左侧物品栏数量统计"; slotCountLeftEnabled = p.getBoolean();
-            p = config.get(C, "slotCountLeftX", 0);
-            p.comment = "左侧数量X"; slotCountLeftX = p.getInt();
-            p = config.get(C, "slotCountLeftY", 0);
-            p.comment = "左侧数量Y"; slotCountLeftY = p.getInt();
-            p = config.get(C, "slotCountRightEnabled", true);
-            p.comment = "右侧物品栏数量统计"; slotCountRightEnabled = p.getBoolean();
-            p = config.get(C, "slotCountRightX", 0);
-            p.comment = "右侧数量X"; slotCountRightX = p.getInt();
-            p = config.get(C, "slotCountRightY", 0);
-            p.comment = "右侧数量Y"; slotCountRightY = p.getInt();
+            p = config.get(C, "showItemCountLeft", true);
+            p.comment = "显示物品栏当前格数量"; showItemCountLeft = p.getBoolean();
+            p = config.get(C, "showItemCountRight", true);
+            p.comment = "显示物品栏背包总数"; showItemCountRight = p.getBoolean();
+            p = config.get(C, "itemCountX", 0);
+            p.comment = "物品数量X偏移"; itemCountX = p.getInt();
+            p = config.get(C, "itemCountY", 0);
+            p.comment = "物品数量Y偏移"; itemCountY = p.getInt();
             p = config.get(C, "showHeldItemEnchants", true);
             p.comment = "手持物品是否显示附魔"; showHeldItemEnchants = p.getBoolean();
             p = config.get(C, "showArmorBackground", true);
@@ -1093,12 +1087,10 @@ public class BetterPlayerHUDConfig {
         config.get(C, "armorYOffset", 0).set(armorYOffset);
         config.get(C, "heldItemXOffset", 0).set(heldItemXOffset);
         config.get(C, "heldItemYOffset", 0).set(heldItemYOffset);
-        config.get(C, "slotCountLeftEnabled", true).set(slotCountLeftEnabled);
-        config.get(C, "slotCountLeftX", 0).set(slotCountLeftX);
-        config.get(C, "slotCountLeftY", 0).set(slotCountLeftY);
-        config.get(C, "slotCountRightEnabled", true).set(slotCountRightEnabled);
-        config.get(C, "slotCountRightX", 0).set(slotCountRightX);
-        config.get(C, "slotCountRightY", 0).set(slotCountRightY);
+        config.get(C, "showItemCountLeft", true).set(showItemCountLeft);
+        config.get(C, "showItemCountRight", true).set(showItemCountRight);
+        config.get(C, "itemCountX", 0).set(itemCountX);
+        config.get(C, "itemCountY", 0).set(itemCountY);
         config.get(C, "showHeldItemEnchants", true).set(showHeldItemEnchants);
         config.get(C, "showArmorBackground", true).set(showArmorBackground);
 
