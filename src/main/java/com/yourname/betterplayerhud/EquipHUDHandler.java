@@ -110,7 +110,7 @@ public class EquipHUDHandler {
 
         RenderHelper.enableGUIStandardItemLighting();
         mc.getRenderItem().renderItemAndEffectIntoGUI(stack, x + 2, y + 2);
-        mc.getRenderItem().renderItemOverlays(mc.fontRendererObj, stack, x + 2, y + 2);
+        // 不调用 renderItemOverlays — 原版耐久条/数量会和图标重叠，旁边已有文字 (cur/max)
         RenderHelper.disableStandardItemLighting();
 
         // ── 文字：附魔 (cur/max) — 无槽位名 ──
