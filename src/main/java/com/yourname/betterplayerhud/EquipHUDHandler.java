@@ -237,7 +237,18 @@ public class EquipHUDHandler {
     private void renderItemCount(int screenWidth, int screenHeight) {
         BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
         ItemStack held = mc.thePlayer.getHeldItem();
-        if (held == null) return;
+
+        // 固定位置计算（无论是否有手持物品都报，F7编辑模式需要）
+        int hotbarLeft = screenWidth / 2 - 91;
+        int hotbarY = screenHeight - 22;
+        int baseX = hotbarLeft + 3 + cfg.itemCountX;  // 略左偏，贴近物品栏
+        int baseY = hotbarY - 10 + cfg.itemCountY;
+        int totalW = 80; // 默认占位宽度
+
+        if (held == null) {
+            HUDEditManager.report("物品数量", baseX, baseY, totalW, 10);
+            return;
+        }
 
         // 统计背包+盔甲栏中该物品的总数
         int total = 0;
@@ -262,14 +273,9 @@ public class EquipHUDHandler {
         int lw = mc.fontRendererObj.getStringWidth(fullLeft);
         int rw = mc.fontRendererObj.getStringWidth(fullRight);
         int slashW = mc.fontRendererObj.getStringWidth("§8/");
-        int totalW = lw + (cfg.showItemCountLeft && cfg.showItemCountRight ? slashW : 0) + rw;
+        totalW = lw + (cfg.showItemCountLeft && cfg.showItemCountRight ? slashW : 0) + rw;
 
-        // 位置：物品栏正上方居中 + 偏移
-        int hotbarLeft = screenWidth / 2 - 91;
-        int hotbarY = screenHeight - 22;
-        int baseX = hotbarLeft + 3 + cfg.itemCountX;  // 略左偏，贴近物品栏
-        int baseY = hotbarY - 10 + cfg.itemCountY;
-
+        // 位置：物品栏正上方居中 + 偏移（已在前面声明）
         // 始终上报（编辑模式用，运行时也上报以便 F7 打开时已有正确 rect）
         HUDEditManager.report("物品数量", baseX, baseY, totalW + 8, 10);
 

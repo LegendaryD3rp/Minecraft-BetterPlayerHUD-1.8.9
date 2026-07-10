@@ -84,7 +84,14 @@ public class BetterPlayerHUD {
 
         // 物品栏横条左右侧数量统计
         HUDEditManager.register("物品数量",
-                (x) -> config.itemCountX = x, (y) -> config.itemCountY = y, 0, 0);
+                (x) -> config.itemCountX = x, (y) -> config.itemCountY = y, 0, 0,
+                (absX, absY, sw, sh) -> {
+                    // report: baseX = hotbarLeft + 3 + itemCountX = sw/2-91+3+itemCountX
+                    // report: baseY = hotbarY - 10 + itemCountY = sh-22-10+itemCountY
+                    //  → itemCountX = absX - sw/2 + 88
+                    //  → itemCountY = absY - sh + 32
+                    return new int[]{ absX - sw/2 + 88, absY - sh + 32 };
+                });
         HUDEditManager.setDefaultSize("物品数量", 80, 10);
 
         // 危机警戒（偏移模式：居中坐标 + offset）
