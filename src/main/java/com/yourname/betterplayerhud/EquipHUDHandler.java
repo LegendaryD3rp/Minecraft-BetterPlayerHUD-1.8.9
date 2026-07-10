@@ -29,7 +29,7 @@ import java.text.DecimalFormat;
 public class EquipHUDHandler {
 
     private static final Minecraft mc = Minecraft.getMinecraft();
-    private static final DecimalFormat DF = new DecimalFormat("#.#");
+    private static final DecimalFormat DF = new DecimalFormat("#.##");
 
     // ================================================================
     //  事件 — Post(ALL) 确保在 Hotbar 渲染后
