@@ -424,6 +424,7 @@ public class HUDEditManager {
                     setY.accept(cfg[1]);
                 }
                 BetterPlayerHUD.config.saveConfig();
+            System.out.println("[BHUD-DEBUG] resetModulePosition: saved. scale=" + BetterPlayerHUD.config.scale + " keysSize=" + BetterPlayerHUD.config.keysSize);
             }
             dragging = null;
         }
@@ -443,8 +444,11 @@ public class HUDEditManager {
                 Consumer<Integer> setSize = sizeSetters.get(target);
                 if (setSize != null) {
                     int delta = dWheel > 0 ? 1 : -1;
+                    System.out.println("[BHUD-DEBUG] Ctrl+scroll " + target + " delta=" + delta + " before: scale=" + BetterPlayerHUD.config.scale + " keysSize=" + BetterPlayerHUD.config.keysSize);
                     setSize.accept(delta);
+                    System.out.println("[BHUD-DEBUG] Ctrl+scroll " + target + " after: scale=" + BetterPlayerHUD.config.scale + " keysSize=" + BetterPlayerHUD.config.keysSize);
                     BetterPlayerHUD.config.saveConfig();
+            System.out.println("[BHUD-DEBUG] resetModulePosition: saved. scale=" + BetterPlayerHUD.config.scale + " keysSize=" + BetterPlayerHUD.config.keysSize);
                 }
             }
         }
@@ -454,6 +458,7 @@ public class HUDEditManager {
             activeScreen = null;
             if (dragging != null) {
                 BetterPlayerHUD.config.saveConfig();
+            System.out.println("[BHUD-DEBUG] resetModulePosition: saved. scale=" + BetterPlayerHUD.config.scale + " keysSize=" + BetterPlayerHUD.config.keysSize);
                 dragging = null;
             }
             selected = null;
@@ -522,7 +527,13 @@ public class HUDEditManager {
 
             // 恢复尺寸/缩放
             Runnable sizeReset = sizeResets.get(name);
-            if (sizeReset != null) sizeReset.run();
+            if (sizeReset != null) {
+                System.out.println("[BHUD-DEBUG] resetModulePosition: sizeReset for " + name + " before scale=" + BetterPlayerHUD.config.scale + " keysSize=" + BetterPlayerHUD.config.keysSize);
+                sizeReset.run();
+                System.out.println("[BHUD-DEBUG] resetModulePosition: after scale=" + BetterPlayerHUD.config.scale + " keysSize=" + BetterPlayerHUD.config.keysSize);
+            } else {
+                System.out.println("[BHUD-DEBUG] resetModulePosition: NO sizeReset for " + name);
+            }
 
             // 立即更新当前位置和尺寸
             int[] ds = defaultSizes.get(name);
@@ -533,6 +544,7 @@ public class HUDEditManager {
             }
 
             BetterPlayerHUD.config.saveConfig();
+            System.out.println("[BHUD-DEBUG] resetModulePosition: saved. scale=" + BetterPlayerHUD.config.scale + " keysSize=" + BetterPlayerHUD.config.keysSize);
         }
     }
 }
