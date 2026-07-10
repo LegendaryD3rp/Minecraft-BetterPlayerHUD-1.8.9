@@ -18,13 +18,13 @@ import java.text.DecimalFormat;
 /**
  * 装备&手持物品 HUD
  *
- * 装甲栏贴在物品栏两侧：
- *   头盔     护腿
- *  [=== 物品栏 ===]
- *   胸甲     靴子
+ * 装甲栏贴在物品栏两侧，每件护甲显示槽位名+附魔+耐久 (cur/max)：
+ *   头盔 保护1 (240/250)     护腿 保护1 (235/250)
+ *   胸甲 保护1 (230/250)     靴子 保护1 (245/250)
+ *  [============= 物品栏 =============]
  *
  * 手持物品信息在屏幕左下方：
- *   [图标] 物品名 x数量  |  伤害值
+ *   [图标] 物品名 x64  |  7.0  (156/1562)
  */
 @SideOnly(Side.CLIENT)
 public class EquipHUDHandler {
@@ -86,26 +86,24 @@ public class EquipHUDHandler {
         // 右列 X
         int rightX = hotbarLeft + 182 + gapX;
 
-        // 头盔（左列，上面）
-        renderSlot(armor[3], leftX, hotbarY - slotSize - gapY);
-        // 胸甲（左列，下面，与物品栏平齐）
-        renderSlot(armor[2], leftX, hotbarY);
+        // ── 左侧（text ← icon）：头盔(上) 胸甲(下)
+        renderArmorSlot(armor[3], leftX, hotbarY - slotSize - gapY, "头盔", true);
+        renderArmorSlot(armor[2], leftX, hotbarY, "胸甲", true);
 
-        // 护腿（右列，上面）
-        renderSlot(armor[1], rightX, hotbarY - slotSize - gapY);
-        // 靴子（右列，下面，与物品栏平齐）
-        renderSlot(armor[0], rightX, hotbarY);
+        // ── 右侧（icon → text）：护腿(上) 靴子(下)
+        renderArmorSlot(armor[1], rightX, hotbarY - slotSize - gapY, "护腿", false);
+        renderArmorSlot(armor[0], rightX, hotbarY, "靴子", false);
 
         if (HUDEditManager.isEditing())
             HUDEditManager.report("装甲栏", leftX, hotbarY - slotSize - gapY, rightX + slotSize - leftX, slotSize * 2 + gapY);
     }
 
-    /** 画一个物品图标 + 耐久数字 */
-    private void renderSlot(ItemStack stack, int x, int y) {
+    /** 画一个护甲槽：图标 + 槽位名 + 附魔 + 耐久 (cur/max) */
+    private void renderArmorSlot(ItemStack stack, int x, int y, String slotName, boolean leftSide) {
         if (stack == null) return;
         BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
 
-        // 半透明背景（可选）
+        // 半透明背景（仅限图标区域）
         if (cfg.showArmorBackground) {
             Gui.drawRect(x, y, x + 20, y + 20, 0x44000000);
         }
@@ -113,20 +111,36 @@ public class EquipHUDHandler {
         RenderHelper.enableGUIStandardItemLighting();
         mc.getRenderItem().renderItemAndEffectIntoGUI(stack, x + 2, y + 2);
         mc.getRenderItem().renderItemOverlays(mc.fontRendererObj, stack, x + 2, y + 2);
+        RenderHelper.disableStandardItemLighting();
 
-        // 已损耐久显示：剩余耐久
+        // ── 文字：槽位名 附魔 (cur/max) ──
+        String enchText = stack.isItemEnchanted() ? buildEnchantmentLine(stack) : "";
+
+        String durText = "";
         if (stack.isItemStackDamageable()) {
             int maxDmg = stack.getMaxDamage();
-            int curDmg = stack.getItemDamage();
-            int remaining = maxDmg - curDmg;
-            if (remaining < maxDmg) {  // 有损耗才显示
-                String durStr = String.valueOf(remaining);
-                int tw = mc.fontRendererObj.getStringWidth(durStr);
-                mc.fontRendererObj.drawStringWithShadow(durStr,
-                        x + 20 - tw, y + 20 - mc.fontRendererObj.FONT_HEIGHT, 0xFFFFFFFF);
-            }
+            int curDmg = maxDmg - stack.getItemDamage();
+            durText = "(" + curDmg + "/" + maxDmg + ")";
         }
-        RenderHelper.disableStandardItemLighting();
+
+        StringBuilder sb = new StringBuilder(slotName);
+        if (enchText.length() > 0) sb.append(" ").append(enchText);
+        if (durText.length() > 0) sb.append(" §7").append(durText);
+        String fullText = sb.toString();
+
+        int textWidth = mc.fontRendererObj.getStringWidth(fullText);
+        int ty = y + 5; // 相对 20px 图标垂直居中
+
+        if (leftSide) {
+            // 左列：文字在图标左侧，右对齐
+            int tx = x - 4 - textWidth;
+            if (tx < 2) tx = 2;
+            mc.fontRendererObj.drawStringWithShadow(fullText, tx, ty, 0xFFFFFFFF);
+        } else {
+            // 右列：文字在图标右侧，左对齐
+            int tx = x + 22;
+            mc.fontRendererObj.drawStringWithShadow(fullText, tx, ty, 0xFFFFFFFF);
+        }
     }
 
     /** 构建物品附魔文本行，如 "§b锋利 V  §b击退 II" */
@@ -181,35 +195,26 @@ public class EquipHUDHandler {
             String damageStr = getWeaponDamage(held);
             if (damageStr != null) {
                 mc.fontRendererObj.drawStringWithShadow("§7" + damageStr, tx, y + 1, 0xFFFFFFAA);
+                tx += mc.fontRendererObj.getStringWidth(" " + damageStr) + 4;
+            }
+
+            // 耐久度 (cur/max)
+            if (held.isItemStackDamageable()) {
+                int maxDmg = held.getMaxDamage();
+                int curDmg = maxDmg - held.getItemDamage();
+                String durStr = "§7(" + curDmg + "/" + maxDmg + ")";
+                mc.fontRendererObj.drawStringWithShadow(durStr, tx, y + 1, 0xAAAAAA);
+                tx += mc.fontRendererObj.getStringWidth(durStr) + 4;
             }
 
             // 附魔显示（第二行起）
             int enchY = y + mc.fontRendererObj.FONT_HEIGHT + 4;
-            if (cfg.showHeldItemEnchants) {
-                // 手持物品附魔
-                if (held != null && held.isItemEnchanted()) {
-                    String enchLine = buildEnchantmentLine(held);
-                    if (enchLine.length() > 0) {
-                        mc.fontRendererObj.drawStringWithShadow(enchLine, x + 2, enchY, 0xFFFFFFAA);
-                        enchY += mc.fontRendererObj.FONT_HEIGHT + 2;
-                        totalH += mc.fontRendererObj.FONT_HEIGHT + 2;
-                    }
-                }
-
-                // 护甲附魔
-                String[] slotLabels = {"头盔", "胸甲", "护腿", "靴子"};
-                ItemStack[] armor = mc.thePlayer.inventory.armorInventory;
-                for (int i = 3; i >= 0; i--) {
-                    ItemStack armorStack = armor[i];
-                    if (armorStack != null && armorStack.isItemEnchanted()) {
-                        String enchLine = buildEnchantmentLine(armorStack);
-                        if (enchLine.length() > 0) {
-                            mc.fontRendererObj.drawStringWithShadow(
-                                    "§7" + slotLabels[3 - i] + ": §b" + enchLine, x + 2, enchY, 0xFFFFFFAA);
-                            enchY += mc.fontRendererObj.FONT_HEIGHT + 2;
-                            totalH += mc.fontRendererObj.FONT_HEIGHT + 2;
-                        }
-                    }
+            if (cfg.showHeldItemEnchants && held.isItemEnchanted()) {
+                String enchLine = buildEnchantmentLine(held);
+                if (enchLine.length() > 0) {
+                    mc.fontRendererObj.drawStringWithShadow(enchLine, x + 2, enchY, 0xFFFFFFAA);
+                    enchY += mc.fontRendererObj.FONT_HEIGHT + 2;
+                    totalH += mc.fontRendererObj.FONT_HEIGHT + 2;
                 }
             }
         }
