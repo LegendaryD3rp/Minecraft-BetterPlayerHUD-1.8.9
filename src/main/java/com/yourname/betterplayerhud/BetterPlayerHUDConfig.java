@@ -339,6 +339,7 @@ public class BetterPlayerHUDConfig {
         config.getCategory(C).remove("sprintStatusColor");
         config.getCategory(C).remove("targetHPColor");
         config.getCategory(C).remove("sneakStatusColor");
+        config.getCategory(C).remove("potionTextColor");
         config.getCategory(C).remove("blockOutlineColor");
         config.getCategory(C).remove("entityOutlineColorHostile");
         config.getCategory(C).remove("entityOutlineColorNeutral");
@@ -787,8 +788,8 @@ public class BetterPlayerHUDConfig {
             Property p = config.get(C, "enablePotionHUD", true);
             p.comment = "是否显示药水效果HUD"; enablePotionHUD = p.getBoolean();
 
-            p = config.get(C, "potionTextColor", 0xFFFFFFFF);
-            p.comment = "药水时长文字颜色"; potionTextColor = p.getInt();
+            potionTextColor = loadColor(C, "potionTextColor", 255, 255, 255);
+            p.comment = "药水时长文字颜色";
 
             p = config.get(C, "potionXOffset", 0);
             p.comment = "药水HUD X轴偏移"; potionXOffset = p.getInt();
