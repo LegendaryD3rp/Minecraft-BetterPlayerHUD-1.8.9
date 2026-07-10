@@ -11,6 +11,7 @@ import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemBow;
 import net.minecraft.item.ItemStack;
+import net.minecraft.potion.Potion;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
@@ -21,13 +22,15 @@ public class CrisisWarningHandler {
     private static final ItemStack ICON_TNT = new ItemStack(Blocks.tnt);
     private static final ItemStack ICON_BOW = new ItemStack(Items.bow);
     private static final ItemStack ICON_ARROW = new ItemStack(Items.arrow);
-    private static final ItemStack ICON_HUNGER = new ItemStack(Items.rotten_flesh);
 
     /** 心形纹理在 Gui.icons 中的 UV（9x9 区域） */
     private static final int HEART_U = 52;
     private static final int HEART_V_NORMAL = 0;
     private static final int HEART_V_HARDCORE = 45;
     private static final int HALF_HEART_U = 61;
+
+    /** 箭头检测消退计时器（tick），让警告持续一段时间 */
+    private int arrowWarnCooldown = 0;
 
     @SubscribeEvent
     public void onRenderGameOverlay(RenderGameOverlayEvent.Post event) {
@@ -40,8 +43,8 @@ public class CrisisWarningHandler {
         int centerX = sr.getScaledWidth() / 2;
         int screenHeight = sr.getScaledHeight();
 
-        // Y 位置：屏幕正上方偏下一点 + 偏移
-        int topY = screenHeight / 2 - 60 + cfg.crisisYOffset;
+        // Y 位置：屏幕上半部分 + 偏移（向上偏移，更显眼）
+        int topY = screenHeight / 2 - 120 + cfg.crisisYOffset;
 
         // 闪烁
         boolean flashOn = (mc.theWorld.getTotalWorldTime() % cfg.crisisFlashInterval) < (cfg.crisisFlashInterval / 2);
@@ -61,7 +64,7 @@ public class CrisisWarningHandler {
         }
         // 饥饿
         if (cfg.crisisWarnHunger && mc.thePlayer.getFoodStats().getFoodLevel() <= cfg.crisisHungerThreshold) {
-            types.add(1); stacks.add(ICON_HUNGER);
+            types.add(1); stacks.add(null);
         }
         // 附近TNT
         if (cfg.crisisWarnTnt) {
@@ -85,7 +88,7 @@ public class CrisisWarningHandler {
                 && mc.thePlayer.getHeldItem().getItem() instanceof ItemBow) {
             types.add(3); stacks.add(ICON_BOW);
         }
-        // 附近非己射出的飞行箭矢
+        // 附近非己射出的飞行箭矢（带消退计时，持续约4秒）
         if (cfg.crisisWarnArrow) {
             double radiusSq = cfg.crisisArrowRadius * cfg.crisisArrowRadius;
             boolean arrowNear = false;
@@ -101,7 +104,13 @@ public class CrisisWarningHandler {
                     }
                 }
             }
-            if (arrowNear) { types.add(4); stacks.add(ICON_ARROW); }
+            if (arrowNear) {
+                arrowWarnCooldown = 80; // persist 4 seconds (80 ticks)
+                types.add(4); stacks.add(ICON_ARROW);
+            } else if (arrowWarnCooldown > 0) {
+                arrowWarnCooldown--;
+                types.add(4); stacks.add(ICON_ARROW);
+            }
         }
 
         if (types.isEmpty()) {
@@ -133,6 +142,14 @@ public class CrisisWarningHandler {
                 boolean isHalf = mc.thePlayer.getHealth() <= (float) cfg.crisisHealthThreshold / 2.0f;
                 int u = isHalf ? HALF_HEART_U : HEART_U;
                 Gui.drawScaledCustomSizeModalRect(ix, topY, (float) u, (float) v, 9, 9, iconSize, iconSize, 256.0f, 256.0f);
+            } else if (type == 1) {
+                // 饥饿 BUFF 图标（绿鸡腿）：从 inventory.png 取 potion 图标
+                mc.getTextureManager().bindTexture(new net.minecraft.util.ResourceLocation("textures/gui/container/inventory.png"));
+                Potion hunger = Potion.hunger;
+                int idx = hunger.getStatusIconIndex();
+                int pu = idx % 8 * 18;
+                int pv = 198 + idx / 8 * 18;
+                Gui.drawScaledCustomSizeModalRect(ix, topY, (float) pu, (float) pv, 18, 18, iconSize, iconSize, 256.0f, 256.0f);
             } else {
                 // 物品图标：用 GlStateManager 缩放
                 GlStateManager.pushMatrix();

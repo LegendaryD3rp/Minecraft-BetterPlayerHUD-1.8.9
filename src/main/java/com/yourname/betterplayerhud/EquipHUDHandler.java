@@ -98,7 +98,7 @@ public class EquipHUDHandler {
             HUDEditManager.report("装甲栏", leftX, hotbarY - slotSize - gapY, rightX + slotSize - leftX, slotSize * 2 + gapY);
     }
 
-    /** 画一个护甲槽：图标 + 槽位名 + 附魔 + 耐久 (cur/max) */
+    /** 画一个护甲槽：图标 + 附魔 + 耐久 (cur/max) — 无槽位名 */
     private void renderArmorSlot(ItemStack stack, int x, int y, String slotName, boolean leftSide) {
         if (stack == null) return;
         BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
@@ -113,7 +113,7 @@ public class EquipHUDHandler {
         mc.getRenderItem().renderItemOverlays(mc.fontRendererObj, stack, x + 2, y + 2);
         RenderHelper.disableStandardItemLighting();
 
-        // ── 文字：槽位名 附魔 (cur/max) ──
+        // ── 文字：附魔 (cur/max) — 无槽位名 ──
         String enchText = stack.isItemEnchanted() ? buildEnchantmentLine(stack) : "";
 
         String durText = "";
@@ -123,10 +123,14 @@ public class EquipHUDHandler {
             durText = "(" + curDmg + "/" + maxDmg + ")";
         }
 
-        StringBuilder sb = new StringBuilder(slotName);
-        if (enchText.length() > 0) sb.append(" ").append(enchText);
-        if (durText.length() > 0) sb.append(" §7").append(durText);
+        StringBuilder sb = new StringBuilder();
+        if (enchText.length() > 0) sb.append(enchText);
+        if (durText.length() > 0) {
+            if (sb.length() > 0) sb.append(" ");
+            sb.append("§7").append(durText);
+        }
         String fullText = sb.toString();
+        if (fullText.length() == 0) return; // 无附魔也无耐久则只画图标
 
         int textWidth = mc.fontRendererObj.getStringWidth(fullText);
         int ty = y + 5; // 相对 20px 图标垂直居中
