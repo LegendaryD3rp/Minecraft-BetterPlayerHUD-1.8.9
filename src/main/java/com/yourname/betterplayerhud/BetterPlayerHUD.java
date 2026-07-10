@@ -184,6 +184,18 @@ public class BetterPlayerHUD {
 
         // 注册危机警戒图标（模块24）
         MinecraftForge.EVENT_BUS.register(new CrisisWarningHandler());
+
+        // 注册连击计数（模块25）
+        HUDEditManager.register("连击计数",
+                (x) -> config.comboXOffset = x, (y) -> config.comboYOffset = y,
+                0, 0,
+                (absX, absY, sw, sh) -> {
+                    // 渲染: x = sw - 50 + offsetX → offsetX = absX - sw + 50
+                    //        y = sh - 40 + offsetY → offsetY = absY - sh + 40
+                    return new int[]{ absX - sw + 50, absY - sh + 40 };
+                });
+        HUDEditManager.setDefaultSize("连击计数", 80, 12);
+        MinecraftForge.EVENT_BUS.register(new ComboHandler());
     }
 
     /**

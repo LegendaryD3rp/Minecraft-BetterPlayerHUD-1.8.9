@@ -241,6 +241,13 @@ public class BetterPlayerHUDConfig {
     public int crisisFlashInterval = 20;
 
     // ================================================================
+    //  模块25：连击计数 (Combo Display)
+    // ================================================================
+    public boolean enableCombo = true;
+    public int comboXOffset = 0;
+    public int comboYOffset = 0;
+
+    // ================================================================
     //  模块21：命中标识 (Hit Marker)
     // ================================================================
     public boolean enableHitMarker = true;
