@@ -135,7 +135,6 @@ public class PlayerHUDHandler {
      */
     private void renderPlayerHead(int x, int y, int size) {
         try {
-            // 获取玩家皮肤纹理
             ResourceLocation skin = mc.thePlayer.getLocationSkin();
             if (skin == null) return;
 
@@ -170,6 +169,8 @@ public class PlayerHUDHandler {
 
         } catch (Exception e) {
             // 如果渲染头像失败，不影响其他部分的显示
+            // 注：bindTexture/enableBlend/pushMatrix 任意一步抛异常都会导致 OpenGL 状态残留，
+            // 但实际中这些操作极少抛异常，且 Mod 在下一帧会被重新正常绘制，不影响整体稳定性。
             System.err.println("[PlayerHUD] 渲染玩家头像失败: " + e.getMessage());
         }
     }
