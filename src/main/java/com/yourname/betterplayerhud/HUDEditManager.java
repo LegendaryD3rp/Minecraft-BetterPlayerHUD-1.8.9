@@ -151,6 +151,10 @@ public class HUDEditManager {
                 int offsetY = BetterPlayerHUD.config.yPosition;
                 int yPos = offsetY >= 0 ? offsetY : sh + offsetY - 40;
                 r.setBounds(xPos, yPos, 240, 30);
+            } else if ("药水效果".equals(name)) {
+                int px = 2 + BetterPlayerHUD.config.potionXOffset;
+                int py = sh - 20 + BetterPlayerHUD.config.potionYOffset;
+                r.setBounds(px, py, 160, 26);
             } else if ("按键显示".equals(name)) {
                 int ks = BetterPlayerHUD.config.keysSize;
                 int ksp = BetterPlayerHUD.config.keysSpacing;
@@ -161,6 +165,17 @@ public class HUDEditManager {
                 int offsetY = BetterPlayerHUD.config.keysDisplayY;
                 int yPos = offsetY >= 0 ? offsetY : sh + offsetY - dh;
                 r.setBounds(xPos, yPos, dw, dh);
+            } else if ("危机警戒".equals(name)) {
+                int iconSize = 16;
+                int cx = sw / 2;
+                int px = cx - iconSize / 2 + BetterPlayerHUD.config.crisisXOffset;
+                int py = sh / 2 - 60 + BetterPlayerHUD.config.crisisYOffset;
+                r.setBounds(px, py, iconSize, iconSize);
+            } else if ("目标血量".equals(name)) {
+                int bw = 140;
+                int bx = sw / 2 - bw / 2;
+                int by = sh - 47;
+                r.setBounds(bx, by, bw, 40);
             } else {
                 int[] ds = defaultSizes.get(name);
                 if (ds == null) continue;
@@ -564,6 +579,21 @@ public class HUDEditManager {
                 int xPos = calcCompassX(width, 240);
                 int yPos = calcCompassY(height);
                 r.setBounds(xPos, yPos, 240, 30);
+            } else if ("药水效果".equals(name)) {
+                int px = 2 + BetterPlayerHUD.config.potionXOffset;
+                int py = height - 20 + BetterPlayerHUD.config.potionYOffset;
+                r.setBounds(px, py, 160, 26);
+            } else if ("危机警戒".equals(name)) {
+                int iconSize = 16;
+                int cx = width / 2;
+                int px = cx - iconSize / 2 + BetterPlayerHUD.config.crisisXOffset;
+                int py = height / 2 - 60 + BetterPlayerHUD.config.crisisYOffset;
+                r.setBounds(px, py, iconSize, iconSize);
+            } else if ("目标血量".equals(name)) {
+                int bw = 140;
+                int bx = width / 2 - bw / 2;
+                int by = height - 47;
+                r.setBounds(bx, by, bw, 40);
             } else if ("按键显示".equals(name)) {
                 int ks = BetterPlayerHUD.config.keysSize;
                 int ksp = BetterPlayerHUD.config.keysSpacing;
