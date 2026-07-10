@@ -6,6 +6,7 @@ import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.entity.item.EntityTNTPrimed;
+import net.minecraft.entity.monster.EntityCreeper;
 import net.minecraft.entity.projectile.EntityArrow;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
@@ -66,21 +67,30 @@ public class CrisisWarningHandler {
         if (cfg.crisisWarnHunger && mc.thePlayer.getFoodStats().getFoodLevel() <= cfg.crisisHungerThreshold) {
             types.add(1); stacks.add(null);
         }
-        // 附近TNT
+        // 附近即将引爆的爆炸物：TNT 或 苦力怕（点燃状态）
         if (cfg.crisisWarnTnt) {
             double radiusSq = cfg.crisisTntRadius * cfg.crisisTntRadius;
-            boolean tntNear = false;
+            boolean explosiveNear = false;
             double px = mc.thePlayer.posX, py = mc.thePlayer.posY, pz = mc.thePlayer.posZ;
             for (Object o : mc.theWorld.loadedEntityList) {
                 if (o instanceof EntityTNTPrimed) {
                     EntityTNTPrimed tnt = (EntityTNTPrimed) o;
                     double dx = tnt.posX - px, dy = tnt.posY - py, dz = tnt.posZ - pz;
                     if (dx * dx + dy * dy + dz * dz <= radiusSq) {
-                        tntNear = true; break;
+                        explosiveNear = true; break;
+                    }
+                }
+                if (o instanceof EntityCreeper) {
+                    EntityCreeper creeper = (EntityCreeper) o;
+                    if (creeper.getCreeperState() > 0) { // 点燃状态（即将爆炸）
+                        double dx = creeper.posX - px, dy = creeper.posY - py, dz = creeper.posZ - pz;
+                        if (dx * dx + dy * dy + dz * dz <= radiusSq) {
+                            explosiveNear = true; break;
+                        }
                     }
                 }
             }
-            if (tntNear) { types.add(2); stacks.add(ICON_TNT); }
+            if (explosiveNear) { types.add(2); stacks.add(ICON_TNT); }
         }
         // 拉弓
         if (cfg.crisisWarnBow && mc.thePlayer.isUsingItem()
