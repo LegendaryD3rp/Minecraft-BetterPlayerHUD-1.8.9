@@ -261,10 +261,8 @@ public class EquipHUDHandler {
         int baseX = hotbarLeft + 3 + cfg.itemCountX;  // 略左偏，贴近物品栏
         int baseY = hotbarY - 10 + cfg.itemCountY;
 
-        // 编辑模式下上报
-        if (HUDEditManager.isEditing()) {
-            HUDEditManager.report("物品数量", baseX, baseY, totalW + 8, 10);
-        }
+        // 始终上报（编辑模式用，运行时也上报以便 F7 打开时已有正确 rect）
+        HUDEditManager.report("物品数量", baseX, baseY, totalW + 8, 10);
 
         GlStateManager.enableBlend();
         GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
