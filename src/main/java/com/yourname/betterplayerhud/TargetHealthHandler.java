@@ -50,7 +50,7 @@ public class TargetHealthHandler {
                 int sw = sr2.getScaledWidth(), sh = sr2.getScaledHeight();
                 HUDEditManager.report("目标血量",
                         sw / 2 - 70,
-                        sh - 10 - 2 - 3 - 5 - 2 - 3 - 2 - 10 - 10,
+                        sh - 62,
                         140, 40);
             }
             return;
@@ -232,8 +232,12 @@ public class TargetHealthHandler {
             mc.fontRendererObj.drawString(display, txtX, txtY, textColor, true);
         }
 
-        if (HUDEditManager.isEditing())
-            HUDEditManager.report("目标血量", x - 30, expBarTop - gapToExp - barHeight - 30 - 10, barWidth + 60, 120);
+        // 上报位置（始终上报，确保 F7 打开时 rect 已就位）
+        // 使用紧凑 bounding box：从名称文字上方到血条下方，共约40px
+        // 不再用 height=120 的大框（会导致拖拽约束 maxY=height-120 把 rect 拉上去）
+        int reportY = barY - 25;
+        int reportH = 40;
+        HUDEditManager.report("目标血量", x - 30, reportY, barWidth + 60, reportH);
     }
 
     private boolean shouldShow(EntityLivingBase entity) {

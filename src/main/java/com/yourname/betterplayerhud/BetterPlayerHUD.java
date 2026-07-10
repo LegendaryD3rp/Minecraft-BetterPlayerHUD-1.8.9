@@ -48,10 +48,10 @@ public class BetterPlayerHUD {
                 (absX, absY, sw, sh) -> {
                     // 渲染: x = sw/2 + offsetX - barWidth/2
                     // 报告: reportX = x - 30 → offsetX = absX - sw/2 + bw/2 + 30
-                    // 渲染: barY = (sh-29)-3-5 + offsetY = sh-37+offsetY
-                    // 报告: reportY = barY - 40 → offsetY = absY + 40 - sh + 37 = absY - sh + 77
+                    // 渲染: barY = sh - 37 + offsetY
+                    // 报告: reportY = barY - 25 → offsetY = absY - sh + 62
                     int bw = config.targetHPBarWidth;
-                    return new int[]{ absX - sw / 2 + bw / 2 + 30, absY - sh + 77 };
+                    return new int[]{ absX - sw / 2 + bw / 2 + 30, absY - sh + 62 };
                 });
         HUDEditManager.setDefaultSize("目标血量", 140, 40);
         HUDEditManager.register("药水效果",
