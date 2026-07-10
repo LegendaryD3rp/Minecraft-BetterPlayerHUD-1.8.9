@@ -212,7 +212,13 @@ public class BetterPlayerHUDConfig {
     public int armorYOffset = 0;
     public int heldItemXOffset = 0;
     public int heldItemYOffset = 0;
-    public int slotCountYOffset = 0;
+    /** 物品栏横条左右侧物品数量统计 */
+    public boolean slotCountLeftEnabled = true;
+    public int slotCountLeftX = 0;
+    public int slotCountLeftY = 0;
+    public boolean slotCountRightEnabled = true;
+    public int slotCountRightX = 0;
+    public int slotCountRightY = 0;
 
     // ================================================================
     //  模块24：危机警戒图标
@@ -797,8 +803,18 @@ public class BetterPlayerHUDConfig {
             p.comment = "手持物品信息X偏移"; heldItemXOffset = p.getInt();
             p = config.get(C, "heldItemYOffset", 0);
             p.comment = "手持物品信息Y偏移"; heldItemYOffset = p.getInt();
-            p = config.get(C, "slotCountYOffset", 0);
-            p.comment = "物品数量Y偏移"; slotCountYOffset = p.getInt();
+            p = config.get(C, "slotCountLeftEnabled", true);
+            p.comment = "左侧物品栏数量统计"; slotCountLeftEnabled = p.getBoolean();
+            p = config.get(C, "slotCountLeftX", 0);
+            p.comment = "左侧数量X"; slotCountLeftX = p.getInt();
+            p = config.get(C, "slotCountLeftY", 0);
+            p.comment = "左侧数量Y"; slotCountLeftY = p.getInt();
+            p = config.get(C, "slotCountRightEnabled", true);
+            p.comment = "右侧物品栏数量统计"; slotCountRightEnabled = p.getBoolean();
+            p = config.get(C, "slotCountRightX", 0);
+            p.comment = "右侧数量X"; slotCountRightX = p.getInt();
+            p = config.get(C, "slotCountRightY", 0);
+            p.comment = "右侧数量Y"; slotCountRightY = p.getInt();
         }
 
         // --- 模块24：危机警戒图标 ---
@@ -1062,7 +1078,12 @@ public class BetterPlayerHUDConfig {
         config.get(C, "armorYOffset", 0).set(armorYOffset);
         config.get(C, "heldItemXOffset", 0).set(heldItemXOffset);
         config.get(C, "heldItemYOffset", 0).set(heldItemYOffset);
-        config.get(C, "slotCountYOffset", 0).set(slotCountYOffset);
+        config.get(C, "slotCountLeftEnabled", true).set(slotCountLeftEnabled);
+        config.get(C, "slotCountLeftX", 0).set(slotCountLeftX);
+        config.get(C, "slotCountLeftY", 0).set(slotCountLeftY);
+        config.get(C, "slotCountRightEnabled", true).set(slotCountRightEnabled);
+        config.get(C, "slotCountRightX", 0).set(slotCountRightX);
+        config.get(C, "slotCountRightY", 0).set(slotCountRightY);
 
         // --- 模块24：危机警戒图标 ---
         config.get(C, "enableCriticalHealth", true).set(enableCriticalHealth);

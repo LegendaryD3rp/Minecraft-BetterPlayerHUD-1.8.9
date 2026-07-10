@@ -3,6 +3,7 @@ package com.yourname.betterplayerhud;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.ScaledResolution;
+import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;
@@ -55,9 +56,9 @@ public class EquipHUDHandler {
             renderHeldItemInfo(w, h);
         }
 
-        // 物品栏上方物品数量统计（跟随 enableHeldItemHUD 开关）
+        // 物品栏横条左右侧物品数量统计
         if (cfg.enableHeldItemHUD) {
-            renderSlotCountAboveHotbar(w, h);
+            renderSlotCountPanels(w, h);
         }
     }
 
@@ -168,34 +169,115 @@ public class EquipHUDHandler {
             HUDEditManager.report("手持物品", x, y - 2, 200, 12);
     }
 
-    /** 物品栏上方：当前格物品数量 / 背包总计（在物品名正上方） */
-    private void renderSlotCountAboveHotbar(int screenWidth, int screenHeight) {
+    // ================================================================
+    //  物品栏横条左右侧物品数量统计
+    //  左面板：slots 0-4，右面板：slots 5-8
+    //  每格显示 [图标] 背包中该物品的总数
+    // ================================================================
+
+    private void renderSlotCountPanels(int screenWidth, int screenHeight) {
         BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
-        int slot = mc.thePlayer.inventory.currentItem;
-        ItemStack held = mc.thePlayer.inventory.getStackInSlot(slot);
-        if (held == null) return;
 
-        int stackSize = held.stackSize;
+        // 左面板
+        if (cfg.slotCountLeftEnabled) {
+            renderSlotCountHalf(cfg, screenWidth, screenHeight, 0, 4,
+                    cfg.slotCountLeftX, cfg.slotCountLeftY, "物品栏左");
+        }
+        // 右面板
+        if (cfg.slotCountRightEnabled) {
+            renderSlotCountHalf(cfg, screenWidth, screenHeight, 5, 8,
+                    cfg.slotCountRightX, cfg.slotCountRightY, "物品栏右");
+        }
+    }
 
-        // 统计背包中相同 item + damage + NBT 的总数
-        int total = 0;
+    /** 渲染半侧物品栏数量统计 */
+    private void renderSlotCountHalf(BetterPlayerHUDConfig cfg, int sw, int sh,
+                                     int slotStart, int slotEnd,
+                                     int offsetX, int offsetY, String editName) {
+        // 默认位置：贴住物品栏横条两侧上方
+        // 左面板 X = hotbarLeft + 3 · · · hotbarLeft + slotStart * 20 + offsetX
+        int hotbarLeft = sw / 2 - 91;
+        int hotbarY = sh - 22;
+
+        // 每个物品栏格宽度 20，第 slotStart 格的左上 X
+        int baseX = hotbarLeft + slotStart * 20 + offsetX;
+        int baseY = hotbarY - 12 + offsetY;  // 略高于物品栏
+
+        int lineH = 10;   // 文字行高
+        int iconSize = 9; // 缩小版图标
+
+        java.util.List<String> lines = new java.util.ArrayList<>();
+        java.util.List<Integer> counts = new java.util.ArrayList<>();
+        java.util.List<ItemStack> icons = new java.util.ArrayList<>();
+
         ItemStack[] mainInv = mc.thePlayer.inventory.mainInventory;
-        for (ItemStack s : mainInv) {
-            if (s != null && s.isItemEqual(held) && ItemStack.areItemStackTagsEqual(s, held)) {
-                total += s.stackSize;
+
+        for (int slot = slotStart; slot <= slotEnd; slot++) {
+            ItemStack stack = mainInv[slot];
+            if (stack == null) continue;
+
+            // 统计背包中共有多少个相同物品
+            int total = 0;
+            for (ItemStack s : mainInv) {
+                if (s != null && s.isItemEqual(stack) && ItemStack.areItemStackTagsEqual(s, stack)) {
+                    total += s.stackSize;
+                }
             }
+            // 也统计盔甲栏和副手（如果有）
+            for (ItemStack s : mc.thePlayer.inventory.armorInventory) {
+                if (s != null && s.isItemEqual(stack) && ItemStack.areItemStackTagsEqual(s, stack)) {
+                    total += s.stackSize;
+                }
+            }
+
+            String name = stack.getDisplayName();
+            if (name.length() > 12) name = name.substring(0, 12) + "..";
+            String text = stack.stackSize + "/" + total;
+            lines.add(text);
+            counts.add(total);
+            icons.add(stack);
         }
 
-        String text = stackSize + "/" + total;
-        int tw = mc.fontRendererObj.getStringWidth(text);
+        if (lines.isEmpty()) return;
 
-        // 原版物品名位置：height-59(创造) / height-45(生存)，放在名字正上方
-        int nameY = screenHeight - 59;
-        if (!mc.playerController.shouldDrawHUD()) nameY += 14;
-        int cx = screenWidth / 2;
-        int textY = nameY - mc.fontRendererObj.FONT_HEIGHT - 4 + cfg.slotCountYOffset;
+        int panelW = 0;
+        for (String l : lines) {
+            int lw = mc.fontRendererObj.getStringWidth(l);
+            if (lw > panelW) panelW = lw;
+        }
+        panelW += iconSize + 4;
+        int panelH = lines.size() * lineH;
 
-        mc.fontRendererObj.drawStringWithShadow(text, cx - tw / 2, textY, 0xFFFFFFFF);
+        // 编辑模式下上报
+        if (HUDEditManager.isEditing()) {
+            HUDEditManager.report(editName, baseX, baseY, panelW, panelH);
+        }
+
+        GlStateManager.enableBlend();
+        GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
+
+        for (int i = 0; i < lines.size(); i++) {
+            int y = baseY + i * lineH;
+            // 画缩小版物品图标
+            ItemStack icon = icons.get(i);
+            if (icon != null && icon.getItem() != null) {
+                GlStateManager.pushMatrix();
+                float sc = (float) iconSize / 16.0f;
+                GlStateManager.translate(baseX, y, 0);
+                GlStateManager.scale(sc, sc, 1.0f);
+                RenderHelper.enableGUIStandardItemLighting();
+                mc.getRenderItem().renderItemAndEffectIntoGUI(icon, 0, 0);
+                RenderHelper.disableStandardItemLighting();
+                GlStateManager.popMatrix();
+            }
+            // 总数文字
+            mc.fontRendererObj.drawStringWithShadow(
+                    String.valueOf(counts.get(i)),
+                    baseX + iconSize + 2, y + 1,
+                    0xFFFFFFAA);
+        }
+
+        GlStateManager.disableBlend();
     }
 
     /** 获取武器伤害描述，非武器返回 null（CompassMod 同款逻辑，硬编码物品ID映射） */

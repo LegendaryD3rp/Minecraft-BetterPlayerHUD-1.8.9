@@ -79,6 +79,15 @@ public class BetterPlayerHUD {
                     return new int[]{ absX - 2, absY - sh + 11 };
                 });
         HUDEditManager.setDefaultSize("手持物品", 200, 12);
+
+        // 物品栏横条左右侧数量统计
+        HUDEditManager.register("物品栏左",
+                (x) -> config.slotCountLeftX = x, (y) -> config.slotCountLeftY = y, 0, 0);
+        HUDEditManager.setDefaultSize("物品栏左", 80, 30);
+        HUDEditManager.register("物品栏右",
+                (x) -> config.slotCountRightX = x, (y) -> config.slotCountRightY = y, 0, 0);
+        HUDEditManager.setDefaultSize("物品栏右", 80, 30);
+
         // 危机警戒（偏移模式：居中坐标 + offset）
         HUDEditManager.register("危机警戒",
                 (x) -> config.crisisXOffset = x, (y) -> config.crisisYOffset = y,
