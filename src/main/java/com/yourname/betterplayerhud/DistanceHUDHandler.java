@@ -46,6 +46,16 @@ public class DistanceHUDHandler {
         MovingObjectPosition mouseOver = getMouseOverExtended(MAX_DETECTION_DISTANCE);
 
         if (mouseOver == null || mouseOver.typeOfHit == MovingObjectPosition.MovingObjectType.MISS) {
+            // 编辑模式下即使无目标也上报 placeholder
+            if (HUDEditManager.isEditing()) {
+                ScaledResolution sr2 = new ScaledResolution(mc);
+                int sw2 = sr2.getScaledWidth(), sh2 = sr2.getScaledHeight();
+                int bx = BetterPlayerHUD.config.distanceHudX;
+                int by = BetterPlayerHUD.config.distanceHudY;
+                if (bx < 0) bx = sw2 + bx;
+                if (by < 0) by = sh2 + by;
+                HUDEditManager.report("距离信息", bx, by, 120, 12);
+            }
             return;
         }
 

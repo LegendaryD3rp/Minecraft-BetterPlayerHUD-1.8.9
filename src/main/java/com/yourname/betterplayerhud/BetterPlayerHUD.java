@@ -70,8 +70,17 @@ public class BetterPlayerHUD {
                     // y = sh - fontHeight(9) - 2 + offsetY → offsetY = absY - sh + 11
                     return new int[]{ absX - 2, absY - sh + 11 };
                 });
-        // 危机警戒（位置由 handler 动态计算，注册只用于 F7 显示 placeholder）
-        HUDEditManager.register("危机警戒", (x) -> {}, (y) -> {}, 0, 0);
+        // 危机警戒（偏移模式：居中坐标 + offset）
+        HUDEditManager.register("危机警戒",
+                (x) -> config.crisisXOffset = x, (y) -> config.crisisYOffset = y,
+                0, 0,
+                (absX, absY, sw, sh) -> {
+                    // 居中坐标 = sw/2 - totalW/2 + offsetX
+                    // 反向计算：offsetX = absX - sw/2 + totalW/2
+                    // 但 totalW 取决于活跃类型数，非固定，这里简化为假定 2 个图标
+                    int guessW = config.crisisIconSize * 2 + Math.max(config.crisisIconSize / 3, 4);
+                    return new int[]{ absX - sw / 2 + guessW / 2, absY - sh / 2 + 60 };
+                });
 
         // Ctrl+滚轮调大小（支持有scale/size参数的模块）
         HUDEditManager.setSize("罗盘", (d) -> {

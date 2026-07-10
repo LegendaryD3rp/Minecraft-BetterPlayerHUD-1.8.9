@@ -38,9 +38,10 @@ public class CrisisWarningHandler {
 
         ScaledResolution sr = new ScaledResolution(mc);
         int centerX = sr.getScaledWidth() / 2;
+        int screenHeight = sr.getScaledHeight();
 
-        // Y 位置：屏幕正上方偏下一点，避免被文字遮住
-        int topY = sr.getScaledHeight() / 2 - 60;
+        // Y 位置：屏幕正上方偏下一点 + 偏移
+        int topY = screenHeight / 2 - 60 + cfg.crisisYOffset;
 
         // 闪烁
         boolean flashOn = (mc.theWorld.getTotalWorldTime() % cfg.crisisFlashInterval) < (cfg.crisisFlashInterval / 2);
@@ -107,15 +108,15 @@ public class CrisisWarningHandler {
             // 编辑模式下显示 placeholder（一个图标的宽度）
             if (HUDEditManager.isEditing()) {
                 int placeholderW = iconSize;
-                int px = centerX - placeholderW / 2;
+                int px = centerX - placeholderW / 2 + cfg.crisisXOffset;
                 HUDEditManager.report("危机警戒", px, topY, placeholderW, iconSize);
             }
             return;
         }
 
-        // 计算总宽度居中
+        // 计算总宽度居中 + 偏移
         int totalW = types.size() * iconSize + (types.size() - 1) * gap;
-        int startX = centerX - totalW / 2;
+        int startX = centerX - totalW / 2 + cfg.crisisXOffset;
 
         GlStateManager.enableBlend();
         GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);

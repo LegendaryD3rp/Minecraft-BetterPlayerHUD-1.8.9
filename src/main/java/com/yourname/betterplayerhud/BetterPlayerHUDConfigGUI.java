@@ -445,7 +445,8 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
     private static List<IConfigElement> getCrisisConfigElements() {
         List<IConfigElement> list = new ArrayList<>();
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.crisis.basic", "bhud.crisis.basic", el(
-                "enableCriticalHealth", "crisisIconSize", "crisisFlashInterval")));
+                "enableCriticalHealth", "crisisIconSize", "crisisFlashInterval",
+                "crisisXOffset", "crisisYOffset")));
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.crisis.health", "bhud.crisis.health", el(
                 "crisisWarnHealth", "crisisHealthThreshold")));
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.crisis.hunger", "bhud.crisis.hunger", el(
