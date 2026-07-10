@@ -116,10 +116,10 @@ public class CrisisWarningHandler {
             }
             if (arrowNear) {
                 arrowWarnCooldown = 80; // persist 4 seconds (80 ticks)
-                types.add(4); stacks.add(ICON_ARROW);
+                types.add(4); stacks.add(ICON_BOW);
             } else if (arrowWarnCooldown > 0) {
                 arrowWarnCooldown--;
-                types.add(4); stacks.add(ICON_ARROW);
+                types.add(4); stacks.add(ICON_BOW);
             }
         }
 
