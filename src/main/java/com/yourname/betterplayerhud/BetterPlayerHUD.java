@@ -105,6 +105,10 @@ public class BetterPlayerHUD {
         HUDEditManager.setSize("状态栏", (d) -> {
             config.headSize = Math.max(8, Math.min(48, config.headSize + d * 2));
         });
+        HUDEditManager.registerSizeReset("罗盘", () -> config.scale = 1.0f);
+        HUDEditManager.registerSizeReset("按键显示", () -> config.keysSize = 24);
+        HUDEditManager.registerSizeReset("目标血量", () -> config.targetHPBarWidth = 80);
+        HUDEditManager.registerSizeReset("状态栏", () -> config.headSize = 16);
 
         // 注册精简版 HUD 处理器
         MinecraftForge.EVENT_BUS.register(new PlayerHUDHandler());

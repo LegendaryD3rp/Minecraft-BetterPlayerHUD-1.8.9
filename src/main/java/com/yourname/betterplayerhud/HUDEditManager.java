@@ -42,6 +42,8 @@ public class HUDEditManager {
     private static final Map<String, Consumer<Integer>> ySetters = new LinkedHashMap<>();
     /** 模块名 → 大小调整器（Ctrl+滚轮用） */
     private static final Map<String, Consumer<Integer>> sizeSetters = new LinkedHashMap<>();
+    /** 模块名 → 尺寸重置器（R键用） */
+    private static final Map<String, Runnable> sizeResets = new LinkedHashMap<>();
     /** 模块名 → 绝对坐标 → config 值转换器 */
     private static final Map<String, PosConverter> posConverters = new LinkedHashMap<>();
     /** 模块名 → 默认位置（用于重置） */
@@ -119,6 +121,11 @@ public class HUDEditManager {
     /** 注册大小调整器（可选，Ctrl+滚轮用） */
     public static void setSize(String name, Consumer<Integer> setSize) {
         sizeSetters.put(name, setSize);
+    }
+
+    /** 注册尺寸重置器（R键恢复默认大小时用） */
+    public static void registerSizeReset(String name, Runnable resetter) {
+        sizeResets.put(name, resetter);
     }
 
     /** 设置默认placeholder尺寸（用于从未有过状态的模块在F7中仍可显示） */
@@ -512,6 +519,10 @@ public class HUDEditManager {
             Consumer<Integer> setY = ySetters.get(name);
             if (setX != null) setX.accept(def[0]);
             if (setY != null) setY.accept(def[1]);
+
+            // 恢复尺寸/缩放
+            Runnable sizeReset = sizeResets.get(name);
+            if (sizeReset != null) sizeReset.run();
 
             // 也更新当前位置显示
             Rectangle r = currentPositions.get(name);
