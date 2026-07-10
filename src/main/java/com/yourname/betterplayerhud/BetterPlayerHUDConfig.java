@@ -219,6 +219,8 @@ public class BetterPlayerHUDConfig {
     public boolean slotCountRightEnabled = true;
     public int slotCountRightX = 0;
     public int slotCountRightY = 0;
+    public boolean showHeldItemEnchants = true;
+    public boolean showArmorBackground = true;
 
     // ================================================================
     //  模块24：危机警戒图标
@@ -823,6 +825,10 @@ public class BetterPlayerHUDConfig {
             p.comment = "右侧数量X"; slotCountRightX = p.getInt();
             p = config.get(C, "slotCountRightY", 0);
             p.comment = "右侧数量Y"; slotCountRightY = p.getInt();
+            p = config.get(C, "showHeldItemEnchants", true);
+            p.comment = "手持物品是否显示附魔"; showHeldItemEnchants = p.getBoolean();
+            p = config.get(C, "showArmorBackground", true);
+            p.comment = "装甲栏槽位半透明背景"; showArmorBackground = p.getBoolean();
         }
 
         // --- 模块24：危机警戒图标 ---
@@ -1092,6 +1098,8 @@ public class BetterPlayerHUDConfig {
         config.get(C, "slotCountRightEnabled", true).set(slotCountRightEnabled);
         config.get(C, "slotCountRightX", 0).set(slotCountRightX);
         config.get(C, "slotCountRightY", 0).set(slotCountRightY);
+        config.get(C, "showHeldItemEnchants", true).set(showHeldItemEnchants);
+        config.get(C, "showArmorBackground", true).set(showArmorBackground);
 
         // --- 模块24：危机警戒图标 ---
         config.get(C, "enableCriticalHealth", true).set(enableCriticalHealth);

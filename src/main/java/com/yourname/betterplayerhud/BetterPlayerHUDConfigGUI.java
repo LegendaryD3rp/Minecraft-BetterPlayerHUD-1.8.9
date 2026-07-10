@@ -424,6 +424,8 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
         List<IConfigElement> list = new ArrayList<>();
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.equip.basic", "bhud.equip.basic", el(
                 "enableArmorHUD", "enableHeldItemHUD")));
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.equip.display", "bhud.equip.display", el(
+                "showHeldItemEnchants", "showArmorBackground")));
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.equip.pos", "bhud.equip.pos", el(
                 "armorXOffset", "armorYOffset", "heldItemXOffset", "heldItemYOffset")));
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.equip.slotcount", "bhud.equip.slotcount", el(

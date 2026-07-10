@@ -103,9 +103,12 @@ public class EquipHUDHandler {
     /** 画一个物品图标 + 耐久数字 */
     private void renderSlot(ItemStack stack, int x, int y) {
         if (stack == null) return;
+        BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
 
-        // 半透明背景
-        Gui.drawRect(x, y, x + 20, y + 20, 0x44000000);
+        // 半透明背景（可选）
+        if (cfg.showArmorBackground) {
+            Gui.drawRect(x, y, x + 20, y + 20, 0x44000000);
+        }
 
         RenderHelper.enableGUIStandardItemLighting();
         mc.getRenderItem().renderItemAndEffectIntoGUI(stack, x + 2, y + 2);
@@ -137,6 +140,8 @@ public class EquipHUDHandler {
         int x = 2 + cfg.heldItemXOffset;
         int y = screenHeight - mc.fontRendererObj.FONT_HEIGHT - 2 + cfg.heldItemYOffset;
 
+        int totalH = 12; // 基础行高
+
         if (held != null) {
             // 图标
             RenderHelper.enableGUIStandardItemLighting();
@@ -162,11 +167,30 @@ public class EquipHUDHandler {
             if (damageStr != null) {
                 mc.fontRendererObj.drawStringWithShadow("§7" + damageStr, tx, y + 1, 0xFFFFFFAA);
             }
+
+            // 附魔显示（第二行）
+            if (cfg.showHeldItemEnchants && held.isItemEnchanted()) {
+                java.util.Map<Integer, Integer> enchMap = EnchantmentHelper.getEnchantments(held);
+                StringBuilder enchLine = new StringBuilder();
+                boolean first = true;
+                for (java.util.Map.Entry<Integer, Integer> entry : enchMap.entrySet()) {
+                    Enchantment ench = Enchantment.getEnchantmentById(entry.getKey());
+                    if (ench == null) continue;
+                    if (!first) enchLine.append("  ");
+                    first = false;
+                    enchLine.append("§b").append(ench.getTranslatedName(entry.getValue()));
+                }
+                if (enchLine.length() > 0) {
+                    int enchY = y + mc.fontRendererObj.FONT_HEIGHT + 4;
+                    mc.fontRendererObj.drawStringWithShadow(enchLine.toString(), x + 2, enchY, 0xFFFFFFAA);
+                    totalH += mc.fontRendererObj.FONT_HEIGHT + 4;
+                }
+            }
         }
 
         // 即使空手也 report，确保 F7 编辑模式下能看到模块
         if (HUDEditManager.isEditing())
-            HUDEditManager.report("手持物品", x, y - 2, 200, 12);
+            HUDEditManager.report("手持物品", x, y - 2, 200, totalH);
     }
 
     // ================================================================

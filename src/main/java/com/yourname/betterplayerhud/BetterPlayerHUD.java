@@ -78,7 +78,7 @@ public class BetterPlayerHUD {
                     // y = sh - fontHeight(9) - 2 + offsetY → offsetY = absY - sh + 11
                     return new int[]{ absX - 2, absY - sh + 11 };
                 });
-        HUDEditManager.setDefaultSize("手持物品", 200, 12);
+        HUDEditManager.setDefaultSize("手持物品", 200, 30);
 
         // 物品栏横条左右侧数量统计
         HUDEditManager.register("物品栏左",
