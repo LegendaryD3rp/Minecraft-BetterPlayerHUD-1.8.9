@@ -182,8 +182,8 @@ public class HUDEditManager {
             } else if ("目标血量".equals(name)) {
                 // 必须与 TargetHealthHandler.report() 一致（紧凑框，防拖拽溢出）
                 int bw = BetterPlayerHUD.config.targetHPBarWidth;
-                int bx = sw / 2 - bw / 2 - 30;
-                int by = sh - 62;
+                int bx = sw / 2 - bw / 2 - 30 + BetterPlayerHUD.config.targetHPOffsetX;
+                int by = sh - 62 + BetterPlayerHUD.config.targetHPOffsetY;
                 r.setBounds(bx, by, bw + 60, 40);
             } else {
                 int[] ds = defaultSizes.get(name);
@@ -608,8 +608,8 @@ public class HUDEditManager {
                 r.setBounds(px, py, rw, iconSize);
             } else if ("目标血量".equals(name)) {
                 int bw = BetterPlayerHUD.config.targetHPBarWidth;
-                int bx = width / 2 - bw / 2 - 30;
-                int by = height - 62;
+                int bx = width / 2 - bw / 2 - 30 + BetterPlayerHUD.config.targetHPOffsetX;
+                int by = height - 62 + BetterPlayerHUD.config.targetHPOffsetY;
                 r.setBounds(bx, by, bw + 60, 40);
             } else if ("按键显示".equals(name)) {
                 int ks = BetterPlayerHUD.config.keysSize;

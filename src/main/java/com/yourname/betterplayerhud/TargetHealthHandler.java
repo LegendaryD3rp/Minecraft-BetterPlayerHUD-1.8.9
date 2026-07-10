@@ -43,16 +43,8 @@ public class TargetHealthHandler {
         // ── 取瞄准目标 ──
         Entity hit = mc.objectMouseOver == null ? null : mc.objectMouseOver.entityHit;
 
-        // 编辑模式下即使无目标也上报 placeholder
+        // 无目标 → 不覆盖 rect，让 fillPlaceholders 或上次有目标时的 report 保留其位置
         if (!(hit instanceof EntityLivingBase)) {
-            if (HUDEditManager.isEditing()) {
-                ScaledResolution sr2 = new ScaledResolution(mc);
-                int sw = sr2.getScaledWidth(), sh = sr2.getScaledHeight();
-                HUDEditManager.report("目标血量",
-                        sw / 2 - 70,
-                        sh - 62,
-                        140, 40);
-            }
             return;
         }
         EntityLivingBase target = (EntityLivingBase) hit;
