@@ -2,6 +2,7 @@ package com.yourname.betterplayerhud;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraftforge.fml.client.registry.ClientRegistry;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -14,6 +15,7 @@ import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
 /**
  * HUD 拖拽编辑模式
@@ -41,7 +43,7 @@ public class HUDEditManager {
     private static final Map<String, Consumer<Integer>> xSetters = new LinkedHashMap<>();
     private static final Map<String, Consumer<Integer>> ySetters = new LinkedHashMap<>();
     /** 模块名 → 大小调整器（Ctrl+滚轮用） */
-    private static final Map<String, Consumer<Integer>> sizeSetters = new LinkedHashMap<>();
+    private static final Map<String, BiConsumer<Integer, Rectangle>> sizeSetters = new LinkedHashMap<>();
     /** 模块名 → 尺寸重置器（R键用） */
     private static final Map<String, Runnable> sizeResets = new LinkedHashMap<>();
     /** 模块名 → 绝对坐标 → config 值转换器 */
@@ -119,7 +121,7 @@ public class HUDEditManager {
     }
 
     /** 注册大小调整器（可选，Ctrl+滚轮用） */
-    public static void setSize(String name, Consumer<Integer> setSize) {
+    public static void setSize(String name, BiConsumer<Integer, Rectangle> setSize) {
         sizeSetters.put(name, setSize);
     }
 
@@ -135,9 +137,31 @@ public class HUDEditManager {
 
     /** 进入编辑模式时填充从未有状态的模块为placeholder矩形 */
     public static void fillPlaceholders() {
+        ScaledResolution sr = new ScaledResolution(mc);
+        int sw = sr.getScaledWidth();
+        int sh = sr.getScaledHeight();
+
         for (String name : currentPositions.keySet()) {
             Rectangle r = currentPositions.get(name);
-            if (r == null || r.width <= 0 || r.height <= 0) {
+            if (r != null && r.width > 0 && r.height > 0) continue;
+
+            if ("罗盘".equals(name)) {
+                int offsetX = BetterPlayerHUD.config.xPosition;
+                int xPos = offsetX > 0 ? offsetX : (offsetX < 0 ? sw + offsetX - 240 : (sw - 240) / 2);
+                int offsetY = BetterPlayerHUD.config.yPosition;
+                int yPos = offsetY >= 0 ? offsetY : sh + offsetY - 40;
+                r.setBounds(xPos, yPos, 240, 30);
+            } else if ("按键显示".equals(name)) {
+                int ks = BetterPlayerHUD.config.keysSize;
+                int ksp = BetterPlayerHUD.config.keysSpacing;
+                int dw = 3 * ks + 2 * ksp;
+                int dh = 4 * ks + 3 * ksp;
+                int offsetX = BetterPlayerHUD.config.keysDisplayX;
+                int xPos = offsetX >= 0 ? offsetX : sw + offsetX - dw;
+                int offsetY = BetterPlayerHUD.config.keysDisplayY;
+                int yPos = offsetY >= 0 ? offsetY : sh + offsetY - dh;
+                r.setBounds(xPos, yPos, dw, dh);
+            } else {
                 int[] ds = defaultSizes.get(name);
                 if (ds == null) continue;
                 int[] dp = defaultPositions.get(name);
@@ -440,10 +464,11 @@ public class HUDEditManager {
             if (target == null) return;
 
             if (Keyboard.isKeyDown(Keyboard.KEY_LCONTROL) || Keyboard.isKeyDown(Keyboard.KEY_RCONTROL)) {
-                Consumer<Integer> setSize = sizeSetters.get(target);
+                BiConsumer<Integer, Rectangle> setSize = sizeSetters.get(target);
                 if (setSize != null) {
                     int delta = dWheel > 0 ? 1 : -1;
-                    setSize.accept(delta);
+                    Rectangle r = currentPositions.get(target);
+                    setSize.accept(delta, r);
                     BetterPlayerHUD.config.saveConfig();
                 }
             }
@@ -525,14 +550,61 @@ public class HUDEditManager {
             if (sizeReset != null) sizeReset.run();
 
             // 立即更新当前位置和尺寸
-            int[] ds = defaultSizes.get(name);
             Rectangle r = currentPositions.get(name);
-            if (r != null && ds != null) {
-                r.setSize(ds[0], ds[1]);
-                r.setLocation(def[0], def[1]);
+            if (r != null) {
+                updateDefaultRect(name, r);
             }
 
             BetterPlayerHUD.config.saveConfig();
+        }
+
+        /** 根据当前 config 值计算出模块的默认矩形 */
+        private void updateDefaultRect(String name, Rectangle r) {
+            if ("罗盘".equals(name)) {
+                int xPos = calcCompassX(width, 240);
+                int yPos = calcCompassY(height);
+                r.setBounds(xPos, yPos, 240, 30);
+            } else if ("按键显示".equals(name)) {
+                int ks = BetterPlayerHUD.config.keysSize;
+                int ksp = BetterPlayerHUD.config.keysSpacing;
+                int dw = 3 * ks + 2 * ksp;
+                int dh = 4 * ks + 3 * ksp;
+                int xPos = calcKeysX(width, dw);
+                int yPos = calcKeysY(height, dh);
+                r.setBounds(xPos, yPos, dw, dh);
+            } else {
+                int[] ds = defaultSizes.get(name);
+                int[] dp = defaultPositions.get(name);
+                if (ds != null && dp != null) {
+                    r.setSize(ds[0], ds[1]);
+                    r.setLocation(dp[0], dp[1]);
+                }
+            }
+        }
+
+        private int calcCompassX(int screenWidth, int elementWidth) {
+            int offset = BetterPlayerHUD.config.xPosition;
+            if (offset > 0) return offset;
+            else if (offset < 0) return screenWidth + offset - elementWidth;
+            else return (screenWidth - elementWidth) / 2;
+        }
+
+        private int calcCompassY(int screenHeight) {
+            int offset = BetterPlayerHUD.config.yPosition;
+            if (offset >= 0) return offset;
+            else return screenHeight + offset - 40;
+        }
+
+        private int calcKeysX(int screenWidth, int displayWidth) {
+            int offset = BetterPlayerHUD.config.keysDisplayX;
+            if (offset >= 0) return offset;
+            else return screenWidth + offset - displayWidth;
+        }
+
+        private int calcKeysY(int screenHeight, int displayHeight) {
+            int offset = BetterPlayerHUD.config.keysDisplayY;
+            if (offset >= 0) return offset;
+            else return screenHeight + offset - displayHeight;
         }
     }
 }

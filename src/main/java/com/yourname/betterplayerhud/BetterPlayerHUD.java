@@ -102,16 +102,27 @@ public class BetterPlayerHUD {
         HUDEditManager.setDefaultSize("危机警戒", 60, 24);
 
         // Ctrl+滚轮调大小（支持有scale/size参数的模块）
-        HUDEditManager.setSize("罗盘", (d) -> {
+        HUDEditManager.setSize("罗盘", (d, r) -> {
             config.scale = Math.max(0.25f, Math.min(4.0f, config.scale + d * 0.05f));
+            if (r != null) {
+                int cx = r.x + r.width / 2;
+                int cy = r.y + r.height / 2;
+                int newW = Math.round(240 * config.scale);
+                int newH = Math.round(30 * config.scale);
+                r.setBounds(cx - newW / 2, cy - newH / 2, newW, newH);
+            }
         });
-        HUDEditManager.setSize("按键显示", (d) -> {
+        HUDEditManager.setSize("按键显示", (d, r) -> {
             config.keysSize = Math.max(10, Math.min(80, config.keysSize + d * 2));
+            if (r != null) {
+                int ksp = config.keysSpacing;
+                r.setSize(3 * config.keysSize + 2 * ksp, 4 * config.keysSize + 3 * ksp);
+            }
         });
-        HUDEditManager.setSize("目标血量", (d) -> {
+        HUDEditManager.setSize("目标血量", (d, r) -> {
             config.targetHPBarWidth = Math.max(20, Math.min(200, config.targetHPBarWidth + d * 4));
         });
-        HUDEditManager.setSize("状态栏", (d) -> {
+        HUDEditManager.setSize("状态栏", (d, r) -> {
             config.headSize = Math.max(8, Math.min(48, config.headSize + d * 2));
         });
         HUDEditManager.registerSizeReset("罗盘", () -> config.scale = 1.0f);
