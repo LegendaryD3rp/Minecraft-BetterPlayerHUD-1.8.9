@@ -160,6 +160,10 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
         elements.add(new DummyConfigElement.DummyCategoryElement(
                 "bhud.crisis", "bhud.crisis", getCrisisConfigElements()));
 
+        // === 模块25：连击计数 ===
+        elements.add(new DummyConfigElement.DummyCategoryElement(
+                "bhud.combo", "bhud.combo", getComboConfigElements()));
+
         return elements;
     }
 
@@ -462,5 +466,13 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.crisis.arrow", "bhud.crisis.arrow", el(
                 "crisisWarnArrow", "crisisArrowRadius")));
         return list;
+    }
+
+    // ================================================================
+    //  模块25：连击计数
+    // ================================================================
+    private static List<IConfigElement> getComboConfigElements() {
+        return catEl(el("enableCombo", "comboXOffset", "comboYOffset"),
+                "bhud.combo", "bhud.combo");
     }
 }

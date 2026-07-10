@@ -865,6 +865,16 @@ public class BetterPlayerHUDConfig {
             p.comment = "闪烁周期(ticks)"; crisisFlashInterval = p.getInt();
         }
 
+        // --- 模块25：连击计数 ---
+        {
+            Property p = config.get(C, "enableCombo", true);
+            p.comment = "启用连击计数(Combo Display)"; enableCombo = p.getBoolean();
+            p = config.get(C, "comboXOffset", 0);
+            p.comment = "X偏移(右下偏移)"; comboXOffset = p.getInt();
+            p = config.get(C, "comboYOffset", 0);
+            p.comment = "Y偏移(右下偏移)"; comboYOffset = p.getInt();
+        }
+
         // --- 模块21：命中标识 ---
         {
             Property p = config.get(C, "enableHitMarker", true);
@@ -1116,6 +1126,11 @@ public class BetterPlayerHUDConfig {
         config.get(C, "crisisYOffset", 0).set(crisisYOffset);
         config.get(C, "crisisIconSize", 72).set(crisisIconSize);
         config.get(C, "crisisFlashInterval", 20).set(crisisFlashInterval);
+
+        // --- 模块25：连击计数 ---
+        config.get(C, "enableCombo", true).set(enableCombo);
+        config.get(C, "comboXOffset", 0).set(comboXOffset);
+        config.get(C, "comboYOffset", 0).set(comboYOffset);
 
         // --- 模块21：命中标识 ---
         config.get(C, "enableHitMarker", true).set(enableHitMarker);
