@@ -353,19 +353,27 @@ public class BetterPlayerHUDConfig {
         config.getCategory(C).remove("pingGoodColor");
         config.getCategory(C).remove("pingMediumColor");
         config.getCategory(C).remove("pingBadColor");
+        // 旧键名迁移（已改为不带 Offset 后缀 & compassScale→scale）
+        config.getCategory(C).remove("xPositionOffset");
+        config.getCategory(C).remove("yPositionOffset");
+        config.getCategory(C).remove("compassScale");
+        config.getCategory(C).remove("healthHudXOffset");
+        config.getCategory(C).remove("healthHudYOffset");
+        config.getCategory(C).remove("distanceHudXOffset");
+        config.getCategory(C).remove("distanceHudYOffset");
 
         // --- 模块1：罗盘 HUD ---
         {
             Property p = config.get(C, "showCompassHUD", true);
             p.comment = "是否显示罗盘HUD"; showCompassHUD = p.getBoolean();
 
-            p = config.get(C, "xPositionOffset", 0);
+            p = config.get(C, "xPosition", 0);
             p.comment = "罗盘X轴偏移量"; xPosition = p.getInt();
 
-            p = config.get(C, "yPositionOffset", 50);
+            p = config.get(C, "yPosition", 50);
             p.comment = "罗盘Y轴偏移量"; yPosition = p.getInt();
 
-            p = config.get(C, "compassScale", 1.0f);
+            p = config.get(C, "scale", 1.0f);
             p.comment = "罗盘缩放比例"; scale = (float) p.getDouble();
 
             p = config.get(C, "displayStyle", "detailed");
@@ -397,10 +405,10 @@ public class BetterPlayerHUDConfig {
             Property p = config.get(C, "showHealthHUD", true);
             p.comment = "是否显示血量HUD"; showHealthHUD = p.getBoolean();
 
-            p = config.get(C, "healthHudXOffset", 10);
+            p = config.get(C, "healthHudX", 10);
             p.comment = "血量HUD X坐标偏移"; healthHudX = p.getInt();
 
-            p = config.get(C, "healthHudYOffset", -50);
+            p = config.get(C, "healthHudY", -50);
             p.comment = "血量HUD Y坐标偏移"; healthHudY = p.getInt();
 
             healthColorSafe = loadColor(C, "healthColorSafe", 0, 255, 0);
@@ -434,10 +442,10 @@ public class BetterPlayerHUDConfig {
             Property p = config.get(C, "showDistanceHUD", true);
             p.comment = "是否显示距离HUD"; showDistanceHUD = p.getBoolean();
 
-            p = config.get(C, "distanceHudXOffset", 490);
+            p = config.get(C, "distanceHudX", 490);
             p.comment = "距离HUD X坐标偏移"; distanceHudX = p.getInt();
 
-            p = config.get(C, "distanceHudYOffset", 280);
+            p = config.get(C, "distanceHudY", 280);
             p.comment = "距离HUD Y坐标偏移"; distanceHudY = p.getInt();
 
             distanceColor = loadColor(C, "distanceColor", 85, 255, 255);
@@ -909,9 +917,9 @@ public class BetterPlayerHUDConfig {
 
         // --- 模块1 ---
         config.get(C, "showCompassHUD", true).set(showCompassHUD);
-        config.get(C, "xPositionOffset", 0).set(xPosition);
-        config.get(C, "yPositionOffset", 50).set(yPosition);
-        config.get(C, "compassScale", 1.0f).set(scale);
+        config.get(C, "xPosition", 0).set(xPosition);
+        config.get(C, "yPosition", 50).set(yPosition);
+        config.get(C, "scale", 1.0f).set(scale);
         config.get(C, "displayStyle", "detailed").set(displayStyle);
         config.get(C, "showDegreeMarks", true).set(showDegreeMarks);
         config.get(C, "showCompassNeedle", true).set(showCompassNeedle);
@@ -923,8 +931,8 @@ public class BetterPlayerHUDConfig {
 
         // --- 模块2 ---
         config.get(C, "showHealthHUD", true).set(showHealthHUD);
-        config.get(C, "healthHudXOffset", 10).set(healthHudX);
-        config.get(C, "healthHudYOffset", -50).set(healthHudY);
+        config.get(C, "healthHudX", 10).set(healthHudX);
+        config.get(C, "healthHudY", -50).set(healthHudY);
         saveColor(C, "healthColorSafe", healthColorSafe);
         saveColor(C, "healthColorWarning", healthColorWarning);
         saveColor(C, "healthColorDanger", healthColorDanger);
@@ -938,8 +946,8 @@ public class BetterPlayerHUDConfig {
 
         // --- 模块7 ---
         config.get(C, "showDistanceHUD", true).set(showDistanceHUD);
-        config.get(C, "distanceHudXOffset", 490).set(distanceHudX);
-        config.get(C, "distanceHudYOffset", 280).set(distanceHudY);
+        config.get(C, "distanceHudX", 490).set(distanceHudX);
+        config.get(C, "distanceHudY", 280).set(distanceHudY);
         saveColor(C, "distanceColor", distanceColor);
         config.get(C, "distancePrecision", 1).set(distancePrecision);
         config.get(C, "showTargetInfo", true).set(showTargetInfo);

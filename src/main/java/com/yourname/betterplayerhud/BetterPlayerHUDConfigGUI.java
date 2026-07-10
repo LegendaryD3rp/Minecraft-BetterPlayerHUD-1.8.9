@@ -262,7 +262,7 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.blockoutline.basic", "bhud.blockoutline.basic", el(
                 "enableBlockHighlight", "blockOutlineWidth")));
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.blockoutline.face", "bhud.blockoutline.face", el(
-                "drawVisibleFacesOnly", "drawVisibleFacesOnlyBlocks")));
+                "drawVisibleFacesOnlyBlocks")));
         List<IConfigElement> colorList = new ArrayList<>();
         ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "blockOutlineColor");
         list.add(ColorPreviewHelper.createPreviewCategory("bhud.blockoutline.color", "bhud.blockoutline.color", colorList,
