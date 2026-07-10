@@ -67,9 +67,11 @@ public class BetterPlayerHUD {
                 (x) -> config.armorXOffset = x, (y) -> config.armorYOffset = y,
                 0, 0,
                 (absX, absY, sw, sh) -> {
-                    // hotbarLeft = sw/2 - 91 + offsetX → offsetX = absX - sw/2 + 91
-                    // hotbarY = sh-22 + offsetY → offsetY = absY - sh + 22
-                    return new int[]{ absX - sw / 2 + 91, absY - sh + 22 };
+                    // reportX = hotbarLeft - gapX - slotSize = (sw/2-91+offsetX)-4-20
+                    // reportY = hotbarY - slotSize - gapY = (sh-22+offsetY)-20-2
+                    // → offsetX = absX - sw/2 + 115    (91+4+20)
+                    // → offsetY = absY - sh + 44       (22+20+2)
+                    return new int[]{ absX - sw / 2 + 115, absY - sh + 44 };
                 });
         HUDEditManager.setDefaultSize("装甲栏", 100, 50);
         HUDEditManager.register("手持物品",
