@@ -46,6 +46,8 @@ public class HUDEditManager {
     private static final Map<String, PosConverter> posConverters = new LinkedHashMap<>();
     /** 模块名 → 默认位置（用于重置） */
     private static final Map<String, int[]> defaultPositions = new LinkedHashMap<>();
+    /** 模块名 → 默认placeholder尺寸（宽,高），用于从未有状态的模块 */
+    private static final Map<String, int[]> defaultSizes = new LinkedHashMap<>();
 
     /** 单例实例（用于 Forge 事件总线注册） */
     public static final HUDEditManager INSTANCE = new HUDEditManager();
@@ -119,6 +121,24 @@ public class HUDEditManager {
         sizeSetters.put(name, setSize);
     }
 
+    /** 设置默认placeholder尺寸（用于从未有过状态的模块在F7中仍可显示） */
+    public static void setDefaultSize(String name, int w, int h) {
+        defaultSizes.put(name, new int[]{w, h});
+    }
+
+    /** 进入编辑模式时填充从未有状态的模块为placeholder矩形 */
+    public static void fillPlaceholders() {
+        for (String name : currentPositions.keySet()) {
+            Rectangle r = currentPositions.get(name);
+            if (r == null || r.width <= 0 || r.height <= 0) {
+                int[] ds = defaultSizes.get(name);
+                if (ds == null) continue;
+                int[] dp = defaultPositions.get(name);
+                r.setBounds(dp[0], dp[1], ds[0], ds[1]);
+            }
+        }
+    }
+
     /** Handler 渲染完后调用，上报当前位置（屏幕绝对坐标） */
     public static void report(String name, int x, int y, int w, int h) {
         if (activeScreen == null) return;
@@ -150,6 +170,7 @@ public class HUDEditManager {
 
         while (keyEditMode.isPressed()) {
             if (activeScreen == null) {
+                fillPlaceholders();
                 activeScreen = new GuiEditScreen();
                 mc.displayGuiScreen(activeScreen);
             } else {
@@ -199,7 +220,13 @@ public class HUDEditManager {
             // 绘制所有模块的拖拽框
             for (Map.Entry<String, Rectangle> e : currentPositions.entrySet()) {
                 Rectangle r = e.getValue();
-                if (r == null || r.width <= 0 || r.height <= 0) continue;
+                // 从未有状态的模块 → 用默认placeholder替代
+                if (r == null || r.width <= 0 || r.height <= 0) {
+                    int[] ds = defaultSizes.get(e.getKey());
+                    if (ds == null) continue;
+                    int[] dp = defaultPositions.get(e.getKey());
+                    r = new Rectangle(dp[0], dp[1], ds[0], ds[1]);
+                }
 
                 String name = e.getKey();
                 boolean isHovered = r.contains(mouseX, mouseY);

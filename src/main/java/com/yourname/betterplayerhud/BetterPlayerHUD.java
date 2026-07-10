@@ -31,10 +31,15 @@ public class BetterPlayerHUD {
         // 注册可拖拽模块的偏移设置器（编辑模式使用）
         // 绝对坐标模块：编辑时的绝对坐标 = config 值（负值 = 右/下对齐）
         HUDEditManager.register("罗盘",      (x) -> config.xPosition = x,       (y) -> config.yPosition = y,       0, 50);
+        HUDEditManager.setDefaultSize("罗盘", 100, 20);
         HUDEditManager.register("状态栏",    (x) -> config.healthHudX = x,     (y) -> config.healthHudY = y,       10, -50);
+        HUDEditManager.setDefaultSize("状态栏", 200, 30);
         HUDEditManager.register("距离信息",  (x) -> config.distanceHudX = x,   (y) -> config.distanceHudY = y,     490, 280);
+        HUDEditManager.setDefaultSize("距离信息", 120, 12);
         HUDEditManager.register("按键显示",  (x) -> config.keysDisplayX = x,   (y) -> config.keysDisplayY = y,     10, 150);
+        HUDEditManager.setDefaultSize("按键显示", 100, 50);
         HUDEditManager.register("性能检测",  (x) -> config.performanceHudX = x,(y) -> config.performanceHudY = y,  5, 65);
+        HUDEditManager.setDefaultSize("性能检测", 130, 80);
 
         // Offset 模块：编辑时的绝对坐标 → PosConverter 转成偏移值
         HUDEditManager.register("目标血量",
@@ -46,6 +51,7 @@ public class BetterPlayerHUD {
                     int bw = config.targetHPBarWidth;
                     return new int[]{ absX - sw / 2 + bw / 2, absY - sh + 17 };
                 });
+        HUDEditManager.setDefaultSize("目标血量", 140, 40);
         HUDEditManager.register("药水效果",
                 (x) -> config.potionXOffset = x, (y) -> config.potionYOffset = y,
                 0, 0,
@@ -54,6 +60,7 @@ public class BetterPlayerHUD {
                     // y = sh-20 + offsetY → offsetY = absY - sh + 20
                     return new int[]{ absX - 2, absY - sh + 20 };
                 });
+        HUDEditManager.setDefaultSize("药水效果", 160, 26);
         HUDEditManager.register("装甲栏",
                 (x) -> config.armorXOffset = x, (y) -> config.armorYOffset = y,
                 0, 0,
@@ -62,6 +69,7 @@ public class BetterPlayerHUD {
                     // hotbarY = sh-22 + offsetY → offsetY = absY - sh + 22
                     return new int[]{ absX - sw / 2 + 91, absY - sh + 22 };
                 });
+        HUDEditManager.setDefaultSize("装甲栏", 100, 50);
         HUDEditManager.register("手持物品",
                 (x) -> config.heldItemXOffset = x, (y) -> config.heldItemYOffset = y,
                 0, 0,
@@ -70,6 +78,7 @@ public class BetterPlayerHUD {
                     // y = sh - fontHeight(9) - 2 + offsetY → offsetY = absY - sh + 11
                     return new int[]{ absX - 2, absY - sh + 11 };
                 });
+        HUDEditManager.setDefaultSize("手持物品", 200, 12);
         // 危机警戒（偏移模式：居中坐标 + offset）
         HUDEditManager.register("危机警戒",
                 (x) -> config.crisisXOffset = x, (y) -> config.crisisYOffset = y,
@@ -81,6 +90,7 @@ public class BetterPlayerHUD {
                     int guessW = config.crisisIconSize * 2 + Math.max(config.crisisIconSize / 3, 4);
                     return new int[]{ absX - sw / 2 + guessW / 2, absY - sh / 2 + 60 };
                 });
+        HUDEditManager.setDefaultSize("危机警戒", 60, 24);
 
         // Ctrl+滚轮调大小（支持有scale/size参数的模块）
         HUDEditManager.setSize("罗盘", (d) -> {
