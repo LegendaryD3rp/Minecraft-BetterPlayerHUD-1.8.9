@@ -255,7 +255,6 @@ public class BetterPlayerHUDConfig {
     public boolean enablePotionTimer = true;
     public int potionTimerXOffset = 0;
     public int potionTimerYOffset = 0;
-    public double potionTimerScale = 1.0;
 
     // ================================================================
     //  模块21：命中标识 (Hit Marker)
