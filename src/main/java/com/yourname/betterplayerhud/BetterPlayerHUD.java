@@ -192,28 +192,13 @@ public class BetterPlayerHUD {
                 (x) -> config.potionTimerXOffset = x, (y) -> config.potionTimerYOffset = y,
                 0, 0,
                 (absX, absY, sw, sh) -> {
-                    // placeholder: report(cx-80, cy, 160, 30)
-                    // cx = sw/2 + offsetX, cy = 4 + offsetY
-                    // absX = sw/2 + offsetX - 80, absY = 4 + offsetY
-                    // → offsetX = absX - sw/2 + 80, offsetY = absY - 4
-                    return new int[]{ absX - sw / 2 + 80, absY - 4 };
+                    // placeholder: phX = centerX - 100, where centerX = sw/2 + offsetX
+                    // absX = sw/2 + offsetX - 100, absY = 4 + offsetY
+                    // → offsetX = absX - sw/2 + 100, offsetY = absY - 4
+                    return new int[]{ absX - sw / 2 + 100, absY - 4 };
                 });
-        HUDEditManager.setDefaultSize("药水计时器", 200, 22);
+        HUDEditManager.setDefaultSize("药水计时器", 200, 40);
         MinecraftForge.EVENT_BUS.register(new PotionTimerHandler());
-
-        // 注册牛奶倒计时（模块27）
-        HUDEditManager.register("牛奶倒计时",
-                (x) -> config.milkTimerXOffset = x, (y) -> config.milkTimerYOffset = y,
-                0, 0,
-                (absX, absY, sw, sh) -> {
-                    // placeholder: report(cx-60, cy, 120, 22)
-                    // cx = sw/2 + offsetX, cy = 4 + offsetY
-                    // absX = sw/2 + offsetX - 60, absY = 4 + offsetY
-                    // → offsetX = absX - sw/2 + 60, offsetY = absY - 4
-                    return new int[]{ absX - sw / 2 + 60, absY - 4 };
-                });
-        HUDEditManager.setDefaultSize("牛奶倒计时", 120, 22);
-        MinecraftForge.EVENT_BUS.register(new MilkTimerHandler());
     }
 
     /**

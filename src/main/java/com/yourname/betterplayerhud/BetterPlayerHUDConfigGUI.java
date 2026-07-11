@@ -156,10 +156,6 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
         elements.add(new DummyConfigElement.DummyCategoryElement(
                 "bhud.potiontimer", "bhud.potiontimer", getPotionTimerConfigElements()));
 
-        // === 模块27：牛奶倒计时 ===
-        elements.add(new DummyConfigElement.DummyCategoryElement(
-                "bhud.milktimer", "bhud.milktimer", getMilkTimerConfigElements()));
-
         // === 模块23：装备&手持物品 HUD ===
         elements.add(new DummyConfigElement.DummyCategoryElement(
                 "bhud.equip", "bhud.equip", getEquipConfigElements()));
@@ -462,16 +458,6 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
         List<IConfigElement> list = new ArrayList<>();
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.potiontimer.basic", "bhud.potiontimer.basic", el(
                 "enablePotionTimer", "potionTimerXOffset", "potionTimerYOffset")));
-        return list;
-    }
-
-    // ================================================================
-    //  模块27：牛奶倒计时
-    // ================================================================
-    private static List<IConfigElement> getMilkTimerConfigElements() {
-        List<IConfigElement> list = new ArrayList<>();
-        list.add(new DummyConfigElement.DummyCategoryElement("bhud.milktimer.basic", "bhud.milktimer.basic", el(
-                "enableMilkTimer", "milkTimerXOffset", "milkTimerYOffset")));
         return list;
     }
 

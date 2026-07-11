@@ -4,28 +4,85 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.RenderHelper;
+import net.minecraft.init.Items;
+import net.minecraft.item.ItemStack;
 import net.minecraft.potion.Potion;
 import net.minecraft.potion.PotionEffect;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
+import net.minecraftforge.event.entity.player.PlayerUseItemEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.PlayerEvent;
+import net.minecraftforge.fml.common.gameevent.TickEvent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import java.util.Collection;
 
 /**
- * 模块26：药水计时器 — 屏幕正上方横向大字体
+ * 模块26：药水+牛奶合并计时器 — 屏幕正上方横向
  *
- * 独立于原有的药水效果 HUD（模块22），位置、大小、风格完全不同。
- * 每个活跃药水显示：[图标] 药水名 时长
- * 水平排列，居中于屏幕顶部。
+ * 每个活跃药水显示：[大图标] 时长（无名称）
+ * 牛奶效果（起床战争风格）也整合在此，显示：[奶桶] 剩余秒数
+ * 图标2倍大，整体醒目。
  */
 @SideOnly(Side.CLIENT)
 public class PotionTimerHandler {
 
     private static final Minecraft mc = Minecraft.getMinecraft();
     private static final ResourceLocation INVENTORY_TEXTURE = new ResourceLocation("textures/gui/container/inventory.png");
+
+    /** 图标尺寸（2倍原版 18px） */
+    private static final int ICON_SIZE = 36;
+    /** 图标到文字的间距 */
+    private static final int GAP = 6;
+    /** 每项之间的间距 */
+    private static final int SPACING = 16;
+
+    // ── 牛奶倒计时 ──
+    private int milkTicks = 0;
+    private boolean pendingMilkReset = false;
+
+    @SubscribeEvent
+    public void onItemUseFinish(PlayerUseItemEvent.Finish event) {
+        if (event.entityPlayer == mc.thePlayer
+                && event.result != null
+                && event.result.getItem() == Items.milk_bucket) {
+            milkTicks = 600; // 30秒
+        }
+    }
+
+    @SubscribeEvent
+    public void onPlayerTick(TickEvent.PlayerTickEvent event) {
+        if (event.player != mc.thePlayer) return;
+        if (event.phase != TickEvent.Phase.END) return;
+
+        if (pendingMilkReset) { milkTicks = 0; pendingMilkReset = false; return; }
+        if (milkTicks > 0) {
+            milkTicks--;
+            if (mc.thePlayer != null && mc.thePlayer.isDead) milkTicks = 0;
+        }
+    }
+
+    @SubscribeEvent
+    public void onPlayerChangedDimension(PlayerEvent.PlayerChangedDimensionEvent e) {
+        if (e.player == mc.thePlayer) pendingMilkReset = true;
+    }
+
+    @SubscribeEvent
+    public void onPlayerRespawn(PlayerEvent.PlayerRespawnEvent e) {
+        if (e.player == mc.thePlayer) milkTicks = 0;
+    }
+
+    @SubscribeEvent
+    public void onPlayerLogout(PlayerEvent.PlayerLoggedOutEvent e) {
+        if (e.player == mc.thePlayer) milkTicks = 0;
+    }
+
+    // ───────────────────────────────────────────────
+    //  渲染
+    // ───────────────────────────────────────────────
 
     @SubscribeEvent
     public void onRenderGameOverlay(RenderGameOverlayEvent.Post event) {
@@ -40,105 +97,146 @@ public class PotionTimerHandler {
         int sw = sr.getScaledWidth();
         int sh = sr.getScaledHeight();
 
-        // 编辑模式 placeholder
-        if ((effects == null || effects.isEmpty())) {
+        int centerX = sw / 2 + cfg.potionTimerXOffset;
+        int topY = 4 + cfg.potionTimerYOffset;
+
+        // ── 构建条目列表 ──
+        java.util.List<Entry> entries = new java.util.ArrayList<>();
+
+        // 药水
+        if (effects != null) {
+            for (PotionEffect pe : effects) {
+                Potion potion = Potion.potionTypes[pe.getPotionID()];
+                if (potion == null) continue;
+                entries.add(new PotionEntry(potion, pe));
+            }
+        }
+
+        // 牛奶
+        if (milkTicks > 0) {
+            entries.add(new MilkEntry(milkTicks));
+        }
+
+        // 无任何条目 → placeholder（仅编辑模式）
+        if (entries.isEmpty()) {
             if (HUDEditManager.isEditing()) {
-                int cx = sw / 2 + cfg.potionTimerXOffset;
-                int cy = 4 + cfg.potionTimerYOffset;
-                HUDEditManager.report("药水计时器", cx - 80, cy, 160, 30);
+                int phX = centerX - 100;
+                HUDEditManager.report("药水计时器", phX, topY, 200, ICON_SIZE + 4);
             }
             return;
         }
 
-        int centerX = sw / 2 + cfg.potionTimerXOffset;
-        int topY = 4 + cfg.potionTimerYOffset;
+        // ── 计算总宽度 ──
+        int totalW = 0;
+        for (int i = 0; i < entries.size(); i++) {
+            totalW += entries.get(i).width();
+            if (i < entries.size() - 1) totalW += SPACING;
+        }
 
+        int startX = centerX - totalW / 2;
+
+        // ── 渲染 ──
         GlStateManager.enableBlend();
         GlStateManager.disableAlpha();
         GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
 
-        // 第一遍计算总宽度，以便居中
-        int totalWidth = 0;
-        int itemCount = 0;
-        final int spacing = 12; // 两药水间距
-
-        for (PotionEffect effect : effects) {
-            Potion potion = Potion.potionTypes[effect.getPotionID()];
-            if (potion == null) continue;
-
-            String name = getPotionLocalizedName(potion, effect);
-            int timeSec = effect.getDuration() / 20;
-            String timeStr = formatTime(timeSec);
-            String line = name + " " + timeStr;
-
-            int w = 22 + mc.fontRendererObj.getStringWidth(line); // icon(18) + gap(4) + text
-            totalWidth += w + spacing;
-            itemCount++;
+        int curX = startX;
+        for (Entry entry : entries) {
+            entry.render(curX, topY);
+            curX += entry.width() + SPACING;
         }
 
-        if (itemCount == 0) return;
-        totalWidth -= spacing; // 去掉最后一个间距
-        int startX = centerX - totalWidth / 2;
+        // 编辑报告（固定框，覆盖所有条目）
+        if (HUDEditManager.isEditing()) {
+            int totalH = ICON_SIZE + 4;
+            HUDEditManager.report("药水计时器", startX, topY, totalW, totalH);
+        }
+    }
 
-        // 第二遍渲染
-        int curX = startX;
-        for (PotionEffect effect : effects) {
-            Potion potion = Potion.potionTypes[effect.getPotionID()];
-            if (potion == null) continue;
+    // ═══════════════════════════════════════════════════
+    //  条目抽象
+    // ═══════════════════════════════════════════════════
 
-            // 药水颜色（取对应药水的颜色值，用于文字染色）
-            int color = potion.getLiquidColor();
-            // 确保不透明
-            color = (color & 0x00FFFFFF) | 0xFF000000;
+    private interface Entry {
+        int width();
+        void render(int x, int y);
+    }
 
+    // ── 药水条目 ──
+
+    private static class PotionEntry implements Entry {
+        final Potion potion;
+        final PotionEffect effect;
+        final String timeStr;
+        final int timeW;
+        final int totalW;
+
+        PotionEntry(Potion potion, PotionEffect effect) {
+            this.potion = potion;
+            this.effect = effect;
+            int totalSec = effect.getDuration() / 20;
+            this.timeStr = formatTime(totalSec);
+            this.timeW = mc.fontRendererObj.getStringWidth(timeStr);
+            this.totalW = ICON_SIZE + GAP + timeW;
+        }
+
+        @Override public int width() { return totalW; }
+
+        @Override
+        public void render(int x, int y) {
             // 图标
             int iconIndex = potion.getStatusIconIndex();
             int u = iconIndex % 8 * 18;
             int v = 198 + iconIndex / 8 * 18;
 
             mc.getTextureManager().bindTexture(INVENTORY_TEXTURE);
-            Gui.drawModalRectWithCustomSizedTexture(curX, topY, (float) u, (float) v, 18, 18, 256.0f, 256.0f);
+            Gui.drawModalRectWithCustomSizedTexture(x, y, (float) u, (float) v, ICON_SIZE, ICON_SIZE, 256.0f, 256.0f);
 
-            // 文字
-            String name = getPotionLocalizedName(potion, effect);
-            int timeSec = effect.getDuration() / 20;
-            String timeStr = formatTime(timeSec);
-            String line = name + " " + timeStr;
-
-            int tx = curX + 22;
-            int ty = topY + 5;
-            mc.fontRendererObj.drawStringWithShadow(line, tx, ty, color);
-
-            curX += 22 + mc.fontRendererObj.getStringWidth(line) + spacing;
-        }
-
-        // F7 编辑报告：固定 200px 宽居中，避免因药水数量变化导致 PosConverter 不一致
-        if (HUDEditManager.isEditing()) {
-            HUDEditManager.report("药水计时器", centerX - 100, topY, 200, 22);
+            // 时长文字（药水颜色）
+            int color = (potion.getLiquidColor() & 0x00FFFFFF) | 0xFF000000;
+            mc.fontRendererObj.drawStringWithShadow(timeStr, x + ICON_SIZE + GAP, y + (ICON_SIZE - 9) / 2, color);
         }
     }
 
-    /** 获取药水本地化名（如 "力量"、"速度"） */
-    private String getPotionLocalizedName(Potion potion, PotionEffect effect) {
-        String name = potion.getName();
-        // 去掉 "potion." 前缀
-        if (name.startsWith("potion.")) name = name.substring(7);
+    // ── 牛奶条目 ──
 
-        int amp = effect.getAmplifier();
-        if (amp > 0) {
-            String[] suffixes = {"", " II", " III", " IV", " V", " VI", " VII", " VIII", " IX", " X"};
-            if (amp < suffixes.length) {
-                name += suffixes[amp];
-            } else {
-                name += " " + (amp + 1);
-            }
+    private static class MilkEntry implements Entry {
+        final String text;
+        final int textW;
+        final int totalW;
+
+        MilkEntry(int ticks) {
+            int sec = (ticks + 19) / 20;
+            this.text = sec + "s";
+            this.textW = mc.fontRendererObj.getStringWidth(text);
+            this.totalW = ICON_SIZE + GAP + textW;
         }
 
-        return name;
+        @Override public int width() { return totalW; }
+
+        @Override
+        public void render(int x, int y) {
+            // 奶桶图标（36x36）
+            RenderHelper.enableGUIStandardItemLighting();
+            ItemStack milk = new ItemStack(Items.milk_bucket);
+            mc.getRenderItem().renderItemAndEffectIntoGUI(milk, x + (ICON_SIZE - 16) / 2, y + (ICON_SIZE - 16) / 2);
+            RenderHelper.disableStandardItemLighting();
+
+            // 秒数文字
+            int ticks = ((MilkEntry) this).text.equals("0s") ? 0 : Integer.parseInt(text.replace("s", ""));
+            int color;
+            int secNum;
+            try { secNum = Integer.parseInt(text.replace("s", "")); } catch (Exception e) { secNum = 999; }
+            if (secNum <= 5 && secNum % 2 == 0) color = 0xFF5555;
+            else if (secNum <= 5)                color = 0xFFAAAA;
+            else                                 color = 0xFFFFFF;
+            mc.fontRendererObj.drawStringWithShadow(text, x + ICON_SIZE + GAP, y + (ICON_SIZE - 9) / 2, color);
+        }
     }
 
-    /** 格式化时间为 mm:ss 或 h:mm:ss */
-    private String formatTime(int totalSec) {
+    // ── 工具方法 ──
+
+    private static String formatTime(int totalSec) {
         if (totalSec >= 3600) {
             return String.format("%d:%02d:%02d", totalSec / 3600, (totalSec % 3600) / 60, totalSec % 60);
         } else {
