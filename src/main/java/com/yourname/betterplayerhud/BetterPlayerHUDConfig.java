@@ -265,6 +265,13 @@ public class BetterPlayerHUDConfig {
     public double potionTimerScale = 1.0;
 
     // ================================================================
+    //  模块27：牛奶倒计时
+    // ================================================================
+    public boolean enableMilkTimer = true;
+    public int milkTimerXOffset = 0;
+    public int milkTimerYOffset = 0;
+
+    // ================================================================
     //  模块21：命中标识 (Hit Marker)
     // ================================================================
     public boolean enableHitMarker = true;
@@ -847,6 +854,16 @@ public class BetterPlayerHUDConfig {
             p.comment = "药水计时器 Y偏移"; potionTimerYOffset = p.getInt();
         }
 
+        // --- 模块27：牛奶倒计时 ---
+        {
+            Property p = config.get(C, "enableMilkTimer", true);
+            p.comment = "喝牛奶后30秒倒计时（起床战争风格）"; enableMilkTimer = p.getBoolean();
+            p = config.get(C, "milkTimerXOffset", 0);
+            p.comment = "牛奶倒计时 X偏移"; milkTimerXOffset = p.getInt();
+            p = config.get(C, "milkTimerYOffset", 0);
+            p.comment = "牛奶倒计时 Y偏移"; milkTimerYOffset = p.getInt();
+        }
+
         // --- 模块23：装备&手持物品 HUD ---
         {
             Property p = config.get(C, "enableArmorHUD", false);
@@ -1151,6 +1168,9 @@ public class BetterPlayerHUDConfig {
         config.get(C, "enablePotionTimer", true).set(enablePotionTimer);
         config.get(C, "potionTimerXOffset", 0).set(potionTimerXOffset);
         config.get(C, "potionTimerYOffset", 0).set(potionTimerYOffset);
+        config.get(C, "enableMilkTimer", true).set(enableMilkTimer);
+        config.get(C, "milkTimerXOffset", 0).set(milkTimerXOffset);
+        config.get(C, "milkTimerYOffset", 0).set(milkTimerYOffset);
 
         // --- 模块23：装备&手持物品 HUD ---
         config.get(C, "enableArmorHUD", true).set(enableArmorHUD);

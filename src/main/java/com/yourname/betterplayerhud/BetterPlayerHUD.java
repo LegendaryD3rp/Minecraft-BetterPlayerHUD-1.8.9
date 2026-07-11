@@ -201,6 +201,20 @@ public class BetterPlayerHUD {
         HUDEditManager.setDefaultSize("药水计时器", 200, 22);
         MinecraftForge.EVENT_BUS.register(new PotionTimerHandler());
 
+        // 注册牛奶倒计时（模块27）
+        HUDEditManager.register("牛奶倒计时",
+                (x) -> config.milkTimerXOffset = x, (y) -> config.milkTimerYOffset = y,
+                0, 0,
+                (absX, absY, sw, sh) -> {
+                    // placeholder: report(cx-60, cy, 120, 22)
+                    // cx = sw/2 + offsetX, cy = 4 + offsetY
+                    // absX = sw/2 + offsetX - 60, absY = 4 + offsetY
+                    // → offsetX = absX - sw/2 + 60, offsetY = absY - 4
+                    return new int[]{ absX - sw / 2 + 60, absY - 4 };
+                });
+        HUDEditManager.setDefaultSize("牛奶倒计时", 120, 22);
+        MinecraftForge.EVENT_BUS.register(new MilkTimerHandler());
+
         // 注册连击计数（模块25）
         HUDEditManager.register("连击计数",
                 (x) -> config.comboXOffset = x, (y) -> config.comboYOffset = y,

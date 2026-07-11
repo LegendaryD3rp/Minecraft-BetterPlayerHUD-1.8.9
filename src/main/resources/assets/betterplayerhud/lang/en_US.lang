@@ -277,6 +277,13 @@ enablePotionTimer=Enable Potion Timer
 potionTimerXOffset=X Offset
 potionTimerYOffset=Y Offset
 
+# ── Milk Timer ──
+bhud.milktimer=Milk Timer
+bhud.milktimer.basic=Basic
+enableMilkTimer=Enable Milk Timer
+milkTimerXOffset=X Offset
+milkTimerYOffset=Y Offset
+
 # ── Equip HUD ──
 bhud.equip=Equip & Item Info
 bhud.equip.basic=Basic

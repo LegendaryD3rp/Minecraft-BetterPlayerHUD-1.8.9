@@ -277,6 +277,13 @@ enablePotionTimer=启用药水计时器
 potionTimerXOffset=X 偏移
 potionTimerYOffset=Y 偏移
 
+# ── 牛奶倒计时 ──
+bhud.milktimer=牛奶倒计时
+bhud.milktimer.basic=基本
+enableMilkTimer=启用牛奶倒计时
+milkTimerXOffset=X 偏移
+milkTimerYOffset=Y 偏移
+
 # ── 装备&手持物品 HUD ──
 bhud.equip=装备&手持物品
 bhud.equip.basic=基本
