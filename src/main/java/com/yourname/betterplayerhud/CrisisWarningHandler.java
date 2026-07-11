@@ -47,7 +47,30 @@ public class CrisisWarningHandler {
         // Y 位置：屏幕上半部分 + 偏移（向上偏移，更显眼）
         int topY = screenHeight / 2 - 120 + cfg.crisisYOffset;
 
-        // 闪烁
+        // ── 消退计时器提前处理（不受闪烁影响，保证精确计时） ──
+        if (cfg.crisisWarnArrow) {
+            double radiusSq = cfg.crisisArrowRadius * cfg.crisisArrowRadius;
+            boolean arrowNear = false;
+            double px = mc.thePlayer.posX, py = mc.thePlayer.posY, pz = mc.thePlayer.posZ;
+            for (Object o : mc.theWorld.loadedEntityList) {
+                if (o instanceof EntityArrow) {
+                    EntityArrow arrow = (EntityArrow) o;
+                    // 排除自己射出的箭
+                    if (arrow.shootingEntity == mc.thePlayer) continue;
+                    double dx = arrow.posX - px, dy = arrow.posY - py, dz = arrow.posZ - pz;
+                    if (dx * dx + dy * dy + dz * dz <= radiusSq) {
+                        arrowNear = true; break;
+                    }
+                }
+            }
+            if (arrowNear) {
+                arrowWarnCooldown = 80; // persist 4 seconds (80 ticks)
+            } else if (arrowWarnCooldown > 0) {
+                arrowWarnCooldown--; // 每 tick 精确递减，不受闪烁影响
+            }
+        }
+
+        // ── 闪烁 ──
         boolean flashOn = (mc.theWorld.getTotalWorldTime() % cfg.crisisFlashInterval) < (cfg.crisisFlashInterval / 2);
         if (!flashOn) return;
 
@@ -100,29 +123,9 @@ public class CrisisWarningHandler {
             }
             if (explosiveNear) { types.add(2); stacks.add(ICON_TNT); }
         }
-        // 附近非己射出的飞行箭矢（带消退计时，持续约4秒）
-        if (cfg.crisisWarnArrow) {
-            double radiusSq = cfg.crisisArrowRadius * cfg.crisisArrowRadius;
-            boolean arrowNear = false;
-            double px = mc.thePlayer.posX, py = mc.thePlayer.posY, pz = mc.thePlayer.posZ;
-            for (Object o : mc.theWorld.loadedEntityList) {
-                if (o instanceof EntityArrow) {
-                    EntityArrow arrow = (EntityArrow) o;
-                    // 排除自己射出的箭
-                    if (arrow.shootingEntity == mc.thePlayer) continue;
-                    double dx = arrow.posX - px, dy = arrow.posY - py, dz = arrow.posZ - pz;
-                    if (dx * dx + dy * dy + dz * dz <= radiusSq) {
-                        arrowNear = true; break;
-                    }
-                }
-            }
-            if (arrowNear) {
-                arrowWarnCooldown = 80; // persist 4 seconds (80 ticks)
-                types.add(4); stacks.add(ICON_BOW);
-            } else if (arrowWarnCooldown > 0) {
-                arrowWarnCooldown--;
-                types.add(4); stacks.add(ICON_BOW);
-            }
+        // 箭矢警告（消退计时已提前处理，此处仅判断是否显示）
+        if (cfg.crisisWarnArrow && arrowWarnCooldown > 0) {
+            types.add(4); stacks.add(ICON_BOW);
         }
 
         if (types.isEmpty()) {
