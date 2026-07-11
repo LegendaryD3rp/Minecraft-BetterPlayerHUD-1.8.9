@@ -240,6 +240,7 @@ crosshairColorPassive=Passive Color
 crosshairColorNeutral=Neutral Color
 crosshairColorOther=Other Entity Color
 crosshairEntityRange=Entity Detection Range
+crosshairIgnoreInvisible=Ignore Invisible Entities
 
 # ── Hit Marker ──
 enableHitMarker=Enable Hit Marker

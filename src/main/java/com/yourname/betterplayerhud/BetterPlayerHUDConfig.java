@@ -202,6 +202,7 @@ public class BetterPlayerHUDConfig {
     public int crosshairColorNeutral = 0xFFFFFF55;     // 中立：黄
     public int crosshairColorOther = 0xFFFFFFFF;       // 其他：白
     public int crosshairEntityRange = 10;              // 感应距离
+    public boolean crosshairIgnoreInvisible = true;    // 隐身无效果
 
     // ================================================================
     //  模块22：药水效果 HUD
@@ -809,6 +810,8 @@ public class BetterPlayerHUDConfig {
             p.comment = "瞄准其他颜色(白)"; crosshairColorOther = p.getInt() | 0xFF000000;
             p = config.get(C, "crosshairEntityRange", 10);
             p.comment = "实体感应距离(格)"; crosshairEntityRange = p.getInt();
+            p = config.get(C, "crosshairIgnoreInvisible", true);
+            p.comment = "隐身生物无变色效果"; crosshairIgnoreInvisible = p.getBoolean();
         }
 
         // --- 模块22：药水效果 HUD ---
@@ -1120,6 +1123,7 @@ public class BetterPlayerHUDConfig {
         config.get(C, "crosshairColorNeutral", 0xFFFFFF55).set(crosshairColorNeutral);
         config.get(C, "crosshairColorOther", 0xFFFFFFFF).set(crosshairColorOther);
         config.get(C, "crosshairEntityRange", 10).set(crosshairEntityRange);
+        config.get(C, "crosshairIgnoreInvisible", true).set(crosshairIgnoreInvisible);
 
         // --- 模块22：药水效果 HUD ---
         config.get(C, "enablePotionHUD", true).set(enablePotionHUD);

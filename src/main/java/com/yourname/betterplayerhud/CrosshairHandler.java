@@ -189,13 +189,16 @@ public class CrosshairHandler {
     //  实体准星颜色 — 瞄准不同实体时准星变色
     // ================================================================
 
-    /** 返回瞄准实体的对应颜色，0 = 无实体或超出范围 */
+    /** 返回瞄准实体的对应颜色，0 = 无实体或超出范围或隐身 */
     private int getEntityColor(BetterPlayerHUDConfig cfg) {
         if (mc.objectMouseOver == null || mc.objectMouseOver.typeOfHit != MovingObjectPosition.MovingObjectType.ENTITY) {
             return 0;
         }
         Entity target = mc.objectMouseOver.entityHit;
         if (target == null) return 0;
+
+        // 隐身生物无变色效果
+        if (cfg.crosshairIgnoreInvisible && target.isInvisible()) return 0;
 
         double dist = mc.thePlayer.getDistanceToEntity(target);
         if (dist > cfg.crosshairEntityRange) return 0;

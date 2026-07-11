@@ -240,6 +240,7 @@ crosshairColorPassive=被动颜色
 crosshairColorNeutral=中立颜色
 crosshairColorOther=其他实体颜色
 crosshairEntityRange=感应距离(格)
+crosshairIgnoreInvisible=忽略隐身生物
 
 # ── 命中标识 ──
 enableHitMarker=启用命中标识

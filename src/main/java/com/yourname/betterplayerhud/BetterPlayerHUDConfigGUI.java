@@ -383,7 +383,7 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.crosshair.entityColor", "bhud.crosshair.entityColor", el(
                 "crosshairEntityColor", "crosshairColorPlayer", "crosshairColorHostile",
                 "crosshairColorPassive", "crosshairColorNeutral", "crosshairColorOther",
-                "crosshairEntityRange")));
+                "crosshairEntityRange", "crosshairIgnoreInvisible")));
         List<IConfigElement> colorList = new ArrayList<>();
         ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "crosshairColor");
         ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "crosshairOutlineColor");
