@@ -11,9 +11,6 @@ import net.minecraftforge.event.entity.player.AttackEntityEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 
-import java.util.HashMap;
-import java.util.Map;
-
 /**
  * 连击计数（Combo Display）
  *
@@ -22,21 +19,21 @@ import java.util.Map;
  * 客户端的 handleStatusUpdate(2) 会将实体的
  * hurtResistantTime 设为 maxHurtResistantTime。
  * 我们在攻击后的短时间窗口内检测这个变化，确认命中。
+ *
+ * 关键设计：每刀独立确认。confirmedThisHit 在攻击时重置，
+ * 确认后立即锁死，保证一刀只计一次，不受渲染帧率或 S19 重复影响。
  */
 public class ComboHandler {
 
     private static final Minecraft mc = Minecraft.getMinecraft();
-    private static final long CONFIRM_WINDOW_MS = 500;   // 攻击后500ms内检测（给足网络延迟余量）
-    private static final long DEBOUNCE_MS = 100;          // 同一实体防抖100ms
+    private static final long CONFIRM_WINDOW_MS = 500;   // 攻击后500ms内检测
     private static final long COMBO_TIMEOUT_MS = 3000;    // 3秒无命中则重置
 
     private int comboCount = 0;
     private Entity pendingTarget = null;
     private long lastAttackTime = 0;
     private long lastConfirmTime = 0;
-
-    // 每个实体最后一次被确认命中的时间，防重复计数
-    private final Map<Integer, Long> lastEntityConfirmTime = new HashMap<>();
+    private boolean confirmedThisHit = false;     // 当前这刀是否已确认命中
 
     @SubscribeEvent
     public void onAttackEntity(AttackEntityEvent event) {
@@ -45,6 +42,7 @@ public class ComboHandler {
 
         pendingTarget = event.target;
         lastAttackTime = System.currentTimeMillis();
+        confirmedThisHit = false;                 // 新的一刀，重置确认状态
     }
 
     @SubscribeEvent
@@ -57,25 +55,23 @@ public class ComboHandler {
         long now = System.currentTimeMillis();
 
         // ── 确认命中检测 ──
-        if (pendingTarget != null && now - lastAttackTime < CONFIRM_WINDOW_MS) {
+        // 条件：有待确认目标 && 在检测窗口内 && 还没确认过 && 目标活着
+        if (pendingTarget != null && !confirmedThisHit
+                && now - lastAttackTime < CONFIRM_WINDOW_MS) {
             if (pendingTarget instanceof EntityLivingBase) {
                 EntityLivingBase living = (EntityLivingBase) pendingTarget;
-                int entityId = living.getEntityId();
-                // 防抖：同一实体在 DEBOUNCE_MS 内不重复计数
-                Long lastDebounce = lastEntityConfirmTime.get(entityId);
-                if (lastDebounce != null && now - lastDebounce < DEBOUNCE_MS) {
-                    // 跳过，避免重复计数
-                } else if (living.hurtResistantTime >= living.maxHurtResistantTime - 5
+                // 服务端确认后 hurtResistantTime 被设为 maxHurtResistantTime（=20）
+                // 然后每 tick(50ms) 递减1。阈值 max-5 覆盖约 250ms 的检测窗口
+                if (living.hurtResistantTime >= living.maxHurtResistantTime - 5
                         && living.hurtResistantTime > 0) {
-                    // 服务端确认命中：hurtResistantTime 被设为 maxHurtResistantTime（=20）
-                    // 然后每 tick(50ms) 递减1，放宽到 -5 允许 ~250ms 的检测窗口
+                    // 命中确认
                     if (now - lastConfirmTime > COMBO_TIMEOUT_MS) {
                         comboCount = 1;
                     } else {
                         comboCount++;
                     }
                     lastConfirmTime = now;
-                    lastEntityConfirmTime.put(entityId, now);
+                    confirmedThisHit = true;      // 锁死，同一刀不再重复计数
                 }
             }
         }
@@ -83,7 +79,6 @@ public class ComboHandler {
         // ── 超时重置 ──
         if (comboCount > 0 && now - lastConfirmTime > COMBO_TIMEOUT_MS) {
             comboCount = 0;
-            lastEntityConfirmTime.clear();
         }
 
         // ── 清理 ──
@@ -127,11 +122,9 @@ public class ComboHandler {
     public void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
         if (mc.thePlayer == null || mc.theWorld == null) return;
-        // 空 tick 中检查 pendingTarget 是否还在 world 中
-        // 主要用来清理已离世的目标
+        // 目标已死亡且超过确认窗口，清理 pendingTarget
         if (pendingTarget != null && !pendingTarget.isEntityAlive()) {
-            long now = System.currentTimeMillis();
-            if (now - lastAttackTime > CONFIRM_WINDOW_MS) {
+            if (System.currentTimeMillis() - lastAttackTime > CONFIRM_WINDOW_MS) {
                 pendingTarget = null;
             }
         }
