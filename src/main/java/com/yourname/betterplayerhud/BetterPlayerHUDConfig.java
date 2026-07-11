@@ -194,6 +194,14 @@ public class BetterPlayerHUDConfig {
     public int crosshairDotSize = 2;
     public int crosshairCircleRadius = 8;
     public int crosshairCircleSegments = 24;
+    /** 准星实体感应变色 */
+    public boolean crosshairEntityColor = true;
+    public int crosshairColorPlayer = 0xFFFF5555;      // 玩家：红
+    public int crosshairColorHostile = 0xFFFFAA55;     // 敌对：橙
+    public int crosshairColorPassive = 0xFF55FF55;     // 被动：绿
+    public int crosshairColorNeutral = 0xFFFFFF55;     // 中立：黄
+    public int crosshairColorOther = 0xFFFFFFFF;       // 其他：白
+    public int crosshairEntityRange = 10;              // 感应距离
 
     // ================================================================
     //  模块22：药水效果 HUD
@@ -786,6 +794,21 @@ public class BetterPlayerHUDConfig {
 
             p = config.get(C, "crosshairCircleSegments", 24);
             p.comment = "圆形分段数"; crosshairCircleSegments = p.getInt();
+            // 准星实体感应变色
+            p = config.get(C, "crosshairEntityColor", true);
+            p.comment = "准星瞄准实体时变色"; crosshairEntityColor = p.getBoolean();
+            p = config.get(C, "crosshairColorPlayer", 0xFFFF5555);
+            p.comment = "瞄准玩家颜色(红)"; crosshairColorPlayer = p.getInt() | 0xFF000000;
+            p = config.get(C, "crosshairColorHostile", 0xFFFFAA55);
+            p.comment = "瞄准敌对颜色(橙)"; crosshairColorHostile = p.getInt() | 0xFF000000;
+            p = config.get(C, "crosshairColorPassive", 0xFF55FF55);
+            p.comment = "瞄准被动颜色(绿)"; crosshairColorPassive = p.getInt() | 0xFF000000;
+            p = config.get(C, "crosshairColorNeutral", 0xFFFFFF55);
+            p.comment = "瞄准中立颜色(黄)"; crosshairColorNeutral = p.getInt() | 0xFF000000;
+            p = config.get(C, "crosshairColorOther", 0xFFFFFFFF);
+            p.comment = "瞄准其他颜色(白)"; crosshairColorOther = p.getInt() | 0xFF000000;
+            p = config.get(C, "crosshairEntityRange", 10);
+            p.comment = "实体感应距离(格)"; crosshairEntityRange = p.getInt();
         }
 
         // --- 模块22：药水效果 HUD ---
@@ -1090,6 +1113,13 @@ public class BetterPlayerHUDConfig {
         config.get(C, "crosshairDotSize", 2).set(crosshairDotSize);
         config.get(C, "crosshairCircleRadius", 8).set(crosshairCircleRadius);
         config.get(C, "crosshairCircleSegments", 24).set(crosshairCircleSegments);
+        config.get(C, "crosshairEntityColor", true).set(crosshairEntityColor);
+        config.get(C, "crosshairColorPlayer", 0xFFFF5555).set(crosshairColorPlayer);
+        config.get(C, "crosshairColorHostile", 0xFFFFAA55).set(crosshairColorHostile);
+        config.get(C, "crosshairColorPassive", 0xFF55FF55).set(crosshairColorPassive);
+        config.get(C, "crosshairColorNeutral", 0xFFFFFF55).set(crosshairColorNeutral);
+        config.get(C, "crosshairColorOther", 0xFFFFFFFF).set(crosshairColorOther);
+        config.get(C, "crosshairEntityRange", 10).set(crosshairEntityRange);
 
         // --- 模块22：药水效果 HUD ---
         config.get(C, "enablePotionHUD", true).set(enablePotionHUD);

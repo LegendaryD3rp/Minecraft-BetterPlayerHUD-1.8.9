@@ -185,6 +185,11 @@ public class HUDEditManager {
                 int bx = sw / 2 - bw / 2 - 30 + BetterPlayerHUD.config.targetHPOffsetX;
                 int by = sh - 62 + BetterPlayerHUD.config.targetHPOffsetY;
                 r.setBounds(bx, by, bw + 60, 40);
+            } else if ("准星感应距离".equals(name)) {
+                // 屏幕中央准星区域，方便F7下Ctrl+滚轮调节
+                int cx = sw / 2 - 40;
+                int cy = sh / 2 - 8;
+                r.setBounds(cx, cy, 80, 16);
             } else {
                 int[] ds = defaultSizes.get(name);
                 if (ds == null) continue;

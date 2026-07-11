@@ -380,6 +380,10 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
                 "crosshairSpreadBow", "crosshairSpreadBowInverted")));
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.crosshair.detail", "bhud.crosshair.detail", el(
                 "crosshairDotSize", "crosshairCircleRadius", "crosshairCircleSegments", "crosshairRotation")));
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.crosshair.entityColor", "bhud.crosshair.entityColor", el(
+                "crosshairEntityColor", "crosshairColorPlayer", "crosshairColorHostile",
+                "crosshairColorPassive", "crosshairColorNeutral", "crosshairColorOther",
+                "crosshairEntityRange")));
         List<IConfigElement> colorList = new ArrayList<>();
         ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "crosshairColor");
         ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "crosshairOutlineColor");

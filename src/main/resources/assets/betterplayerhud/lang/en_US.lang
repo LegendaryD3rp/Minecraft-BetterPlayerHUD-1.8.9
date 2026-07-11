@@ -70,6 +70,7 @@ bhud.crosshair.basic=Basic
 bhud.crosshair.arms=Arm Control
 bhud.crosshair.spread=Spread
 bhud.crosshair.detail=Style Details
+bhud.crosshair.entityColor=Entity Detection Colors
 bhud.crosshair.color=Colors & Outline
 
 # ── Hit Marker sub-categories ──
@@ -232,6 +233,13 @@ crosshairShowInThirdPerson=Show in 3rd Person
 crosshairDotSize=Dot Size
 crosshairCircleRadius=Circle Radius
 crosshairCircleSegments=Circle Segments
+crosshairEntityColor=Entity-Aware Crosshair Color
+crosshairColorPlayer=Player Color
+crosshairColorHostile=Hostile Color
+crosshairColorPassive=Passive Color
+crosshairColorNeutral=Neutral Color
+crosshairColorOther=Other Entity Color
+crosshairEntityRange=Entity Detection Range
 
 # ── Hit Marker ──
 enableHitMarker=Enable Hit Marker

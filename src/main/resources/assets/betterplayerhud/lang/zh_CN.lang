@@ -70,6 +70,7 @@ bhud.crosshair.basic=基本
 bhud.crosshair.arms=臂控制
 bhud.crosshair.spread=扩散
 bhud.crosshair.detail=样式细节
+bhud.crosshair.entityColor=实体感应颜色
 bhud.crosshair.color=颜色 & 描边
 
 # ── 命中标识子分类 ──
@@ -232,6 +233,13 @@ crosshairShowInThirdPerson=第三人称显示
 crosshairDotSize=点直径
 crosshairCircleRadius=圆形半径
 crosshairCircleSegments=圆形分段数
+crosshairEntityColor=准星感应实体变色
+crosshairColorPlayer=玩家颜色
+crosshairColorHostile=敌对颜色
+crosshairColorPassive=被动颜色
+crosshairColorNeutral=中立颜色
+crosshairColorOther=其他实体颜色
+crosshairEntityRange=感应距离(格)
 
 # ── 命中标识 ──
 enableHitMarker=启用命中标识

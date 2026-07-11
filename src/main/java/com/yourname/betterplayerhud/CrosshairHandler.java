@@ -4,7 +4,13 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.monster.IMob;
+import net.minecraft.entity.passive.EntityAnimal;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemBow;
+import net.minecraft.util.MovingObjectPosition;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.relauncher.Side;
@@ -67,11 +73,23 @@ public class CrosshairHandler {
         int cx = screenWidth / 2 + cfg.crosshairXOffset;
         int cy = screenHeight / 2 + cfg.crosshairYOffset;
 
-        // 获取颜色
-        int color = cfg.crosshairColor;
-        if (cfg.crosshairRGB) {
+        // 获取颜色（实体感应优先于RGB）
+        int color;
+        if (cfg.crosshairEntityColor) {
+            int entColor = getEntityColor(cfg);
+            if (entColor != 0) {
+                color = entColor;
+            } else if (cfg.crosshairRGB) {
+                long now = System.currentTimeMillis();
+                color = RGBFlowColor.getUniformColorByConfig(now, cfg.rgbSpeed, cfg.rgbStepMs, cfg.rgbColorAlgo);
+            } else {
+                color = cfg.crosshairColor;
+            }
+        } else if (cfg.crosshairRGB) {
             long now = System.currentTimeMillis();
             color = RGBFlowColor.getUniformColorByConfig(now, cfg.rgbSpeed, cfg.rgbStepMs, cfg.rgbColorAlgo);
+        } else {
+            color = cfg.crosshairColor;
         }
 
         // 计算扩散（带平滑插值，防止跳变）
@@ -165,6 +183,28 @@ public class CrosshairHandler {
         }
 
         return spread * cfg.crosshairSpreadAmount;
+    }
+
+    // ================================================================
+    //  实体准星颜色 — 瞄准不同实体时准星变色
+    // ================================================================
+
+    /** 返回瞄准实体的对应颜色，0 = 无实体或超出范围 */
+    private int getEntityColor(BetterPlayerHUDConfig cfg) {
+        if (mc.objectMouseOver == null || mc.objectMouseOver.typeOfHit != MovingObjectPosition.MovingObjectType.ENTITY) {
+            return 0;
+        }
+        Entity target = mc.objectMouseOver.entityHit;
+        if (target == null) return 0;
+
+        double dist = mc.thePlayer.getDistanceToEntity(target);
+        if (dist > cfg.crosshairEntityRange) return 0;
+
+        if (target instanceof EntityPlayer)   return cfg.crosshairColorPlayer;
+        if (target instanceof IMob)           return cfg.crosshairColorHostile;
+        if (target instanceof EntityAnimal)   return cfg.crosshairColorPassive;
+        if (target instanceof EntityLivingBase) return cfg.crosshairColorNeutral;
+        return cfg.crosshairColorOther;
     }
 
     // ================================================================

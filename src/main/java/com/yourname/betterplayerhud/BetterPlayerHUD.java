@@ -171,6 +171,13 @@ public class BetterPlayerHUD {
         // 注册自定义准星 HUD（模块20）
         MinecraftForge.EVENT_BUS.register(new CrosshairHandler());
 
+        // 准星实体感应距离 — 在 F7 模式下将鼠标移到屏幕中央，Ctrl+滚轮调节
+        HUDEditManager.register("准星感应距离", (x) -> {}, (y) -> {}, 0, 0);
+        HUDEditManager.setSize("准星感应距离", (d, r) -> {
+            config.crosshairEntityRange = Math.max(3, Math.min(64, config.crosshairEntityRange + d * 2));
+        });
+        HUDEditManager.registerSizeReset("准星感应距离", () -> config.crosshairEntityRange = 10);
+
         // 注册命中标识系统（模块21）— 由 HitMarkerMod 移植
         MinecraftForge.EVENT_BUS.register(new HitMarkerRendererBHUD());
         MinecraftForge.EVENT_BUS.register(new HitMarkerEventHandler());
