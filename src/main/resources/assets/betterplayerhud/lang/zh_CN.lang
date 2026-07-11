@@ -325,9 +325,3 @@ crisisIconSize=图标大小
 crisisFlashInterval=闪烁周期(ticks)
 crisisXOffset=X 偏移
 crisisYOffset=Y 偏移
-
-# ── 模块25：连击计数 ──
-bhud.combo=连击计数
-enableCombo=启用连击计数
-comboXOffset=X 偏移
-comboYOffset=Y 偏移

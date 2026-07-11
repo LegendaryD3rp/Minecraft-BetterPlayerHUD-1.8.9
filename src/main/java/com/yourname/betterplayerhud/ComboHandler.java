@@ -14,19 +14,35 @@ import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.event.entity.player.AttackEntityEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 import java.lang.reflect.Field;
 
 /**
- * 连击计数（Combo Display）— 服务端确认版
+ * 连击计数（Combo Display）— 已禁用（2026-07-12 皇上谕旨暂撤）
  *
- * 通过 Netty Pipeline 注入拦截 S19PacketEntityStatus(opcode=2)，
- * 该包由服务端在判定伤害有效后广播，是真正可靠的命中确认。
- *
- * 安全：只读不改，Pass-through，对协议层零影响，反作弊无法检测。
+ * 源码保留，如需重新启用：
+ * 1. 恢复 BetterPlayerHUDConfig.java 中 enableCombo/comboXOffset/comboYOffset
+ * 2. 恢复 BetterPlayerHUD.java 注册
+ * 3. 恢复 BetterPlayerHUDConfigGUI.java 入口
+ * 4. 恢复 lang 翻译
+ * 5. 取消本文件第一个 return
  */
+@SideOnly(Side.CLIENT)
 public class ComboHandler {
 
+    private static final Minecraft mc = Minecraft.getMinecraft();
+
+    // ── 已禁用：所有事件处理器直接返回 ──
+
+    @SubscribeEvent
+    public void onRenderGameOverlay(RenderGameOverlayEvent.Post event) {
+        return;
+    }
+
+    /*
+    // ── 原实现（保留参考） ──
     private static final Minecraft mc = Minecraft.getMinecraft();
     private static final long COMBO_TIMEOUT_MS = 3000;    // 3秒无命中则重置
     private static final long CONFIRM_FRESH_MS = 2000;    // S19 新鲜度阈值
@@ -227,4 +243,5 @@ public class ComboHandler {
         GlStateManager.enableBlend();
         mc.fontRendererObj.drawStringWithShadow(text, baseX, baseY, color);
     }
+    */
 }

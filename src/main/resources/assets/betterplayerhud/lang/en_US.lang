@@ -325,9 +325,3 @@ crisisIconSize=Icon Size
 crisisFlashInterval=Flash Interval (ticks)
 crisisXOffset=X Offset
 crisisYOffset=Y Offset
-
-# ── Module 25: Combo Display ──
-bhud.combo=Combo Display
-enableCombo=Enable Combo Display
-comboXOffset=X Offset
-comboYOffset=Y Offset

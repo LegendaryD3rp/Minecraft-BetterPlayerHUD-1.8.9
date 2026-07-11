@@ -214,28 +214,6 @@ public class BetterPlayerHUD {
                 });
         HUDEditManager.setDefaultSize("牛奶倒计时", 120, 22);
         MinecraftForge.EVENT_BUS.register(new MilkTimerHandler());
-
-        // 注册连击计数（模块25）
-        HUDEditManager.register("连击计数",
-                (x) -> config.comboXOffset = x, (y) -> config.comboYOffset = y,
-                0, 0,
-                (absX, absY, sw, sh) -> {
-                    // 渲染: x = sw - 50 + offsetX → offsetX = absX - sw + 50
-                    //        y = sh - 40 + offsetY → offsetY = absY - sh + 40
-                    return new int[]{ absX - sw + 50, absY - sh + 40 };
-                });
-        HUDEditManager.setDefaultSize("连击计数", 80, 12);
-        MinecraftForge.EVENT_BUS.register(new ComboHandler());
-
-        // 注册药水计时器（模块26）
-        HUDEditManager.register("药水计时器",
-                (x) -> config.potionTimerXOffset = x, (y) -> config.potionTimerYOffset = y,
-                0, 0,
-                (absX, absY, sw, sh) -> {
-                    return new int[]{ absX - sw + 120, absY };
-                });
-        HUDEditManager.setDefaultSize("药水计时器", 200, 16);
-        MinecraftForge.EVENT_BUS.register(new PotionTimerHandler());
     }
 
     /**
