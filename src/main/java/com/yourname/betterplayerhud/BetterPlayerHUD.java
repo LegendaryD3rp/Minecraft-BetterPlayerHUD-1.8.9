@@ -185,6 +185,14 @@ public class BetterPlayerHUD {
         // 注册危机警戒图标（模块24）
         MinecraftForge.EVENT_BUS.register(new CrisisWarningHandler());
 
+        // 注册药水计时器（模块26）
+        HUDEditManager.register("药水计时器",
+                (x) -> config.potionTimerXOffset = x, (y) -> config.potionTimerYOffset = y,
+                0, 0,
+                (absX, absY, sw, sh) -> new int[]{ absX - sw / 2, absY - 4 });
+        HUDEditManager.setDefaultSize("药水计时器", 200, 22);
+        MinecraftForge.EVENT_BUS.register(new PotionTimerHandler());
+
         // 注册连击计数（模块25）
         HUDEditManager.register("连击计数",
                 (x) -> config.comboXOffset = x, (y) -> config.comboYOffset = y,

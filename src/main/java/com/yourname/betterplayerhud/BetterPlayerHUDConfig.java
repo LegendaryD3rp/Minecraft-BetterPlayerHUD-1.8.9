@@ -213,6 +213,13 @@ public class BetterPlayerHUDConfig {
     public int potionYOffset = 0;
 
     // ================================================================
+    //  模块26：药水计时器（屏幕正上方横向大字体）
+    // ================================================================
+    public boolean enablePotionTimer = true;
+    public int potionTimerXOffset = 0;
+    public int potionTimerYOffset = 0;
+
+    // ================================================================
     //  模块23：装备&手持物品 HUD
     // ================================================================
     public boolean enableArmorHUD = false;
@@ -829,6 +836,16 @@ public class BetterPlayerHUDConfig {
             p.comment = "药水HUD Y轴偏移"; potionYOffset = p.getInt();
         }
 
+        // --- 模块26：药水计时器 ---
+        {
+            Property p = config.get(C, "enablePotionTimer", true);
+            p.comment = "屏幕正上方横向药水计时"; enablePotionTimer = p.getBoolean();
+            p = config.get(C, "potionTimerXOffset", 0);
+            p.comment = "药水计时器 X偏移"; potionTimerXOffset = p.getInt();
+            p = config.get(C, "potionTimerYOffset", 0);
+            p.comment = "药水计时器 Y偏移"; potionTimerYOffset = p.getInt();
+        }
+
         // --- 模块23：装备&手持物品 HUD ---
         {
             Property p = config.get(C, "enableArmorHUD", false);
@@ -1130,6 +1147,9 @@ public class BetterPlayerHUDConfig {
         saveColor(C, "potionTextColor", potionTextColor);
         config.get(C, "potionXOffset", 0).set(potionXOffset);
         config.get(C, "potionYOffset", 0).set(potionYOffset);
+        config.get(C, "enablePotionTimer", true).set(enablePotionTimer);
+        config.get(C, "potionTimerXOffset", 0).set(potionTimerXOffset);
+        config.get(C, "potionTimerYOffset", 0).set(potionTimerYOffset);
 
         // --- 模块23：装备&手持物品 HUD ---
         config.get(C, "enableArmorHUD", true).set(enableArmorHUD);

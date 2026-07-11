@@ -270,6 +270,13 @@ potionTextColor=Text Color
 potionXOffset=X Offset
 potionYOffset=Y Offset
 
+# ── Potion Timer ──
+bhud.potiontimer=Potion Timer
+bhud.potiontimer.basic=Basic
+enablePotionTimer=Enable Potion Timer
+potionTimerXOffset=X Offset
+potionTimerYOffset=Y Offset
+
 # ── Equip HUD ──
 bhud.equip=Equip & Item Info
 bhud.equip.basic=Basic

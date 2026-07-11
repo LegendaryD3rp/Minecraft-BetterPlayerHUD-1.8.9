@@ -152,6 +152,10 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
         elements.add(new DummyConfigElement.DummyCategoryElement(
                 "bhud.potion", "bhud.potion", getPotionConfigElements()));
 
+        // === 模块26：药水计时器（屏幕正上方横向） ===
+        elements.add(new DummyConfigElement.DummyCategoryElement(
+                "bhud.potiontimer", "bhud.potiontimer", getPotionTimerConfigElements()));
+
         // === 模块23：装备&手持物品 HUD ===
         elements.add(new DummyConfigElement.DummyCategoryElement(
                 "bhud.equip", "bhud.equip", getEquipConfigElements()));
@@ -448,6 +452,16 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
         List<IConfigElement> list = new ArrayList<>();
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.potion.basic", "bhud.potion.basic", el(
                 "enablePotionHUD", "potionTextColor", "potionXOffset", "potionYOffset")));
+        return list;
+    }
+
+    // ================================================================
+    //  模块26：药水计时器（屏幕正上方横向）
+    // ================================================================
+    private static List<IConfigElement> getPotionTimerConfigElements() {
+        List<IConfigElement> list = new ArrayList<>();
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.potiontimer.basic", "bhud.potiontimer.basic", el(
+                "enablePotionTimer", "potionTimerXOffset", "potionTimerYOffset")));
         return list;
     }
 

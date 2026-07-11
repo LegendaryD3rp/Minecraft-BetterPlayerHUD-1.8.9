@@ -270,6 +270,13 @@ potionTextColor=文字颜色
 potionXOffset=X 偏移
 potionYOffset=Y 偏移
 
+# ── 药水计时器 ──
+bhud.potiontimer=药水计时器
+bhud.potiontimer.basic=基本
+enablePotionTimer=启用药水计时器
+potionTimerXOffset=X 偏移
+potionTimerYOffset=Y 偏移
+
 # ── 装备&手持物品 HUD ──
 bhud.equip=装备&手持物品
 bhud.equip.basic=基本

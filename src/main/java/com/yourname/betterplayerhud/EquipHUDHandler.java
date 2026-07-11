@@ -98,7 +98,7 @@ public class EquipHUDHandler {
             HUDEditManager.report("装甲栏", leftX, hotbarY - slotSize - gapY, rightX + slotSize - leftX, slotSize * 2 + gapY);
     }
 
-    /** 画一个护甲槽：图标 + 附魔 + 耐久 (cur/max) — 无槽位名 */
+    /** 画一个护甲槽：图标 + 附魔（每行一个）+ 耐久 (cur/max) — 无槽位名 */
     private void renderArmorSlot(ItemStack stack, int x, int y, String slotName, boolean leftSide) {
         if (stack == null) return;
         BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
@@ -110,44 +110,60 @@ public class EquipHUDHandler {
 
         RenderHelper.enableGUIStandardItemLighting();
         mc.getRenderItem().renderItemAndEffectIntoGUI(stack, x + 2, y + 2);
-        // 不调用 renderItemOverlays — 原版耐久条/数量会和图标重叠，旁边已有文字 (cur/max)
         RenderHelper.disableStandardItemLighting();
 
-        // ── 文字：附魔 (cur/max) — 无槽位名 ──
-        String enchText = stack.isItemEnchanted() ? buildEnchantmentLine(stack) : "";
+        // ── 构建附魔行列表（每行一个附魔） ──
+        java.util.List<String> lines = new java.util.ArrayList<>();
 
+        if (stack.isItemEnchanted()) {
+            java.util.Map<Integer, Integer> enchMap = EnchantmentHelper.getEnchantments(stack);
+            for (java.util.Map.Entry<Integer, Integer> entry : enchMap.entrySet()) {
+                Enchantment ench = Enchantment.getEnchantmentById(entry.getKey());
+                if (ench == null) continue;
+                lines.add("§b" + ench.getTranslatedName(entry.getValue()));
+            }
+        }
+
+        // 耐久行
         String durText = "";
         if (stack.isItemStackDamageable()) {
             int maxDmg = stack.getMaxDamage();
             int curDmg = maxDmg - stack.getItemDamage();
-            durText = "(" + curDmg + "/" + maxDmg + ")";
+            durText = "§7(" + curDmg + "/" + maxDmg + ")";
+            lines.add(durText);
         }
 
-        StringBuilder sb = new StringBuilder();
-        if (enchText.length() > 0) sb.append(enchText);
-        if (durText.length() > 0) {
-            if (sb.length() > 0) sb.append(" ");
-            sb.append("§7").append(durText);
-        }
-        String fullText = sb.toString();
-        if (fullText.length() == 0) return; // 无附魔也无耐久则只画图标
+        if (lines.isEmpty()) return; // 无附魔也无耐久则只画图标
 
-        int textWidth = mc.fontRendererObj.getStringWidth(fullText);
-        int ty = y + 5; // 相对 20px 图标垂直居中
+        int lineHeight = mc.fontRendererObj.FONT_HEIGHT + 1;
+        int totalTextH = lines.size() * lineHeight;
+
+        // 文字起始 Y：让文字块垂直居中于图标（图标 20px，文字块从图标中间开始）
+        int textStartY = y + (20 - totalTextH) / 2;
 
         if (leftSide) {
             // 左列：文字在图标左侧，右对齐
-            int tx = x - 4 - textWidth;
+            // 先算最宽一行
+            int maxW = 0;
+            for (String ln : lines) maxW = Math.max(maxW, mc.fontRendererObj.getStringWidth(ln));
+            int tx = x - 4 - maxW;
             if (tx < 2) tx = 2;
-            mc.fontRendererObj.drawStringWithShadow(fullText, tx, ty, 0xFFFFFFFF);
+            for (int i = 0; i < lines.size(); i++) {
+                int tw = mc.fontRendererObj.getStringWidth(lines.get(i));
+                mc.fontRendererObj.drawStringWithShadow(lines.get(i), tx + (maxW - tw), textStartY + i * lineHeight, 0xFFFFFFFF);
+            }
         } else {
             // 右列：文字在图标右侧，左对齐
             int tx = x + 22;
-            mc.fontRendererObj.drawStringWithShadow(fullText, tx, ty, 0xFFFFFFFF);
+            int maxW = 0;
+            for (String ln : lines) maxW = Math.max(maxW, mc.fontRendererObj.getStringWidth(ln));
+            for (int i = 0; i < lines.size(); i++) {
+                mc.fontRendererObj.drawStringWithShadow(lines.get(i), tx, textStartY + i * lineHeight, 0xFFFFFFFF);
+            }
         }
     }
 
-    /** 构建物品附魔文本行，如 "§b锋利 V  §b击退 II" */
+    /** 构建物品附魔文本行 — 已弃用，保留兼容 */
     private String buildEnchantmentLine(ItemStack stack) {
         java.util.Map<Integer, Integer> enchMap = EnchantmentHelper.getEnchantments(stack);
         StringBuilder sb = new StringBuilder();
