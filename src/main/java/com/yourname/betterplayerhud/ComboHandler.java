@@ -11,6 +11,9 @@ import net.minecraftforge.event.entity.player.AttackEntityEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * 连击计数（Combo Display）
  *
@@ -23,14 +26,17 @@ import net.minecraftforge.fml.common.gameevent.TickEvent;
 public class ComboHandler {
 
     private static final Minecraft mc = Minecraft.getMinecraft();
-    private static final long CONFIRM_WINDOW_MS = 300;  // 攻击后300ms内检测
-    private static final long COMBO_TIMEOUT_MS = 3000;   // 3秒无命中则重置
+    private static final long CONFIRM_WINDOW_MS = 500;   // 攻击后500ms内检测（给足网络延迟余量）
+    private static final long DEBOUNCE_MS = 100;          // 同一实体防抖100ms
+    private static final long COMBO_TIMEOUT_MS = 3000;    // 3秒无命中则重置
 
     private int comboCount = 0;
-    private int lastConfirmedEntityId = -1;
     private Entity pendingTarget = null;
     private long lastAttackTime = 0;
     private long lastConfirmTime = 0;
+
+    // 每个实体最后一次被确认命中的时间，防重复计数
+    private final Map<Integer, Long> lastEntityConfirmTime = new HashMap<>();
 
     @SubscribeEvent
     public void onAttackEntity(AttackEntityEvent event) {
@@ -55,19 +61,21 @@ public class ComboHandler {
             if (pendingTarget instanceof EntityLivingBase) {
                 EntityLivingBase living = (EntityLivingBase) pendingTarget;
                 int entityId = living.getEntityId();
-                // 服务端确认命中：hurtResistantTime 被设为 maxHurtResistantTime
-                // 会持续约20tick(1秒)递减，检测窗口内值接近max即可
-                if (living.hurtResistantTime >= living.maxHurtResistantTime - 2
-                        && living.hurtResistantTime > 0
-                        && entityId != lastConfirmedEntityId) {
-                    // 命中确认
+                // 防抖：同一实体在 DEBOUNCE_MS 内不重复计数
+                Long lastDebounce = lastEntityConfirmTime.get(entityId);
+                if (lastDebounce != null && now - lastDebounce < DEBOUNCE_MS) {
+                    // 跳过，避免重复计数
+                } else if (living.hurtResistantTime >= living.maxHurtResistantTime - 5
+                        && living.hurtResistantTime > 0) {
+                    // 服务端确认命中：hurtResistantTime 被设为 maxHurtResistantTime（=20）
+                    // 然后每 tick(50ms) 递减1，放宽到 -5 允许 ~250ms 的检测窗口
                     if (now - lastConfirmTime > COMBO_TIMEOUT_MS) {
                         comboCount = 1;
                     } else {
                         comboCount++;
                     }
                     lastConfirmTime = now;
-                    lastConfirmedEntityId = entityId;
+                    lastEntityConfirmTime.put(entityId, now);
                 }
             }
         }
@@ -75,10 +83,11 @@ public class ComboHandler {
         // ── 超时重置 ──
         if (comboCount > 0 && now - lastConfirmTime > COMBO_TIMEOUT_MS) {
             comboCount = 0;
+            lastEntityConfirmTime.clear();
         }
 
         // ── 清理 ──
-        if (pendingTarget != null && now - lastAttackTime > 5000) {
+        if (pendingTarget != null && now - lastAttackTime > CONFIRM_WINDOW_MS + 200) {
             pendingTarget = null;
         }
 
@@ -100,8 +109,7 @@ public class ComboHandler {
         else if (comboCount <= 15) color = 0xFFFFAA55;  // 橙
         else                       color = 0xFFFF5555;  // 红
 
-        String text = "Combo: §" + Integer.toHexString((color >> 20) & 0xF)
-                + comboCount;
+        String text = "Combo: " + comboCount;
         int tw = mc.fontRendererObj.getStringWidth(text);
 
         // 画出背景
