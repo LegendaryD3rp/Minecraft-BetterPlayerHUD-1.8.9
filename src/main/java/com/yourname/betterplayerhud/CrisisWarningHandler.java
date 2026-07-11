@@ -8,9 +8,9 @@ import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.entity.item.EntityTNTPrimed;
 import net.minecraft.entity.monster.EntityCreeper;
 import net.minecraft.entity.projectile.EntityArrow;
+import net.minecraft.entity.projectile.EntityFireball;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
-import net.minecraft.item.ItemBow;
 import net.minecraft.item.ItemStack;
 import net.minecraft.potion.Potion;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
@@ -89,14 +89,16 @@ public class CrisisWarningHandler {
                         }
                     }
                 }
+                // 飞行火球（烈焰弹/恶魂火球）→ 同属爆炸危险
+                if (o instanceof EntityFireball) {
+                    EntityFireball fb = (EntityFireball) o;
+                    double dx = fb.posX - px, dy = fb.posY - py, dz = fb.posZ - pz;
+                    if (dx * dx + dy * dy + dz * dz <= radiusSq) {
+                        explosiveNear = true; break;
+                    }
+                }
             }
             if (explosiveNear) { types.add(2); stacks.add(ICON_TNT); }
-        }
-        // 拉弓
-        if (cfg.crisisWarnBow && mc.thePlayer.isUsingItem()
-                && mc.thePlayer.getHeldItem() != null
-                && mc.thePlayer.getHeldItem().getItem() instanceof ItemBow) {
-            types.add(3); stacks.add(ICON_BOW);
         }
         // 附近非己射出的飞行箭矢（带消退计时，持续约4秒）
         if (cfg.crisisWarnArrow) {
