@@ -192,8 +192,9 @@ public class PotionTimerHandler {
             mc.getTextureManager().bindTexture(INVENTORY_TEXTURE);
             Gui.drawModalRectWithCustomSizedTexture(x, y, (float) u, (float) v, ICON_SIZE, ICON_SIZE, 256.0f, 256.0f);
 
-            // 时长文字（药水颜色）
-            int color = (potion.getLiquidColor() & 0x00FFFFFF) | 0xFF000000;
+            // 时长文字：白色，最后10秒变红
+            int totalSec = effect.getDuration() / 20;
+            int color = totalSec <= 10 ? 0xFFFF5555 : 0xFFFFFFFF;
             mc.fontRendererObj.drawStringWithShadow(timeStr, x + ICON_SIZE + GAP, y + (ICON_SIZE - 9) / 2, color);
         }
     }
@@ -222,14 +223,13 @@ public class PotionTimerHandler {
             mc.getRenderItem().renderItemAndEffectIntoGUI(milk, x + (ICON_SIZE - 16) / 2, y + (ICON_SIZE - 16) / 2);
             RenderHelper.disableStandardItemLighting();
 
-            // 秒数文字
-            int ticks = ((MilkEntry) this).text.equals("0s") ? 0 : Integer.parseInt(text.replace("s", ""));
-            int color;
+            // 秒数文字：白色，最后5秒闪烁
             int secNum;
             try { secNum = Integer.parseInt(text.replace("s", "")); } catch (Exception e) { secNum = 999; }
-            if (secNum <= 5 && secNum % 2 == 0) color = 0xFF5555;
-            else if (secNum <= 5)                color = 0xFFAAAA;
-            else                                 color = 0xFFFFFF;
+            int color;
+            if (secNum <= 5 && secNum % 2 == 0) color = 0xFFFF5555;
+            else if (secNum <= 5)                color = 0xFFAAAAAA;
+            else                                 color = 0xFFFFFFFF;
             mc.fontRendererObj.drawStringWithShadow(text, x + ICON_SIZE + GAP, y + (ICON_SIZE - 9) / 2, color);
         }
     }
