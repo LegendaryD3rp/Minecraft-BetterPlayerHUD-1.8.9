@@ -79,8 +79,10 @@ public class BetterPlayerHUD {
                 0, 0,
                 (absX, absY, sw, sh) -> {
                     // x = 2 + offsetX → offsetX = absX - 2
-                    // y = sh - fontHeight(9) - 2 + offsetY → offsetY = absY - sh + 11
-                    return new int[]{ absX - 2, absY - sh + 11 };
+                    // y = sh - fontHeight(9) - 2 + offsetY = sh - 11 + offsetY
+                    // report: (x, y-2, ...) → absY = sh - 13 + offsetY
+                    // → offsetY = absY - sh + 13
+                    return new int[]{ absX - 2, absY - sh + 13 };
                 });
         HUDEditManager.setDefaultSize("手持物品", 200, 30);
 
@@ -106,7 +108,7 @@ public class BetterPlayerHUD {
                     int gap = iconSize / 3;
                     if (gap < 4) gap = 4;
                     int rw = 5 * iconSize + 4 * gap;  // 必须与 CrisisWarningHandler.crisisReportWidth() 一致
-                    return new int[]{ absX - sw / 2 + rw / 2, absY - sh / 2 + 60 };
+                    return new int[]{ absX - sw / 2 + rw / 2, absY - sh / 2 + 120 };
                 });
         HUDEditManager.setDefaultSize("危机警戒", 60, 24);
 
@@ -189,7 +191,13 @@ public class BetterPlayerHUD {
         HUDEditManager.register("药水计时器",
                 (x) -> config.potionTimerXOffset = x, (y) -> config.potionTimerYOffset = y,
                 0, 0,
-                (absX, absY, sw, sh) -> new int[]{ absX - sw / 2, absY - 4 });
+                (absX, absY, sw, sh) -> {
+                    // placeholder: report(cx-80, cy, 160, 30)
+                    // cx = sw/2 + offsetX, cy = 4 + offsetY
+                    // absX = sw/2 + offsetX - 80, absY = 4 + offsetY
+                    // → offsetX = absX - sw/2 + 80, offsetY = absY - 4
+                    return new int[]{ absX - sw / 2 + 80, absY - 4 };
+                });
         HUDEditManager.setDefaultSize("药水计时器", 200, 22);
         MinecraftForge.EVENT_BUS.register(new PotionTimerHandler());
 
@@ -204,6 +212,16 @@ public class BetterPlayerHUD {
                 });
         HUDEditManager.setDefaultSize("连击计数", 80, 12);
         MinecraftForge.EVENT_BUS.register(new ComboHandler());
+
+        // 注册药水计时器（模块26）
+        HUDEditManager.register("药水计时器",
+                (x) -> config.potionTimerXOffset = x, (y) -> config.potionTimerYOffset = y,
+                0, 0,
+                (absX, absY, sw, sh) -> {
+                    return new int[]{ absX - sw + 120, absY };
+                });
+        HUDEditManager.setDefaultSize("药水计时器", 200, 16);
+        MinecraftForge.EVENT_BUS.register(new PotionTimerHandler());
     }
 
     /**

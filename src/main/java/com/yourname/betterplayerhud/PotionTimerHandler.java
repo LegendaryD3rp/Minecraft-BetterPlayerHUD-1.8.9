@@ -112,10 +112,9 @@ public class PotionTimerHandler {
             curX += 22 + mc.fontRendererObj.getStringWidth(line) + spacing;
         }
 
-        // F7 编辑报告
+        // F7 编辑报告：固定 200px 宽居中，避免因药水数量变化导致 PosConverter 不一致
         if (HUDEditManager.isEditing()) {
-            int totalW = curX - startX;
-            HUDEditManager.report("药水计时器", startX, topY, totalW, 22);
+            HUDEditManager.report("药水计时器", centerX - 100, topY, 200, 22);
         }
     }
 

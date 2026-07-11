@@ -213,13 +213,6 @@ public class BetterPlayerHUDConfig {
     public int potionYOffset = 0;
 
     // ================================================================
-    //  模块26：药水计时器（屏幕正上方横向大字体）
-    // ================================================================
-    public boolean enablePotionTimer = true;
-    public int potionTimerXOffset = 0;
-    public int potionTimerYOffset = 0;
-
-    // ================================================================
     //  模块23：装备&手持物品 HUD
     // ================================================================
     public boolean enableArmorHUD = false;
@@ -262,6 +255,14 @@ public class BetterPlayerHUDConfig {
     public boolean enableCombo = true;
     public int comboXOffset = 0;
     public int comboYOffset = 0;
+
+    // ================================================================
+    //  模块26：药水计时器 (Potion Timer) — 屏幕正上方横向大字体
+    // ================================================================
+    public boolean enablePotionTimer = true;
+    public int potionTimerXOffset = 0;
+    public int potionTimerYOffset = 0;
+    public double potionTimerScale = 1.0;
 
     // ================================================================
     //  模块21：命中标识 (Hit Marker)
