@@ -30,6 +30,7 @@ public class ComboHandler {
     private static final Minecraft mc = Minecraft.getMinecraft();
     private static final long COMBO_TIMEOUT_MS = 3000;    // 3秒无命中则重置
     private static final long CONFIRM_FRESH_MS = 2000;    // S19 新鲜度阈值
+    private static final long MISS_TIMEOUT_MS = 500;      // 挥刀后多久没 S19 确认视为 miss
     private static final String HANDLER_NAME = "bhud_combo";
 
     // ── 反射读取 S19PacketEntityStatus 的私有 entityId 字段 ──
@@ -60,7 +61,8 @@ public class ComboHandler {
     private int comboCount = 0;
     private long lastConfirmTime = 0;
     private int pendingEntityId = -1;
-    private boolean alreadyConfirmed = false;  // 当前 pending 是否已确认
+    private boolean swingConfirmed = false;   // 当前这一刀的命中确认状态
+    private long lastSwingTime = 0;           // 上一刀的时间（用于 miss 超时判断）
     private boolean injected = false;
 
     // ================================================================
@@ -75,7 +77,8 @@ public class ComboHandler {
             injected = false;
             comboCount = 0;
             pendingEntityId = -1;
-            alreadyConfirmed = false;
+            swingConfirmed = false;
+            lastSwingTime = 0;
             s19EntityId = -1;
             s19Time = 0;
         }
@@ -90,9 +93,20 @@ public class ComboHandler {
         if (event.entityPlayer != mc.thePlayer) return;
         if (mc.theWorld == null) return;
 
-        // 记下目标实体 ID
+        long now = System.currentTimeMillis();
+
+        // ── 上一刀 miss 检测 ──
+        // 上一刀挥出后足够时间（MISS_TIMEOUT）内没被 S19 确认 → 挥空，连击断
+        if (comboCount > 0 && !swingConfirmed
+                && pendingEntityId != -1
+                && now - lastSwingTime > MISS_TIMEOUT_MS) {
+            comboCount = 0; // miss 断连
+        }
+
+        // 记下新目标
         pendingEntityId = event.target.getEntityId();
-        alreadyConfirmed = false;
+        swingConfirmed = false;
+        lastSwingTime = now;
 
         // 懒注入 Netty Pipeline
         if (!injected) {
@@ -164,7 +178,7 @@ public class ComboHandler {
         long hitTime = s19Time;
 
         // 未确认、目标匹配、时效内 → 确认命中
-        if (!alreadyConfirmed
+        if (!swingConfirmed
                 && pendingEntityId != -1
                 && hitId == pendingEntityId
                 && now - hitTime < CONFIRM_FRESH_MS) {
@@ -175,7 +189,7 @@ public class ComboHandler {
                 comboCount++;
             }
             lastConfirmTime = now;
-            alreadyConfirmed = true;
+            swingConfirmed = true;
 
             // 消费掉这条 S19，避免下一帧重复
             s19EntityId = -1;
@@ -185,7 +199,7 @@ public class ComboHandler {
         if (comboCount > 0 && now - lastConfirmTime > COMBO_TIMEOUT_MS) {
             comboCount = 0;
             pendingEntityId = -1;
-            alreadyConfirmed = false;
+            swingConfirmed = false;
         }
 
         // ── 渲染 ──
