@@ -255,6 +255,7 @@ public class BetterPlayerHUDConfig {
     public boolean enablePotionTimer = true;
     public int potionTimerXOffset = 0;
     public int potionTimerYOffset = 0;
+    public int potionTimerIconSize = 32;
 
     // ================================================================
     //  模块21：命中标识 (Hit Marker)
@@ -837,6 +838,8 @@ public class BetterPlayerHUDConfig {
             p.comment = "药水计时器 X偏移"; potionTimerXOffset = p.getInt();
             p = config.get(C, "potionTimerYOffset", 0);
             p.comment = "药水计时器 Y偏移"; potionTimerYOffset = p.getInt();
+            p = config.get(C, "potionTimerIconSize", 32);
+            p.comment = "药水计时器图标大小(px)"; potionTimerIconSize = p.getInt();
         }
 
         // --- 模块23：装备&手持物品 HUD ---
@@ -1133,6 +1136,7 @@ public class BetterPlayerHUDConfig {
         config.get(C, "enablePotionTimer", true).set(enablePotionTimer);
         config.get(C, "potionTimerXOffset", 0).set(potionTimerXOffset);
         config.get(C, "potionTimerYOffset", 0).set(potionTimerYOffset);
+        config.get(C, "potionTimerIconSize", 32).set(potionTimerIconSize);
 
         // --- 模块23：装备&手持物品 HUD ---
         config.get(C, "enableArmorHUD", true).set(enableArmorHUD);

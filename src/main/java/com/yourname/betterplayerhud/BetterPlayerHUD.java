@@ -9,6 +9,7 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 
 import java.io.File;
+import java.awt.Rectangle;
 
 @Mod(modid = BetterPlayerHUD.MODID, version = BetterPlayerHUD.VERSION, guiFactory = "com.yourname.betterplayerhud.BetterPlayerHUDGuiFactory")
 public class BetterPlayerHUD {
@@ -192,12 +193,21 @@ public class BetterPlayerHUD {
                 (x) -> config.potionTimerXOffset = x, (y) -> config.potionTimerYOffset = y,
                 0, 0,
                 (absX, absY, sw, sh) -> {
-                    // placeholder: phX = centerX - 100, where centerX = sw/2 + offsetX
-                    // absX = sw/2 + offsetX - 100, absY = 4 + offsetY
-                    // → offsetX = absX - sw/2 + 100, offsetY = absY - 4
-                    return new int[]{ absX - sw / 2 + 100, absY - 4 };
+                    // 使用当前编辑框的实际宽度计算偏移，而非硬编码 100
+                    Rectangle r = HUDEditManager.getRect("药水计时器");
+                    int halfW = (r != null && r.width > 0) ? r.width / 2 : 100;
+                    return new int[]{ absX - sw / 2 + halfW, absY - 4 };
                 });
         HUDEditManager.setDefaultSize("药水计时器", 200, 40);
+        HUDEditManager.setSize("药水计时器", (d, r) -> {
+            // Ctrl+滚轮：调节图标大小（12~64px）
+            int newSize = Math.max(12, Math.min(64, config.potionTimerIconSize + d));
+            config.potionTimerIconSize = newSize;
+            r.setSize(200, newSize + 4);
+        });
+        HUDEditManager.registerSizeReset("药水计时器", () -> {
+            config.potionTimerIconSize = 32;
+        });
         MinecraftForge.EVENT_BUS.register(new PotionTimerHandler());
     }
 

@@ -276,6 +276,7 @@ bhud.potiontimer.basic=Basic
 enablePotionTimer=Enable Potion Timer
 potionTimerXOffset=X Offset
 potionTimerYOffset=Y Offset
+potionTimerIconSize=Icon Size
 
 # ── Equip HUD ──
 bhud.equip=Equip & Item Info

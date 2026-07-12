@@ -457,7 +457,7 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
     private static List<IConfigElement> getPotionTimerConfigElements() {
         List<IConfigElement> list = new ArrayList<>();
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.potiontimer.basic", "bhud.potiontimer.basic", el(
-                "enablePotionTimer", "potionTimerXOffset", "potionTimerYOffset")));
+                "enablePotionTimer", "potionTimerXOffset", "potionTimerYOffset", "potionTimerIconSize")));
         return list;
     }
 

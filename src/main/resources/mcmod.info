@@ -2,7 +2,7 @@
   {
     "modid": "betterplayerhud",
     "name": "BetterPlayerHUD",
-    "description": "\u4e00\u4e2a\u8f7b\u91cf\u5316\u7684Minecraft 1.8.9 \u7528\u6237\u754c\u9762\u6a21\u7ec4\u3002\n\n\u9274\u4e8e Essential \u6a21\u7ec4\u9010\u6e10\u8d70\u5230\u4e86\u8f7b\u91cf\u5316\u7684\u53cd\u9762\uff0c\u5404\u79cd\u5404\u6837\u7684\u5f3a\u5236\u6346\u7ed1\u5c42\u51fa\u4e0d\u7a77\uff0c\u901f\u5236\u4f5c\u4e86 BetterPlayerHUD\u2014\u2014\u4e00\u534a\u4e3a\u4e86\u7ec3\u4e60\uff0c\u4e00\u534a\u4e3a\u4e86\u81ea\u7528\u3002\n\n\u5185\u5bb9\u5305\u62ec\uff1a\u65b9\u5757\u63cf\u8fb9\u3001\u6309\u952e\u663e\u793a\u3001\u9ed1\u8272\u884c\u52a8\u51b7\u6218\u5f0f\u6307\u9488\u7f57\u76d8+\u8840\u6761\u3001\u547d\u4e2d\u6807\u8bc6\u3001\u4ec5\u5728\u7784\u51c6\u65f6\u89e6\u53d1\u7684\u5b9e\u4f53\u78b0\u649e\u7bb1\u7b49\uff0c\u80fd\u6709\u6548\u63d0\u5347 PvP \u624b\u611f\u7684\u529f\u80fd\u3002\n\n\u5168\u90e8\u53ef\u81ea\u5b9a\u4e49\uff0c\u9002\u7528\u4e8e PvP \u65b9\u5411\u3002",
+    "description": "A lightweight Minecraft 1.8.9 HUD enhancement mod for PvP.\n\nIncludes: block outline, key presses display, dark-action-bar compass + health bar, hit markers, entity hitbox overlay (aim-only), potion timer with milk countdown, crisis warning, combo display (disabled), crosshair entity color, equipment & held item info, item count, potion effects HUD, target health bar, armor display, and more.\n\nFully customizable via in-game config GUI. Supports F7 drag-to-reposition and Ctrl+scroll resize.",
     "version": "1.0.11",
     "mcversion": "1.8.9",
     "author": "LegendaryD3rp",

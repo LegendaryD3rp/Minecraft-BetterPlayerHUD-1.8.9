@@ -276,6 +276,7 @@ bhud.potiontimer.basic=基本
 enablePotionTimer=启用药水计时器
 potionTimerXOffset=X 偏移
 potionTimerYOffset=Y 偏移
+potionTimerIconSize=图标大小
 
 # ── 装备&手持物品 HUD ──
 bhud.equip=装备&手持物品

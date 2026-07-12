@@ -33,8 +33,6 @@ public class PotionTimerHandler {
     private static final Minecraft mc = Minecraft.getMinecraft();
     private static final ResourceLocation INVENTORY_TEXTURE = new ResourceLocation("textures/gui/container/inventory.png");
 
-    /** 图标尺寸（2倍原版 18px） */
-    private static final int ICON_SIZE = 36;
     /** 图标到文字的间距 */
     private static final int GAP = 6;
     /** 每项之间的间距 */
@@ -84,6 +82,11 @@ public class PotionTimerHandler {
     //  渲染
     // ───────────────────────────────────────────────
 
+    /** 获取当前图标大小（带边界限制） */
+    private static int iconSize() {
+        return Math.max(12, Math.min(64, BetterPlayerHUD.config.potionTimerIconSize));
+    }
+
     @SubscribeEvent
     public void onRenderGameOverlay(RenderGameOverlayEvent.Post event) {
         if (event.type != RenderGameOverlayEvent.ElementType.TEXT) return;
@@ -121,7 +124,7 @@ public class PotionTimerHandler {
         if (entries.isEmpty()) {
             if (HUDEditManager.isEditing()) {
                 int phX = centerX - 100;
-                HUDEditManager.report("药水计时器", phX, topY, 200, ICON_SIZE + 4);
+                HUDEditManager.report("药水计时器", phX, topY, 200, iconSize() + 4);
             }
             return;
         }
@@ -148,7 +151,7 @@ public class PotionTimerHandler {
 
         // 编辑报告（固定框，覆盖所有条目）
         if (HUDEditManager.isEditing()) {
-            int totalH = ICON_SIZE + 4;
+            int totalH = iconSize() + 4;
             HUDEditManager.report("药水计时器", startX, topY, totalW, totalH);
         }
     }
@@ -177,7 +180,7 @@ public class PotionTimerHandler {
             int totalSec = effect.getDuration() / 20;
             this.timeStr = formatTime(totalSec);
             this.timeW = mc.fontRendererObj.getStringWidth(timeStr);
-            this.totalW = ICON_SIZE + GAP + timeW;
+            this.totalW = iconSize() + GAP + timeW;
         }
 
         @Override public int width() { return totalW; }
@@ -190,12 +193,12 @@ public class PotionTimerHandler {
             int v = 198 + iconIndex / 8 * 18;
 
             mc.getTextureManager().bindTexture(INVENTORY_TEXTURE);
-            Gui.drawModalRectWithCustomSizedTexture(x, y, (float) u, (float) v, ICON_SIZE, ICON_SIZE, 256.0f, 256.0f);
+            Gui.drawModalRectWithCustomSizedTexture(x, y, (float) u, (float) v, iconSize(), iconSize(), 256.0f, 256.0f);
 
             // 时长文字：白色，最后10秒变红
             int totalSec = effect.getDuration() / 20;
             int color = totalSec <= 10 ? 0xFFFF5555 : 0xFFFFFFFF;
-            mc.fontRendererObj.drawStringWithShadow(timeStr, x + ICON_SIZE + GAP, y + (ICON_SIZE - 9) / 2, color);
+            mc.fontRendererObj.drawStringWithShadow(timeStr, x + iconSize() + GAP, y + (iconSize() - 9) / 2, color);
         }
     }
 
@@ -210,7 +213,7 @@ public class PotionTimerHandler {
             int sec = (ticks + 19) / 20;
             this.text = sec + "s";
             this.textW = mc.fontRendererObj.getStringWidth(text);
-            this.totalW = ICON_SIZE + GAP + textW;
+            this.totalW = iconSize() + GAP + textW;
         }
 
         @Override public int width() { return totalW; }
@@ -220,7 +223,7 @@ public class PotionTimerHandler {
             // 奶桶图标（36x36）
             RenderHelper.enableGUIStandardItemLighting();
             ItemStack milk = new ItemStack(Items.milk_bucket);
-            mc.getRenderItem().renderItemAndEffectIntoGUI(milk, x + (ICON_SIZE - 16) / 2, y + (ICON_SIZE - 16) / 2);
+            mc.getRenderItem().renderItemAndEffectIntoGUI(milk, x + (iconSize() - 16) / 2, y + (iconSize() - 16) / 2);
             RenderHelper.disableStandardItemLighting();
 
             // 秒数文字：白色，最后5秒闪烁
@@ -230,7 +233,7 @@ public class PotionTimerHandler {
             if (secNum <= 5 && secNum % 2 == 0) color = 0xFFFF5555;
             else if (secNum <= 5)                color = 0xFFAAAAAA;
             else                                 color = 0xFFFFFFFF;
-            mc.fontRendererObj.drawStringWithShadow(text, x + ICON_SIZE + GAP, y + (ICON_SIZE - 9) / 2, color);
+            mc.fontRendererObj.drawStringWithShadow(text, x + iconSize() + GAP, y + (iconSize() - 9) / 2, color);
         }
     }
 

@@ -58,10 +58,13 @@ public class HUDEditManager {
     /** 当前打开的编辑屏幕（null=未打开） */
     private static GuiEditScreen activeScreen = null;
 
+    /** 获取模块当前编辑矩形（用于 PosConverter 读取宽度） */
+    public static Rectangle getRect(String name) {
+        return currentPositions.get(name);
+    }
+
     // ═══════════════════════════════════════════════════════════════
     //  坐标转换接口
-    // ═══════════════════════════════════════════════════════════════
-
     @FunctionalInterface
     public interface PosConverter {
         /**
@@ -185,6 +188,11 @@ public class HUDEditManager {
                 int bx = sw / 2 - bw / 2 - 30 + BetterPlayerHUD.config.targetHPOffsetX;
                 int by = sh - 62 + BetterPlayerHUD.config.targetHPOffsetY;
                 r.setBounds(bx, by, bw + 60, 40);
+            } else if ("药水计时器".equals(name)) {
+                int sw2 = sw / 2;
+                int cx = sw2 + BetterPlayerHUD.config.potionTimerXOffset;
+                int topY = 4 + BetterPlayerHUD.config.potionTimerYOffset;
+                r.setBounds(cx - 100, topY, 200, 40);
             } else {
                 int[] ds = defaultSizes.get(name);
                 if (ds == null) continue;
@@ -242,7 +250,6 @@ public class HUDEditManager {
 
     // ═══════════════════════════════════════════════════════════════
     //  编辑 GUI 屏幕
-    // ═══════════════════════════════════════════════════════════════
     private static class GuiEditScreen extends GuiScreen {
 
         private String selected = null;       // 当前选中的模块名
