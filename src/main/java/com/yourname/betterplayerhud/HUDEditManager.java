@@ -517,6 +517,10 @@ public class HUDEditManager {
 
         @Override
         protected void keyTyped(char typedChar, int keyCode) throws IOException {
+            // ESC 关闭（必须调用 super，否则 ESC 无反应）
+            super.keyTyped(typedChar, keyCode);
+            if (mc.currentScreen != this) return;  // super 已处理 ESC → 屏幕已关
+
             // F7 退出
             if (keyCode == keyEditMode.getKeyCode()) {
                 mc.displayGuiScreen(null);
