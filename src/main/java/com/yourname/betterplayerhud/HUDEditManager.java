@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.function.BiConsumer;
 
 /**
@@ -52,6 +53,10 @@ public class HUDEditManager {
     private static final Map<String, int[]> defaultPositions = new LinkedHashMap<>();
     /** 模块名 → 默认placeholder尺寸（宽,高），用于从未有状态的模块 */
     private static final Map<String, int[]> defaultSizes = new LinkedHashMap<>();
+    /** 模块名 → 当前启用状态获取器 */
+    private static final Map<String, Supplier<Boolean>> toggleGetters = new LinkedHashMap<>();
+    /** 模块名 → 启用状态设置器 */
+    private static final Map<String, Consumer<Boolean>> toggleSetters = new LinkedHashMap<>();
 
     /** 单例实例（用于 Forge 事件总线注册） */
     public static final HUDEditManager INSTANCE = new HUDEditManager();
@@ -136,6 +141,18 @@ public class HUDEditManager {
     /** 设置默认placeholder尺寸（用于从未有过状态的模块在F7中仍可显示） */
     public static void setDefaultSize(String name, int w, int h) {
         defaultSizes.put(name, new int[]{w, h});
+    }
+
+    /** 注册模块开关（可选），用于 F7 Delete 键切换 */
+    public static void registerToggle(String name, Supplier<Boolean> getter, Consumer<Boolean> setter) {
+        toggleGetters.put(name, getter);
+        toggleSetters.put(name, setter);
+    }
+
+    /** 获取模块当前启用状态（无注册返回 true） */
+    public static boolean isEnabled(String name) {
+        Supplier<Boolean> g = toggleGetters.get(name);
+        return g == null || g.get();
     }
 
     /** 进入编辑模式时填充从未有状态的模块为placeholder矩形 */
@@ -294,6 +311,8 @@ public class HUDEditManager {
                 boolean isHovered = r.contains(mouseX, mouseY);
                 boolean isDraggingThis = name.equals(dragging);
                 boolean isSelectedThis = name.equals(selected) && !isDraggingThis;
+                boolean isTogglable = toggleGetters.containsKey(name);
+                boolean enabled = isEnabled(name);
 
                 // 填充色
                 int fillColor;
@@ -301,6 +320,8 @@ public class HUDEditManager {
                     fillColor = 0x66FFAA00;
                 } else if (isSelectedThis) {
                     fillColor = 0x4400FF00;
+                } else if (!enabled) {
+                    fillColor = 0x44FF0000;  // 禁用态红色底
                 } else if (isHovered) {
                     fillColor = 0x44FFFFFF;
                 } else {
@@ -311,6 +332,7 @@ public class HUDEditManager {
                 int borderColor;
                 if (isDraggingThis) borderColor = DRAGGING_COLOR;
                 else if (isSelectedThis) borderColor = SELECTED_COLOR;
+                else if (!enabled) borderColor = 0x44FF4444;  // 禁用态红框
                 else borderColor = BORDER_COLOR;
 
                 drawRect(r.x - 1, r.y - 1, r.x + r.width + 1, r.y + r.height + 1, borderColor);
@@ -325,6 +347,7 @@ public class HUDEditManager {
 
                 // 模块名称标签
                 String label = "§l" + name;
+                if (!enabled && isTogglable) label += " §c(关闭)";
                 int lw = fontRendererObj.getStringWidth(label);
                 int lx = r.x + r.width / 2 - lw / 2;
                 int ly = r.y - fontRendererObj.FONT_HEIGHT - 3;
@@ -340,7 +363,9 @@ public class HUDEditManager {
 
                 // 选中态下额外操作提示
                 if (isSelectedThis) {
-                    String selHint = "§a[ 已选中 · §fR§a重置 · §f拖拽§a移动 ]";
+                    String selHint = "§a[ 已选中 · §fR§a重置 · §fDelete§a开关";
+                    if (isTogglable) selHint += enabled ? " §7→ §c关闭" : " §7→ §a开启";
+                    selHint += " · §f拖拽§a移动 ]";
                     int shw = fontRendererObj.getStringWidth(selHint);
                     fontRendererObj.drawStringWithShadow(selHint,
                             r.x + r.width / 2 - shw / 2, r.y + r.height + 2, 0xFFFFFF);
@@ -350,9 +375,9 @@ public class HUDEditManager {
             // ── 底部提示 ──
             String hint;
             if (selected != null) {
-                hint = "§e§lHUD 编辑 — 已选中 §b" + selected + " §e| 拖拽移动 | Ctrl+滚轮调大小 | R重置 | F7/ESC退出";
+                hint = "§e§lHUD 编辑 — 已选中 §b" + selected + " §e| 拖拽移动 | Ctrl+滚轮调大小 | R重置 | Delete开关 | F7/ESC退出";
             } else {
-                hint = "§e§lHUD 编辑 — §7点击模块选中 | 拖拽移动 | Ctrl+滚轮调大小 | R重置全部 | F7/ESC退出";
+                hint = "§e§lHUD 编辑 — §7点击模块选中 | 拖拽移动 | Delete开关 | F7/ESC退出";
             }
             int hw = fontRendererObj.getStringWidth(hint);
             drawRect(width / 2 - hw / 2 - 4, height - 20, width / 2 + hw / 2 + 4, height - 4, 0xAA000000);
@@ -533,13 +558,21 @@ public class HUDEditManager {
                 return;
             }
 
+            // Delete 键：切换选中模块的开关
+            if (keyCode == Keyboard.KEY_DELETE && selected != null) {
+                Consumer<Boolean> setter = toggleSetters.get(selected);
+                if (setter != null) {
+                    boolean current = isEnabled(selected);
+                    setter.accept(!current);
+                    BetterPlayerHUD.config.saveConfig();
+                }
+                return;
+            }
+
             // 按其他键 → 取消重置确认
             if (resetPromptTime > 0) {
                 resetPromptTime = 0;
             }
-
-            // ESC 由父类处理
-            super.keyTyped(typedChar, keyCode);
         }
 
         /** 处理重置按键逻辑（两次 R 确认） */

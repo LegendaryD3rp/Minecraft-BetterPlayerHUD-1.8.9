@@ -28,7 +28,16 @@ public class PotionHUDHandler {
     @SubscribeEvent
     public void onRenderGameOverlay(RenderGameOverlayEvent.Post event) {
         if (event.type != RenderGameOverlayEvent.ElementType.TEXT) return;
-        if (!BetterPlayerHUD.config.enablePotionHUD) return;
+        if (!BetterPlayerHUD.config.enablePotionHUD) {
+            if (HUDEditManager.isEditing()) {
+                ScaledResolution sr2 = new ScaledResolution(mc);
+                int sh = sr2.getScaledHeight();
+                int x = 2 + BetterPlayerHUD.config.potionXOffset;
+                int y = sh - 18 - 2 + BetterPlayerHUD.config.potionYOffset;
+                HUDEditManager.report("药水效果", x, y, 160, 26);
+            }
+            return;
+        }
         if (mc.thePlayer == null) return;
 
         java.util.Collection<PotionEffect> effects = mc.thePlayer.getActivePotionEffects();

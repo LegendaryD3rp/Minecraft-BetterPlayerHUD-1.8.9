@@ -64,6 +64,8 @@ public class BetterPlayerHUD {
                     return new int[]{ absX - 2, absY - sh + 20 };
                 });
         HUDEditManager.setDefaultSize("药水效果", 160, 26);
+        HUDEditManager.registerToggle("药水效果",
+                () -> config.enablePotionHUD, (v) -> config.enablePotionHUD = v);
         HUDEditManager.register("装甲栏",
                 (x) -> config.armorXOffset = x, (y) -> config.armorYOffset = y,
                 0, 0,
@@ -75,6 +77,8 @@ public class BetterPlayerHUD {
                     return new int[]{ absX - sw / 2 + 115, absY - sh + 44 };
                 });
         HUDEditManager.setDefaultSize("装甲栏", 100, 50);
+        HUDEditManager.registerToggle("装甲栏",
+                () -> config.enableArmorHUD, (v) -> config.enableArmorHUD = v);
         HUDEditManager.register("手持物品",
                 (x) -> config.heldItemXOffset = x, (y) -> config.heldItemYOffset = y,
                 0, 0,
@@ -86,6 +90,8 @@ public class BetterPlayerHUD {
                     return new int[]{ absX - 2, absY - sh + 13 };
                 });
         HUDEditManager.setDefaultSize("手持物品", 200, 30);
+        HUDEditManager.registerToggle("手持物品",
+                () -> config.enableHeldItemHUD, (v) -> config.enableHeldItemHUD = v);
 
         // 物品栏横条左右侧数量统计
         HUDEditManager.register("物品数量",
@@ -199,6 +205,8 @@ public class BetterPlayerHUD {
                     return new int[]{ absX - sw / 2 + halfW, absY - 4 };
                 });
         HUDEditManager.setDefaultSize("药水计时器", 200, 40);
+        HUDEditManager.registerToggle("药水计时器",
+                () -> config.enablePotionTimer, (v) -> config.enablePotionTimer = v);
         HUDEditManager.setSize("药水计时器", (d, r) -> {
             // Ctrl+滚轮：调节图标大小（12~64px）
             int newSize = Math.max(12, Math.min(64, config.potionTimerIconSize + d));

@@ -91,7 +91,15 @@ public class PotionTimerHandler {
     public void onRenderGameOverlay(RenderGameOverlayEvent.Post event) {
         if (event.type != RenderGameOverlayEvent.ElementType.TEXT) return;
         BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
-        if (!cfg.enablePotionTimer) return;
+        if (!cfg.enablePotionTimer) {
+            if (HUDEditManager.isEditing()) {
+                ScaledResolution sr2 = new ScaledResolution(mc);
+                int sw2 = sr2.getScaledWidth() / 2;
+                int topY = 4 + cfg.potionTimerYOffset;
+                HUDEditManager.report("药水计时器", sw2 + cfg.potionTimerXOffset - 100, topY, 200, iconSize() + 4);
+            }
+            return;
+        }
         if (mc.thePlayer == null) return;
 
         Collection<PotionEffect> effects = mc.thePlayer.getActivePotionEffects();
