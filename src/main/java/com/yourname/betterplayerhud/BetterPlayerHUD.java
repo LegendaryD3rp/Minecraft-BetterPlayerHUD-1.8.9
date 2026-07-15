@@ -33,14 +33,24 @@ public class BetterPlayerHUD {
         // 绝对坐标模块：编辑时的绝对坐标 = config 值（负值 = 右/下对齐）
         HUDEditManager.register("罗盘",      (x) -> config.xPosition = x,       (y) -> config.yPosition = y,       0, 50);
         HUDEditManager.setDefaultSize("罗盘", 100, 20);
+        HUDEditManager.registerToggle("罗盘",
+                () -> config.enableCompass, (v) -> config.enableCompass = v);
         HUDEditManager.register("状态栏",    (x) -> config.healthHudX = x,     (y) -> config.healthHudY = y,       10, -50);
         HUDEditManager.setDefaultSize("状态栏", 200, 30);
+        HUDEditManager.registerToggle("状态栏",
+                () -> config.enableHealthHUD, (v) -> config.enableHealthHUD = v);
         HUDEditManager.register("距离信息",  (x) -> config.distanceHudX = x,   (y) -> config.distanceHudY = y,     490, 280);
         HUDEditManager.setDefaultSize("距离信息", 120, 12);
+        HUDEditManager.registerToggle("距离信息",
+                () -> config.enableDistanceHUD, (v) -> config.enableDistanceHUD = v);
         HUDEditManager.register("按键显示",  (x) -> config.keysDisplayX = x,   (y) -> config.keysDisplayY = y,     10, 150);
         HUDEditManager.setDefaultSize("按键显示", 100, 50);
+        HUDEditManager.registerToggle("按键显示",
+                () -> config.enableKeysDisplay, (v) -> config.enableKeysDisplay = v);
         HUDEditManager.register("性能检测",  (x) -> config.performanceHudX = x,(y) -> config.performanceHudY = y,  5, 65);
         HUDEditManager.setDefaultSize("性能检测", 130, 80);
+        HUDEditManager.registerToggle("性能检测",
+                () -> config.enablePerformanceHUD, (v) -> config.enablePerformanceHUD = v);
 
         // Offset 模块：编辑时的绝对坐标 → PosConverter 转成偏移值
         HUDEditManager.register("目标血量",
@@ -55,6 +65,8 @@ public class BetterPlayerHUD {
                     return new int[]{ absX - sw / 2 + bw / 2 + 30, absY - sh + 62 };
                 });
         HUDEditManager.setDefaultSize("目标血量", 140, 40);
+        HUDEditManager.registerToggle("目标血量",
+                () -> config.enableTargetHealth, (v) -> config.enableTargetHealth = v);
         HUDEditManager.register("药水效果",
                 (x) -> config.potionXOffset = x, (y) -> config.potionYOffset = y,
                 0, 0,
@@ -104,6 +116,8 @@ public class BetterPlayerHUD {
                     return new int[]{ absX - sw/2 + 88, absY - sh + 32 };
                 });
         HUDEditManager.setDefaultSize("物品数量", 80, 10);
+        HUDEditManager.registerToggle("物品数量",
+                () -> config.enableItemCount, (v) -> config.enableItemCount = v);
 
         // 危机警戒（偏移模式：居中坐标 + offset）
         HUDEditManager.register("危机警戒",
@@ -118,6 +132,8 @@ public class BetterPlayerHUD {
                     return new int[]{ absX - sw / 2 + rw / 2, absY - sh / 2 + 120 };
                 });
         HUDEditManager.setDefaultSize("危机警戒", 60, 24);
+        HUDEditManager.registerToggle("危机警戒",
+                () -> config.enableCrisisWarning, (v) -> config.enableCrisisWarning = v);
 
         // Ctrl+滚轮调大小（支持有scale/size参数的模块）
         HUDEditManager.setSize("罗盘", (d, r) -> {

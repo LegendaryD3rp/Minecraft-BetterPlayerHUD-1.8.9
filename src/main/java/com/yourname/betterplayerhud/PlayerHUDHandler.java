@@ -29,6 +29,18 @@ public class PlayerHUDHandler {
             return;
         }
 
+        if (!BetterPlayerHUD.config.enableHealthHUD) {
+            if (HUDEditManager.isEditing()) {
+                ScaledResolution sr = new ScaledResolution(mc);
+                int sh = sr.getScaledHeight();
+                int hudTop = BetterPlayerHUD.config.healthHudY >= 0
+                        ? BetterPlayerHUD.config.healthHudY
+                        : sh + BetterPlayerHUD.config.healthHudY - 25;
+                HUDEditManager.report("状态栏", BetterPlayerHUD.config.healthHudX, hudTop, 200, 30);
+            }
+            return;
+        }
+
         ScaledResolution scaledResolution = new ScaledResolution(mc);
         int screenWidth = scaledResolution.getScaledWidth();
         int screenHeight = scaledResolution.getScaledHeight();

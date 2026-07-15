@@ -30,7 +30,16 @@ public class DistanceHUDHandler {
             return;
         }
 
-        if (!BetterPlayerHUD.config.showDistanceHUD) {
+        if (!BetterPlayerHUD.config.enableDistanceHUD) {
+            if (HUDEditManager.isEditing()) {
+                ScaledResolution sr = new ScaledResolution(mc);
+                int sw2 = sr.getScaledWidth(), sh2 = sr.getScaledHeight();
+                int bx = BetterPlayerHUD.config.distanceHudX;
+                int by = BetterPlayerHUD.config.distanceHudY;
+                if (bx < 0) bx = sw2 + bx;
+                if (by < 0) by = sh2 + by;
+                HUDEditManager.report("距离信息", bx, by, 120, 12);
+            }
             return;
         }
 

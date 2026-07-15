@@ -38,7 +38,20 @@ public class CrisisWarningHandler {
         if (event.type != RenderGameOverlayEvent.ElementType.TEXT) return;
         if (mc.thePlayer == null || mc.theWorld == null) return;
         BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
-        if (!cfg.enableCriticalHealth) return;
+        if (!cfg.enableCrisisWarning) {
+            if (HUDEditManager.isEditing()) {
+                ScaledResolution sr2 = new ScaledResolution(mc);
+                int centerX = sr2.getScaledWidth() / 2;
+                int iconSize = cfg.crisisIconSize;
+                int gap = iconSize / 3;
+                if (gap < 4) gap = 4;
+                int rw = 5 * iconSize + 4 * gap;
+                int px = centerX - rw / 2 + cfg.crisisXOffset;
+                int py = sr2.getScaledHeight() / 2 - 120 + cfg.crisisYOffset;
+                HUDEditManager.report("危机警戒", px, py, rw, iconSize);
+            }
+            return;
+        }
 
         ScaledResolution sr = new ScaledResolution(mc);
         int centerX = sr.getScaledWidth() / 2;

@@ -38,7 +38,18 @@ public class TargetHealthHandler {
     @SubscribeEvent
     public void onRenderOverlay(RenderGameOverlayEvent.Post event) {
         if (event.type != RenderGameOverlayEvent.ElementType.ALL) return;
-        if (!BetterPlayerHUD.config.targetHPEnabled) return;
+        if (!BetterPlayerHUD.config.enableTargetHealth) {
+            if (HUDEditManager.isEditing()) {
+                ScaledResolution sr = new ScaledResolution(mc);
+                int sw = sr.getScaledWidth(), sh = sr.getScaledHeight();
+                BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
+                int bw = cfg.targetHPBarWidth;
+                int bx = sw / 2 - bw / 2 - 30 + cfg.targetHPOffsetX;
+                int by = sh - 62 + cfg.targetHPOffsetY;
+                HUDEditManager.report("目标血量", bx, by, bw + 60, 40);
+            }
+            return;
+        }
 
         // ── 取瞄准目标 ──
         Entity hit = mc.objectMouseOver == null ? null : mc.objectMouseOver.entityHit;

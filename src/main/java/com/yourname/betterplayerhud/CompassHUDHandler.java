@@ -24,6 +24,19 @@ public class CompassHUDHandler {
             return;
         }
 
+        if (!BetterPlayerHUD.config.enableCompass) {
+            if (HUDEditManager.isEditing()) {
+                ScaledResolution sr = new ScaledResolution(mc);
+                int sw = sr.getScaledWidth(), sh = sr.getScaledHeight();
+                int offsetX = BetterPlayerHUD.config.xPosition;
+                int xPos = offsetX > 0 ? offsetX : (offsetX < 0 ? sw + offsetX - 240 : (sw - 240) / 2);
+                int offsetY = BetterPlayerHUD.config.yPosition;
+                int yPos = offsetY >= 0 ? offsetY : sh + offsetY - 40;
+                HUDEditManager.report("罗盘", xPos, yPos, 240, 30);
+            }
+            return;
+        }
+
         ScaledResolution scaledResolution = new ScaledResolution(mc);
         int screenWidth = scaledResolution.getScaledWidth();
         int screenHeight = scaledResolution.getScaledHeight();

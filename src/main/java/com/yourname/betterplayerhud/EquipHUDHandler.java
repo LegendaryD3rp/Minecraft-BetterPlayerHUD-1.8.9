@@ -57,8 +57,16 @@ public class EquipHUDHandler {
         }
 
         // 物品栏当前栏位物品数量统计
-        if (cfg.enableHeldItemHUD && (cfg.showItemCountLeft || cfg.showItemCountRight)) {
-            renderItemCount(w, h);
+        if (cfg.enableItemCount) {
+            if (cfg.showItemCountLeft || cfg.showItemCountRight) {
+                renderItemCount(w, h);
+            }
+        } else if (HUDEditManager.isEditing()) {
+            // 禁用时在编辑模式下仍上报 placeholder
+            int hotbarLeft = w / 2 - 91;
+            int baseX = hotbarLeft + 3 + cfg.itemCountX;
+            int baseY = h - 22 - 10 + cfg.itemCountY;
+            HUDEditManager.report("物品数量", baseX, baseY, 80, 10);
         }
     }
 

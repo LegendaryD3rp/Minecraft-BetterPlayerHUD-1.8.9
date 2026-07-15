@@ -11,6 +11,18 @@ import java.io.File;
 @SideOnly(Side.CLIENT)
 public class BetterPlayerHUDConfig {
 
+    // ═══════════════════════════════════════════════════════════════
+    //  模块全局开关（默认为 true）
+    // ═══════════════════════════════════════════════════════════════
+    public boolean enableCompass = true;
+    public boolean enableHealthHUD = true;
+    public boolean enableDistanceHUD = true;
+    public boolean enableKeysDisplay = true;
+    public boolean enablePerformanceHUD = true;
+    public boolean enableTargetHealth = true;
+    public boolean enableCrisisWarning = true;
+    public boolean enableItemCount = true;
+
     // ================================================================
     //  Forge Configuration 实例
     // ================================================================
@@ -330,6 +342,26 @@ public class BetterPlayerHUDConfig {
     // ================================================================
     public void reloadFromConfig() {
         final String C = Configuration.CATEGORY_CLIENT;
+
+        // --- 模块全局开关 ---
+        {
+            Property p = config.get(C, "enableCompass", true);
+            p.comment = "启用罗盘HUD"; enableCompass = p.getBoolean();
+            p = config.get(C, "enableHealthHUD", true);
+            p.comment = "启用状态栏HUD"; enableHealthHUD = p.getBoolean();
+            p = config.get(C, "enableDistanceHUD", true);
+            p.comment = "启用距离信息HUD"; enableDistanceHUD = p.getBoolean();
+            p = config.get(C, "enableKeysDisplay", true);
+            p.comment = "启用按键显示"; enableKeysDisplay = p.getBoolean();
+            p = config.get(C, "enablePerformanceHUD", true);
+            p.comment = "启用性能检测HUD"; enablePerformanceHUD = p.getBoolean();
+            p = config.get(C, "enableTargetHealth", true);
+            p.comment = "启用目标血量显示"; enableTargetHealth = p.getBoolean();
+            p = config.get(C, "enableCrisisWarning", true);
+            p.comment = "启用危机警戒图标"; enableCrisisWarning = p.getBoolean();
+            p = config.get(C, "enableItemCount", true);
+            p.comment = "启用物品数量统计"; enableItemCount = p.getBoolean();
+        }
 
         // --- 清理旧 hex 颜色键（RGB 迁移用，后续可删）---
         config.getCategory(C).remove("compassColor");
@@ -961,6 +993,16 @@ public class BetterPlayerHUDConfig {
     // ================================================================
     public void saveConfig() {
         final String C = Configuration.CATEGORY_CLIENT;
+
+        // --- 模块全局开关 ---
+        config.get(C, "enableCompass", true).set(enableCompass);
+        config.get(C, "enableHealthHUD", true).set(enableHealthHUD);
+        config.get(C, "enableDistanceHUD", true).set(enableDistanceHUD);
+        config.get(C, "enableKeysDisplay", true).set(enableKeysDisplay);
+        config.get(C, "enablePerformanceHUD", true).set(enablePerformanceHUD);
+        config.get(C, "enableTargetHealth", true).set(enableTargetHealth);
+        config.get(C, "enableCrisisWarning", true).set(enableCrisisWarning);
+        config.get(C, "enableItemCount", true).set(enableItemCount);
 
         // --- 模块1 ---
         config.get(C, "showCompassHUD", true).set(showCompassHUD);

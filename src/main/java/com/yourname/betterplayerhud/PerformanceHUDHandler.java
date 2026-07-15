@@ -120,7 +120,17 @@ public class PerformanceHUDHandler {
     @SubscribeEvent
     public void onRenderOverlay(RenderGameOverlayEvent.Post event) {
         if (event.type != RenderGameOverlayEvent.ElementType.TEXT) return;
-        if (!BetterPlayerHUD.config.showPerformanceHUD) return;
+        BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
+        if (!cfg.enablePerformanceHUD) {
+            if (HUDEditManager.isEditing()) {
+                ScaledResolution sr2 = new ScaledResolution(mc);
+                int sw = sr2.getScaledWidth(), sh = sr2.getScaledHeight();
+                int baseX = cfg.performanceHudX >= 0 ? cfg.performanceHudX : sw + cfg.performanceHudX;
+                int baseY = cfg.performanceHudY >= 0 ? cfg.performanceHudY : sh + cfg.performanceHudY;
+                HUDEditManager.report("性能检测", baseX, baseY, 130, 80);
+            }
+            return;
+        }
         if (mc.thePlayer == null || mc.theWorld == null) return;
 
         ScaledResolution res = new ScaledResolution(mc);

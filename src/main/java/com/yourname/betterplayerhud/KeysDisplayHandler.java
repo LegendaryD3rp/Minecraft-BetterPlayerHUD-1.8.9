@@ -36,7 +36,7 @@ public class KeysDisplayHandler {
 
     @SubscribeEvent
     public void onClientTick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END || !BetterPlayerHUD.config.showKeysDisplay) return;
+        if (event.phase != TickEvent.Phase.END || !BetterPlayerHUD.config.enableKeysDisplay) return;
         if (mc.thePlayer == null) return;
 
         updateKeyStates();
@@ -48,6 +48,23 @@ public class KeysDisplayHandler {
     public void onRenderGameOverlay(RenderGameOverlayEvent.Post event) {
         if (shouldSkipRendering(event)) return;
 
+        if (!BetterPlayerHUD.config.enableKeysDisplay) {
+            if (HUDEditManager.isEditing()) {
+                ScaledResolution sr = new ScaledResolution(mc);
+                int sw = sr.getScaledWidth(), sh = sr.getScaledHeight();
+                int ks = BetterPlayerHUD.config.keysSize;
+                int ksp = BetterPlayerHUD.config.keysSpacing;
+                int dw = 3 * ks + 2 * ksp;
+                int dh = 4 * ks + 3 * ksp;
+                int offsetX = BetterPlayerHUD.config.keysDisplayX;
+                int xPos = offsetX >= 0 ? offsetX : sw + offsetX - dw;
+                int offsetY = BetterPlayerHUD.config.keysDisplayY;
+                int yPos = offsetY >= 0 ? offsetY : sh + offsetY - dh;
+                HUDEditManager.report("按键显示", xPos, yPos, dw, dh);
+            }
+            return;
+        }
+
         ScaledResolution scaledResolution = new ScaledResolution(mc);
         renderKeysDisplay(scaledResolution.getScaledWidth(), scaledResolution.getScaledHeight());
     }
@@ -55,8 +72,7 @@ public class KeysDisplayHandler {
     private boolean shouldSkipRendering(RenderGameOverlayEvent event) {
         return event.type != RenderGameOverlayEvent.ElementType.TEXT ||
                 mc.thePlayer == null ||
-                mc.gameSettings.hideGUI ||
-                !BetterPlayerHUD.config.showKeysDisplay;
+                mc.gameSettings.hideGUI;
     }
 
     private void updateKeyStates() {
