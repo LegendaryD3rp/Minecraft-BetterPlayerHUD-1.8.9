@@ -23,9 +23,11 @@ import java.util.Collection;
 /**
  * 模块26：药水+牛奶合并计时器 — 屏幕正上方横向
  *
- * 每个活跃药水显示：[大图标] 时长（无名称）
- * 牛奶效果（起床战争风格）也整合在此，显示：[奶桶] 剩余秒数
- * 图标2倍大，整体醒目。
+ * 每个活跃药水显示：[大图标]
+ *                     剩余时长
+ * 牛奶效果（起床战争风格）整合在此，显示：[奶桶]
+ *                                          剩余秒数
+ * 图标可调节大小，时长在图标下方居中显示。
  */
 @SideOnly(Side.CLIENT)
 public class PotionTimerHandler {
@@ -33,10 +35,10 @@ public class PotionTimerHandler {
     private static final Minecraft mc = Minecraft.getMinecraft();
     private static final ResourceLocation INVENTORY_TEXTURE = new ResourceLocation("textures/gui/container/inventory.png");
 
-    /** 图标到文字的间距 */
-    private static final int GAP = 6;
+    /** 图标到下方文字的间距 */
+    private static final int GAP = 4;
     /** 每项之间的间距 */
-    private static final int SPACING = 16;
+    private static final int SPACING = 8;
 
     // ── 牛奶倒计时 ──
     private int milkTicks = 0;
@@ -87,16 +89,23 @@ public class PotionTimerHandler {
         return Math.max(12, Math.min(64, BetterPlayerHUD.config.potionTimerIconSize));
     }
 
+    /** 条目高度：图标 + 间距 + 一行文字 */
+    private static int entryHeight() {
+        return iconSize() + GAP + mc.fontRendererObj.FONT_HEIGHT;
+    }
+
     @SubscribeEvent
     public void onRenderGameOverlay(RenderGameOverlayEvent.Post event) {
         if (event.type != RenderGameOverlayEvent.ElementType.TEXT) return;
         BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
+        int eh = entryHeight();
+
         if (!cfg.enablePotionTimer) {
             if (HUDEditManager.isEditing()) {
                 ScaledResolution sr2 = new ScaledResolution(mc);
                 int sw2 = sr2.getScaledWidth() / 2;
                 int topY = 4 + cfg.potionTimerYOffset;
-                HUDEditManager.report("药水计时器", sw2 + cfg.potionTimerXOffset - 100, topY, 200, iconSize() + 4);
+                HUDEditManager.report("药水计时器", sw2 + cfg.potionTimerXOffset - 100, topY, 200, eh);
             }
             return;
         }
@@ -106,7 +115,6 @@ public class PotionTimerHandler {
 
         ScaledResolution sr = new ScaledResolution(mc);
         int sw = sr.getScaledWidth();
-        int sh = sr.getScaledHeight();
 
         int centerX = sw / 2 + cfg.potionTimerXOffset;
         int topY = 4 + cfg.potionTimerYOffset;
@@ -132,12 +140,12 @@ public class PotionTimerHandler {
         if (entries.isEmpty()) {
             if (HUDEditManager.isEditing()) {
                 int phX = centerX - 100;
-                HUDEditManager.report("药水计时器", phX, topY, 200, iconSize() + 4);
+                HUDEditManager.report("药水计时器", phX, topY, 200, eh);
             }
             return;
         }
 
-        // ── 计算总宽度 ──
+        // ── 计算总宽度（每个条目 = 图标宽度） ──
         int totalW = 0;
         for (int i = 0; i < entries.size(); i++) {
             totalW += entries.get(i).width();
@@ -157,10 +165,9 @@ public class PotionTimerHandler {
             curX += entry.width() + SPACING;
         }
 
-        // 编辑报告（固定框，覆盖所有条目）
+        // 编辑报告
         if (HUDEditManager.isEditing()) {
-            int totalH = iconSize() + 4;
-            HUDEditManager.report("药水计时器", startX, topY, totalW, totalH);
+            HUDEditManager.report("药水计时器", startX, topY, totalW, eh);
         }
     }
 
@@ -169,6 +176,7 @@ public class PotionTimerHandler {
     // ═══════════════════════════════════════════════════
 
     private interface Entry {
+        /** 条目宽度（图标宽度） */
         int width();
         void render(int x, int y);
     }
@@ -180,7 +188,6 @@ public class PotionTimerHandler {
         final PotionEffect effect;
         final String timeStr;
         final int timeW;
-        final int totalW;
 
         PotionEntry(Potion potion, PotionEffect effect) {
             this.potion = potion;
@@ -188,14 +195,13 @@ public class PotionTimerHandler {
             int totalSec = effect.getDuration() / 20;
             this.timeStr = formatTime(totalSec);
             this.timeW = mc.fontRendererObj.getStringWidth(timeStr);
-            this.totalW = iconSize() + GAP + timeW;
         }
 
-        @Override public int width() { return totalW; }
+        @Override public int width() { return iconSize(); }
 
         @Override
         public void render(int x, int y) {
-            // 图标
+            // ── 图标 ──
             int iconIndex = potion.getStatusIconIndex();
             int u = iconIndex % 8 * 18;
             int v = 198 + iconIndex / 8 * 18;
@@ -208,10 +214,12 @@ public class PotionTimerHandler {
             Gui.drawModalRectWithCustomSizedTexture(0, 0, (float) u, (float) v, 18, 18, 256.0f, 256.0f);
             GlStateManager.popMatrix();
 
-            // 时长文字：白色，最后10秒变红
+            // ── 时长文字（图标下方居中） ──
             int totalSec = effect.getDuration() / 20;
             int color = totalSec <= 10 ? 0xFFFF5555 : 0xFFFFFFFF;
-            mc.fontRendererObj.drawStringWithShadow(timeStr, x + iconSize() + GAP, y + (iconSize() - 9) / 2, color);
+            int textX = x + (iconSize() - timeW) / 2;
+            int textY = y + iconSize() + GAP;
+            mc.fontRendererObj.drawStringWithShadow(timeStr, textX, textY, color);
         }
     }
 
@@ -220,33 +228,33 @@ public class PotionTimerHandler {
     private static class MilkEntry implements Entry {
         final String text;
         final int textW;
-        final int totalW;
 
         MilkEntry(int ticks) {
             int sec = (ticks + 19) / 20;
             this.text = sec + "s";
             this.textW = mc.fontRendererObj.getStringWidth(text);
-            this.totalW = iconSize() + GAP + textW;
         }
 
-        @Override public int width() { return totalW; }
+        @Override public int width() { return iconSize(); }
 
         @Override
         public void render(int x, int y) {
-            // 奶桶图标（36x36）
+            // ── 奶桶图标 ──
             RenderHelper.enableGUIStandardItemLighting();
             ItemStack milk = new ItemStack(Items.milk_bucket);
             mc.getRenderItem().renderItemAndEffectIntoGUI(milk, x + (iconSize() - 16) / 2, y + (iconSize() - 16) / 2);
             RenderHelper.disableStandardItemLighting();
 
-            // 秒数文字：白色，最后5秒闪烁
+            // ── 秒数文字（图标下方居中） ──
             int secNum;
             try { secNum = Integer.parseInt(text.replace("s", "")); } catch (Exception e) { secNum = 999; }
             int color;
             if (secNum <= 5 && secNum % 2 == 0) color = 0xFFFF5555;
             else if (secNum <= 5)                color = 0xFFAAAAAA;
             else                                 color = 0xFFFFFFFF;
-            mc.fontRendererObj.drawStringWithShadow(text, x + iconSize() + GAP, y + (iconSize() - 9) / 2, color);
+            int textX = x + (iconSize() - textW) / 2;
+            int textY = y + iconSize() + GAP;
+            mc.fontRendererObj.drawStringWithShadow(text, textX, textY, color);
         }
     }
 
@@ -254,9 +262,11 @@ public class PotionTimerHandler {
 
     private static String formatTime(int totalSec) {
         if (totalSec >= 3600) {
-            return String.format("%d:%02d:%02d", totalSec / 3600, (totalSec % 3600) / 60, totalSec % 60);
+            return (totalSec / 3600) + "h" + ((totalSec % 3600) / 60) + "m";
+        } else if (totalSec >= 60) {
+            return (totalSec / 60) + "m" + (totalSec % 60) + "s";
         } else {
-            return String.format("%d:%02d", totalSec / 60, totalSec % 60);
+            return totalSec + "s";
         }
     }
 }

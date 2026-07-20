@@ -244,14 +244,14 @@ public class BetterPlayerHUD {
                     int halfW = (r != null && r.width > 0) ? r.width / 2 : 100;
                     return new int[]{ absX - sw / 2 + halfW, absY - 4 };
                 });
-        HUDEditManager.setDefaultSize("药水计时器", 200, 40);
+        HUDEditManager.setDefaultSize("药水计时器", 200, 48);
         HUDEditManager.registerToggle("药水计时器",
                 () -> config.enablePotionTimer, (v) -> config.enablePotionTimer = v);
         HUDEditManager.setSize("药水计时器", (d, r) -> {
             // Ctrl+滚轮：调节图标大小（12~64px）
             int newSize = Math.max(12, Math.min(64, config.potionTimerIconSize + d));
             config.potionTimerIconSize = newSize;
-            r.setSize(200, newSize + 4);
+            r.setSize(r.width, newSize + 13); // icon + gap(4) + text(9)
         });
         HUDEditManager.registerSizeReset("药水计时器", () -> {
             config.potionTimerIconSize = 32;

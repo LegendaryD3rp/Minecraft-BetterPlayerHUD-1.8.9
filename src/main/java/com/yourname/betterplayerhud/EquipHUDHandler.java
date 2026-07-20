@@ -288,11 +288,52 @@ public class EquipHUDHandler {
             }
         }
 
-        // 组装文本
+        // ── 低存货颜色过渡（仅对可堆叠物品生效） ──
         String left = String.valueOf(held.stackSize);
         String right = String.valueOf(total);
-        String fullLeft = "§e" + left;  // 高亮
-        String fullRight = "§7" + right;
+        boolean isStackable = held.getMaxStackSize() > 1;
+        int lowStockColor = 0xFFFFFF; // 默认不变
+
+        if (isStackable) {
+            // 以"几组"为单位：2+组 → 安全色，0组 → 危险色
+            double stacks = (double) total / (double) held.getMaxStackSize();
+            double t = Math.max(0.0, Math.min(1.0, 1.0 - stacks / 2.0));
+            // t=0(2组+) → 绿(0xFF55FF55), t=0.5 → 橙(0xFFFFAA55), t=1(0组)→ 红(0xFFFF5555)
+            if (t > 0.01) {
+                int r, g, b;
+                if (t < 0.5) {
+                    // 绿→橙
+                    double p = t * 2.0;
+                    r = (int)(0x55 + (0xFF - 0x55) * p);
+                    g = (int)(0xFF - (0xFF - 0xAA) * p);
+                    b = (int)(0x55 - (0x55 - 0x55) * p);
+                } else {
+                    // 橙→红
+                    double p = (t - 0.5) * 2.0;
+                    r = (int)(0xFF - (0xFF - 0xFF) * p);
+                    g = (int)(0xAA - (0xAA - 0x55) * p);
+                    b = (int)(0x55 - (0x55 - 0x55) * p);
+                }
+                lowStockColor = 0xFF000000 | ((r & 0xFF) << 16) | ((g & 0xFF) << 8) | (b & 0xFF);
+            }
+        }
+
+        // 组装文本（使用低存货颜色或默认）
+        boolean useLowStock = isStackable && (lowStockColor & 0xFFFFFF) != 0xFFFFFF;
+        String fullLeft;
+        String fullRight;
+        int leftColor, rightColor;
+        if (useLowStock) {
+            fullLeft = left;
+            fullRight = right;
+            leftColor = lowStockColor;
+            rightColor = lowStockColor;
+        } else {
+            fullLeft = "§e" + left;
+            fullRight = "§7" + right;
+            leftColor = 0xFFFFFF;
+            rightColor = 0xFFFFFF;
+        }
 
         int lw = mc.fontRendererObj.getStringWidth(fullLeft);
         int rw = mc.fontRendererObj.getStringWidth(fullRight);
@@ -308,7 +349,7 @@ public class EquipHUDHandler {
 
         int tx = baseX + 4;
         if (cfg.showItemCountLeft) {
-            mc.fontRendererObj.drawStringWithShadow(fullLeft, tx, baseY, 0xFFFFFF);
+            mc.fontRendererObj.drawStringWithShadow(fullLeft, tx, baseY, leftColor);
             tx += lw;
         }
         if (cfg.showItemCountLeft && cfg.showItemCountRight) {
@@ -316,7 +357,7 @@ public class EquipHUDHandler {
             tx += slashW;
         }
         if (cfg.showItemCountRight) {
-            mc.fontRendererObj.drawStringWithShadow(fullRight, tx, baseY, 0xFFFFFF);
+            mc.fontRendererObj.drawStringWithShadow(fullRight, tx, baseY, rightColor);
         }
 
         GlStateManager.disableBlend();
