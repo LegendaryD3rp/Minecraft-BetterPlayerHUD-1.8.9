@@ -41,9 +41,6 @@ public class SmoothChatHandler extends GuiNewChat {
     private final long[] msgTrackTimes = new long[MSG_TRACK_SIZE];
     private int msgTrackHead = 0;
 
-    // ── 状态缓存 ──
-    private boolean wasChatOpen = false;
-
     public SmoothChatHandler(Minecraft mcIn) {
         super(mcIn);
         this.mc = mcIn;
@@ -79,30 +76,28 @@ public class SmoothChatHandler extends GuiNewChat {
         // 1) 驱动弹簧物理
         updateSpringPhysics();
 
-        // 2) 完全收拢时跳过渲染
-        if (animAmount < 0.005f && !(mc.currentScreen instanceof GuiChat)) {
-            // 确保状态重置
-            if (animAmount < 0.0f) animAmount = 0.0f;
+        // 2) 判断当前状态
+        boolean isChatOpen = mc.currentScreen instanceof GuiChat;
+
+        // 3) 如果聊天框处于「常态关闭」（animAmount ≈ 0 且不在开合过渡中）
+        //    直接走原版渲染（保留渐隐消息的显示）
+        if (!isChatOpen && animAmount < 0.01f) {
+            super.drawChat(updateCounter);
             return;
         }
 
-        // 3) 保存原版 visibility 结果（不重复计算）
-        boolean chatOpen = mc.currentScreen instanceof GuiChat;
-
-        // 4) 应用弹性变换 —— 从底部向上缩放
+        // 4) 处于开合过渡期 —— 施加弹性缩放变换，从底部锚点伸缩
         float scale = MathHelper.clamp_float(animAmount, 0.0f, MAX_OVERSHOOT);
-        // 当前聊天框在屏幕上的视觉高度
         float visualHeight = (float) getChatHeight() * getChatScale();
-        // 底部锚点 Y = 20 + visualHeight
-        float anchorY = 20.0f + visualHeight;
+        float anchorY = 20.0f + visualHeight;  // 聊天框底部在屏幕上的 Y 坐标
 
         GlStateManager.pushMatrix();
-        // 将原点移到聊天框底部中心
-        GlStateManager.translate(0.0f, anchorY, 0.0f);
+        // 将原点移到聊天框左下角 (2, anchorY)，缩放，再移回
+        GlStateManager.translate(2.0f, anchorY, 0.0f);
         GlStateManager.scale(scale, scale, 1.0f);
-        GlStateManager.translate(0.0f, -anchorY, 0.0f);
+        GlStateManager.translate(-2.0f, -anchorY, 0.0f);
 
-        // 原版渲染
+        // 原版渲染（内含自己的 push/pop 和 translate/scale）
         super.drawChat(updateCounter);
 
         GlStateManager.popMatrix();
@@ -228,7 +223,5 @@ public class SmoothChatHandler extends GuiNewChat {
             animAmount = 0.0f;
             animVelocity = 0.0f;
         }
-
-        wasChatOpen = isChatOpen;
     }
 }
