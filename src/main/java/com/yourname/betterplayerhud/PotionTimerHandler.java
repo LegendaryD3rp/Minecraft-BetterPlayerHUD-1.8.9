@@ -44,6 +44,10 @@ public class PotionTimerHandler {
     private int milkTicks = 0;
     private boolean pendingMilkReset = false;
 
+    // ── 多人牛奶检测状态（起床战争等模组服） ──
+    private boolean wasUsingMilk = false;
+    private ItemStack prevHeldMilkItem = null;
+
     @SubscribeEvent
     public void onItemUseFinish(PlayerUseItemEvent.Finish event) {
         if (event.entityPlayer == mc.thePlayer
@@ -59,6 +63,22 @@ public class PotionTimerHandler {
         if (event.phase != TickEvent.Phase.END) return;
 
         if (pendingMilkReset) { milkTicks = 0; pendingMilkReset = false; return; }
+
+        // ── 多人牛奶检测：上一tick在用牛奶物品 → 现在用完了且物品减少 → 触发 ──
+        ItemStack held = mc.thePlayer.getHeldItem();
+        boolean nowUsing = mc.thePlayer.isUsingItem();
+        if (wasUsingMilk && !nowUsing && prevHeldMilkItem != null) {
+            boolean consumed = (held == null)
+                    || (held.getItem() != prevHeldMilkItem.getItem())
+                    || (prevHeldMilkItem.stackSize > 1 && held.stackSize < prevHeldMilkItem.stackSize);
+            if (consumed) {
+                milkTicks = 600;
+            }
+        }
+        // 记录当前使用状态
+        wasUsingMilk = nowUsing && held != null && isMilkItem(held);
+        prevHeldMilkItem = wasUsingMilk ? held.copy() : null;
+
         if (milkTicks > 0) {
             milkTicks--;
             if (mc.thePlayer != null && mc.thePlayer.isDead) milkTicks = 0;
@@ -268,5 +288,16 @@ public class PotionTimerHandler {
         } else {
             return totalSec + "s";
         }
+    }
+
+    /**
+     * 判断物品是否为"牛奶"（原版桶 + 自定义名字含 milk/牛奶）。
+     * 起床战争等模组服使用自定义命名药水作为魔法牛奶。
+     */
+    private static boolean isMilkItem(ItemStack stack) {
+        if (stack == null) return false;
+        if (stack.getItem() == Items.milk_bucket) return true;
+        String name = stack.getDisplayName().toLowerCase();
+        return name.contains("milk") || name.contains("牛奶");
     }
 }
