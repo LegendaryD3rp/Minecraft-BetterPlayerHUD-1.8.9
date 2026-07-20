@@ -1,15 +1,9 @@
 package com.yourname.betterplayerhud;
 
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandlerAdapter;
-import io.netty.channel.ChannelPipeline;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.network.NetworkManager;
-import net.minecraft.network.play.server.S19PacketEntityStatus;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.event.entity.player.AttackEntityEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -17,92 +11,76 @@ import net.minecraftforge.fml.common.gameevent.TickEvent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
-import java.lang.reflect.Field;
-
 /**
- * 连击计数（Combo Display）— 已禁用（2026-07-12 皇上谕旨暂撤）
+ * 模块25：连击计数（Combo Display）
  *
- * 源码保留，如需重新启用：
- * 1. 恢复 BetterPlayerHUDConfig.java 中 enableCombo/comboXOffset/comboYOffset
- * 2. 恢复 BetterPlayerHUD.java 注册
- * 3. 恢复 BetterPlayerHUDConfigGUI.java 入口
- * 4. 恢复 lang 翻译
- * 5. 取消本文件第一个 return
+ * 使用 S19HitManager 获取服务器确认的命中事件，
+ * 屏幕显示当前连击数。
+ * 支持 F7 编辑模式：可拖拽、可缩放（Ctrl+滚轮）。
  */
 @SideOnly(Side.CLIENT)
 public class ComboHandler {
 
     private static final Minecraft mc = Minecraft.getMinecraft();
 
-    // ── 已禁用：所有事件处理器直接返回 ──
+    // ── 常量 ──
+    private static final long COMBO_TIMEOUT_MS = 3000;    // 3秒无命中重置
+    private static final long MISS_TIMEOUT_MS = 500;      // 挥刀后500ms无S19确认→miss
 
-    @SubscribeEvent
-    public void onRenderGameOverlay(RenderGameOverlayEvent.Post event) {
-        return;
-    }
-
-    /*
-    // ── 原实现（保留参考） ──
-    private static final Minecraft mc = Minecraft.getMinecraft();
-    private static final long COMBO_TIMEOUT_MS = 3000;    // 3秒无命中则重置
-    private static final long CONFIRM_FRESH_MS = 2000;    // S19 新鲜度阈值
-    private static final long MISS_TIMEOUT_MS = 500;      // 挥刀后多久没 S19 确认视为 miss
-    private static final String HANDLER_NAME = "bhud_combo";
-
-    // ── 反射读取 S19PacketEntityStatus 的私有 entityId 字段 ──
-    private static final Field S19_ENTITY_ID;
-    static {
-        Field f = null;
-        try {
-            // MCP 名称（开发环境）
-            f = S19PacketEntityStatus.class.getDeclaredField("entityId");
-            f.setAccessible(true);
-        } catch (Exception e) {
-            try {
-                // SRG 名称（生产环境）
-                f = S19PacketEntityStatus.class.getDeclaredField("field_149164_a");
-                f.setAccessible(true);
-            } catch (Exception e2) {
-                // 都找不到，放弃
-            }
-        }
-        S19_ENTITY_ID = f;
-    }
-
-    // ── 跨线程通信（Netty 线程写，渲染线程读） ──
-    private static volatile int s19EntityId = -1;
-    private static volatile long s19Time = 0;
-
-    // ── 渲染线程状态 ──
+    // ── 状态 ──
     private int comboCount = 0;
     private long lastConfirmTime = 0;
     private int pendingEntityId = -1;
-    private boolean swingConfirmed = false;   // 当前这一刀的命中确认状态
-    private long lastSwingTime = 0;           // 上一刀的时间（用于 miss 超时判断）
-    private boolean injected = false;
+    private boolean swingConfirmed = false;
+    private long lastSwingTime = 0;
 
-    // ================================================================
-    //  连接管理：世界加载/重连时重置
-    // ================================================================
+    private boolean registered = false;
+
+    // ═══════════════════════════════════════════════════════
+    //  客户端 Tick：重置状态 + 重新注入
+    // ═══════════════════════════════════════════════════════
 
     @SubscribeEvent
     public void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
+
         if (mc.theWorld == null) {
-            // 断开连接 → 重置状态
-            injected = false;
             comboCount = 0;
             pendingEntityId = -1;
             swingConfirmed = false;
             lastSwingTime = 0;
-            s19EntityId = -1;
-            s19Time = 0;
+            lastConfirmTime = 0;
+            S19HitManager.reset();
+            return;
+        }
+
+        // 注册监听器（懒加载，等世界就绪）
+        if (!registered && mc.thePlayer != null && mc.thePlayer.sendQueue != null) {
+            S19HitManager.registerListener(this::onS19Hit);
+            registered = true;
+        }
+
+        // 超时重置
+        if (comboCount > 0 && System.currentTimeMillis() - lastConfirmTime > COMBO_TIMEOUT_MS) {
+            comboCount = 0;
         }
     }
 
-    // ================================================================
+    // ═══════════════════════════════════════════════════════
+    //  S19 命中确认（Netty 线程回调）
+    // ═══════════════════════════════════════════════════════
+
+    private void onS19Hit(int entityId, long time) {
+        if (entityId == pendingEntityId && !swingConfirmed) {
+            swingConfirmed = true;
+            comboCount++;
+            lastConfirmTime = time;
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════
     //  攻击事件：记下目标
-    // ================================================================
+    // ═══════════════════════════════════════════════════════
 
     @SubscribeEvent
     public void onAttackEntity(AttackEntityEvent event) {
@@ -111,137 +89,76 @@ public class ComboHandler {
 
         long now = System.currentTimeMillis();
 
-        // ── 上一刀 miss 检测 ──
-        // 上一刀挥出后足够时间（MISS_TIMEOUT）内没被 S19 确认 → 挥空，连击断
+        // 上一刀 miss 检测
         if (comboCount > 0 && !swingConfirmed
                 && pendingEntityId != -1
                 && now - lastSwingTime > MISS_TIMEOUT_MS) {
             comboCount = 0; // miss 断连
         }
 
-        // 记下新目标
         pendingEntityId = event.target.getEntityId();
         swingConfirmed = false;
         lastSwingTime = now;
-
-        // 懒注入 Netty Pipeline
-        if (!injected) {
-            injectPipeline();
-        }
     }
 
-    // ================================================================
-    //  Netty Pipeline 注入
-    // ================================================================
-
-    private void injectPipeline() {
-        try {
-            NetworkManager netManager = mc.thePlayer.sendQueue.getNetworkManager();
-            Channel channel = netManager.channel();
-            if (channel == null || !channel.isOpen()) return;
-
-            ChannelPipeline pipeline = channel.pipeline();
-            if (pipeline.get(HANDLER_NAME) != null) {
-                injected = true; // 已有
-                return;
-            }
-
-            pipeline.addBefore("packet_handler", HANDLER_NAME, new ChannelInboundHandlerAdapter() {
-                @Override
-                public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-                    if (msg instanceof S19PacketEntityStatus && S19_ENTITY_ID != null) {
-                        S19PacketEntityStatus pkt = (S19PacketEntityStatus) msg;
-                        // opcode=2 表示 "entity was damaged by a hit"（服务端确认）
-                        if (pkt.getOpCode() == 2) {
-                            try {
-                                int id = S19_ENTITY_ID.getInt(pkt);
-                                s19EntityId = id;
-                                s19Time = System.currentTimeMillis();
-                            } catch (Exception ignored) {
-                            }
-                        }
-                    }
-                    ctx.fireChannelRead(msg); // 原样放行，零影响
-                }
-
-                @Override
-                public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-                    ctx.fireExceptionCaught(cause);
-                }
-            });
-
-            injected = true;
-        } catch (Exception e) {
-            injected = false; // 下次重试
-        }
-    }
-
-    // ================================================================
-    //  渲染：读取 S19 确认态，更新连击
-    // ================================================================
+    // ═══════════════════════════════════════════════════════
+    //  渲染
+    // ═══════════════════════════════════════════════════════
 
     @SubscribeEvent
-    public void onRender(RenderGameOverlayEvent.Post event) {
+    public void onRenderGameOverlay(RenderGameOverlayEvent.Post event) {
         if (event.type != RenderGameOverlayEvent.ElementType.TEXT) return;
-        if (mc.thePlayer == null || mc.theWorld == null) return;
-        BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
-        if (!cfg.enableCombo) return;
-
-        long now = System.currentTimeMillis();
-
-        // ── 读取 Netty 线程写的最新 S19 命中确认 ──
-        int hitId = s19EntityId;
-        long hitTime = s19Time;
-
-        // 未确认、目标匹配、时效内 → 确认命中
-        if (!swingConfirmed
-                && pendingEntityId != -1
-                && hitId == pendingEntityId
-                && now - hitTime < CONFIRM_FRESH_MS) {
-
-            if (now - lastConfirmTime > COMBO_TIMEOUT_MS) {
-                comboCount = 1;
-            } else {
-                comboCount++;
+        if (!BetterPlayerHUD.config.enableCombo) {
+            if (HUDEditManager.isEditing()) {
+                ScaledResolution sr = new ScaledResolution(mc);
+                int sw = sr.getScaledWidth(), sh = sr.getScaledHeight();
+                int x = sw / 2 + BetterPlayerHUD.config.comboXOffset;
+                int y = sh / 2 + BetterPlayerHUD.config.comboYOffset;
+                HUDEditManager.report("连击计数", x, y, 50, 20);
             }
-            lastConfirmTime = now;
-            swingConfirmed = true;
-
-            // 消费掉这条 S19，避免下一帧重复
-            s19EntityId = -1;
+            return;
         }
-
-        // ── 超时重置 ──
-        if (comboCount > 0 && now - lastConfirmTime > COMBO_TIMEOUT_MS) {
-            comboCount = 0;
-            pendingEntityId = -1;
-            swingConfirmed = false;
-        }
-
-        // ── 渲染 ──
-        if (comboCount <= 0) return;
 
         ScaledResolution sr = new ScaledResolution(mc);
-        int sw = sr.getScaledWidth();
-        int sh = sr.getScaledHeight();
+        BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
 
-        int baseX = sw - 50 + cfg.comboXOffset;
-        int baseY = sh - 40 + cfg.comboYOffset;
+        int x = sr.getScaledWidth() / 2 + cfg.comboXOffset;
+        int y = sr.getScaledHeight() / 2 + cfg.comboYOffset;
 
+        if (comboCount <= 0) {
+            if (HUDEditManager.isEditing()) {
+                HUDEditManager.report("连击计数", x, y, 50, 20);
+            }
+            return;
+        }
+
+        String text = String.valueOf(comboCount);
+
+        GlStateManager.pushMatrix();
+        GlStateManager.translate(x, y, 0);
+        GlStateManager.scale(cfg.comboScale, cfg.comboScale, 1.0f);
+
+        // 背景
+        int textW = mc.fontRendererObj.getStringWidth(text);
+        int bgW = textW + 10;
+        int bgH = 20;
+        Gui.drawRect(-bgW / 2, -bgH / 2, bgW / 2, bgH / 2, 0x88000000);
+
+        // 文字（根据连击数变色）
         int color;
-        if (comboCount <= 3)       color = 0xFF55FF55;
-        else if (comboCount <= 7)  color = 0xFFFFFF55;
-        else if (comboCount <= 15) color = 0xFFFFAA55;
-        else                       color = 0xFFFF5555;
+        if (comboCount >= 10) color = 0xFFFF5555;
+        else if (comboCount >= 5) color = 0xFFFFFF55;
+        else color = 0xFFFFFFFF;
 
-        String text = "Combo: " + comboCount;
-        int tw = mc.fontRendererObj.getStringWidth(text);
+        mc.fontRendererObj.drawString(text, -textW / 2, -4, color, true);
 
-        Gui.drawRect(baseX - 4, baseY - 2, baseX + tw + 4, baseY + 10, 0x66000000);
-        HUDEditManager.report("连击计数", baseX - 4, baseY - 2, tw + 8, 12);
+        GlStateManager.popMatrix();
 
-        GlStateManager.enableBlend();
-        mc.fontRendererObj.drawStringWithShadow(text, baseX, baseY, color);
+        // F7 编辑报告
+        if (HUDEditManager.isEditing()) {
+            int scaledW = (int)(bgW * cfg.comboScale);
+            int scaledH = (int)(bgH * cfg.comboScale);
+            HUDEditManager.report("连击计数", x - scaledW / 2, y - scaledH / 2, scaledW, scaledH);
+        }
     }
-    */
 }

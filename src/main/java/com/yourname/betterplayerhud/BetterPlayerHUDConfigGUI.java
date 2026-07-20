@@ -164,6 +164,10 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
         elements.add(new DummyConfigElement.DummyCategoryElement(
                 "bhud.crisis", "bhud.crisis", getCrisisConfigElements()));
 
+        // === 模块25：连击计数 ===
+        elements.add(new DummyConfigElement.DummyCategoryElement(
+                "bhud.combo", "bhud.combo", getComboConfigElements()));
+
         return elements;
     }
 
@@ -416,7 +420,7 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
     private static List<IConfigElement> getHitMarkerConfigElements() {
         List<IConfigElement> list = new ArrayList<>();
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.hitmarker.audio", "bhud.hitmarker.audio", el(
-                "enableHitMarker", "enableHitSounds", "enableKillSound", "soundVolume")));
+                "enableHitMarker", "hitMarkerUseS19", "enableHitSounds", "enableKillSound", "soundVolume")));
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.hitmarker.killchat", "bhud.hitmarker.killchat", el(
                 "enableChatKillDetection")));
 
@@ -437,6 +441,16 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
 
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.hitmarker.rotation", "bhud.hitmarker.rotation", el(
                 "hitMarkerRandomRotate", "hitMarkerRandomRotateStrength")));
+        return list;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  模块25：连击计数 — 子分类
+    // ═══════════════════════════════════════════════════════════════
+    private static List<IConfigElement> getComboConfigElements() {
+        List<IConfigElement> list = new ArrayList<>();
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.combo.basic", "bhud.combo.basic", el(
+                "enableCombo", "comboXOffset", "comboYOffset", "comboScale")));
         return list;
     }
 

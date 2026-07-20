@@ -321,3 +321,15 @@ crisisIconSize=图标大小
 crisisFlashInterval=闪烁周期(ticks)
 crisisXOffset=X 偏移
 crisisYOffset=Y 偏移
+
+# ── 连击计数 ──
+bhud.combo=连击计数
+bhud.combo.basic=基本设置
+enableCombo=启用连击计数
+comboXOffset=X 偏移
+comboYOffset=Y 偏移
+comboScale=缩放
+
+# ── 命中标识（新增） ──
+hitMarkerUseS19=使用S19多人命中确认
+hitMarkerUseS19.tooltip=通过Netty Pipeline拦截服务器确认，多人模式更精确（默认开启）

@@ -77,8 +77,30 @@ public class HitMarkerEventHandler {
     private long lastKillSoundTime = 0;
     private static final long KILL_SOUND_COOLDOWN = 800;
 
+    // ── S19 多人命中确认 ──
+    private boolean s19Registered = false;
+    private volatile int s19LastAttackedEntity = -1;
+    private volatile long s19LastAttackTime = 0;
+    private static final long S19_TIMEOUT_MS = 1000;
+
+    /** S19 命中回调（Netty 线程） */
+    private void onS19Hit(int entityId, long time) {
+        if (time - s19LastAttackTime > S19_TIMEOUT_MS) return;
+        if (entityId != s19LastAttackedEntity) return;
+        // S19 确认命中 → 触发击中效果
+        triggerHitEffects(entityId);
+    }
+
+    /** 注册 S19 监听器（懒加载） */
+    private void ensureS19Registered() {
+        if (!s19Registered && BetterPlayerHUD.config.hitMarkerUseS19) {
+            S19HitManager.registerListener(this::onS19Hit);
+            s19Registered = true;
+        }
+    }
+
     // ══════════════════════════════════════════════════════════════
-    //  近战（客户端线程，即时）
+    //  近战（客户端线程，即时 / S19 前端）
     // ══════════════════════════════════════════════════════════════
 
     @SubscribeEvent
@@ -89,7 +111,14 @@ public class HitMarkerEventHandler {
         int targetId = event.target.getEntityId();
         if (!shouldTriggerHitMarker(targetId)) return;
 
-        triggerHitEffects(targetId);
+        if (BetterPlayerHUD.config.hitMarkerUseS19) {
+            // S19 模式：先记录目标，等服务器确认
+            s19LastAttackedEntity = targetId;
+            s19LastAttackTime = System.currentTimeMillis();
+        } else {
+            // 旧模式：直接触发
+            triggerHitEffects(targetId);
+        }
     }
 
     // ══════════════════════════════════════════════════════════════
@@ -192,6 +221,9 @@ public class HitMarkerEventHandler {
 
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.theWorld == null) { watchedHealth.clear(); return; }
+
+        // 确保 S19 监听器已注册
+        ensureS19Registered();
 
         long now = System.currentTimeMillis();
 

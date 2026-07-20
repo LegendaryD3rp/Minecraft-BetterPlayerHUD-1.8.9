@@ -22,6 +22,7 @@ public class BetterPlayerHUDConfig {
     public boolean enableTargetHealth = true;
     public boolean enableCrisisWarning = true;
     public boolean enableItemCount = true;
+    public boolean enableCombo = true;          // 模块25：连击计数
 
     // ================================================================
     //  Forge Configuration 实例
@@ -275,6 +276,7 @@ public class BetterPlayerHUDConfig {
     //  模块21：命中标识 (Hit Marker)
     // ================================================================
     public boolean enableHitMarker = true;
+    public boolean hitMarkerUseS19 = true;      // 使用S19多人命中确认
     // ── audio ──
     public boolean enableHitSounds = true;
     public boolean enableKillSound = true;
@@ -299,6 +301,13 @@ public class BetterPlayerHUDConfig {
     // ── rotation ──
     public boolean hitMarkerRandomRotate = true;
     public float hitMarkerRandomRotateStrength = 20.0f;
+
+    // ================================================================
+    //  模块25：连击计数 (Combo Display)
+    // ================================================================
+    public int comboXOffset = 0;
+    public int comboYOffset = 0;
+    public float comboScale = 1.0f;
 
     // ================================================================
     //  颜色工具方法
@@ -948,6 +957,8 @@ public class BetterPlayerHUDConfig {
         {
             Property p = config.get(C, "enableHitMarker", true);
             p.comment = "启用命中标识 (HitMarker)"; enableHitMarker = p.getBoolean();
+            p = config.get(C, "hitMarkerUseS19", true);
+            p.comment = "使用S19多人命中确认"; hitMarkerUseS19 = p.getBoolean();
 
             // audio
             p = config.get(C, "enableHitSounds", true);
@@ -993,6 +1004,18 @@ public class BetterPlayerHUDConfig {
             p = config.get(C, "hitMarkerRandomRotateStrength", 20.0);
             p.comment = "旋转幅度(0~360)"; hitMarkerRandomRotateStrength = (float) p.getDouble();
         }
+
+        // --- 模块25：连击计数 ---
+        {
+            Property p = config.get(C, "enableCombo", true);
+            p.comment = "启用连击计数"; enableCombo = p.getBoolean();
+            p = config.get(C, "comboXOffset", 0);
+            p.comment = "偏移X"; comboXOffset = p.getInt();
+            p = config.get(C, "comboYOffset", 0);
+            p.comment = "偏移Y"; comboYOffset = p.getInt();
+            p = config.get(C, "comboScale", 1.0);
+            p.comment = "缩放"; p.setMinValue(0.1).setMaxValue(5.0); comboScale = (float) p.getDouble();
+        }
     }
 
     // ================================================================
@@ -1011,6 +1034,7 @@ public class BetterPlayerHUDConfig {
         config.get(C, "enableTargetHealth", true).set(enableTargetHealth);
         config.get(C, "enableCrisisWarning", true).set(enableCrisisWarning);
         config.get(C, "enableItemCount", true).set(enableItemCount);
+        config.get(C, "enableCombo", true).set(enableCombo);
 
         // --- 模块1 ---
         config.get(C, "showCompassHUD", true).set(showCompassHUD);
@@ -1222,6 +1246,7 @@ public class BetterPlayerHUDConfig {
 
         // --- 模块21：命中标识 ---
         config.get(C, "enableHitMarker", true).set(enableHitMarker);
+        config.get(C, "hitMarkerUseS19", true).set(hitMarkerUseS19);
         config.get(C, "enableHitSounds", true).set(enableHitSounds);
         config.get(C, "enableKillSound", true).set(enableKillSound);
         config.get(C, "soundVolume", 1.0).set(soundVolume);
@@ -1239,6 +1264,12 @@ public class BetterPlayerHUDConfig {
         config.get(C, "enableChatKillDetection", true).set(enableChatKillDetection);
         config.get(C, "hitMarkerRandomRotate", true).set(hitMarkerRandomRotate);
         config.get(C, "hitMarkerRandomRotateStrength", 20.0).set(hitMarkerRandomRotateStrength);
+
+        // --- 模块25：连击计数 ---
+        config.get(C, "enableCombo", true).set(enableCombo);
+        config.get(C, "comboXOffset", 0).set(comboXOffset);
+        config.get(C, "comboYOffset", 0).set(comboYOffset);
+        config.get(C, "comboScale", 1.0).set(comboScale);
 
         // 持久化到磁盘
         config.save();
