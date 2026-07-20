@@ -79,9 +79,10 @@ public class HitMarkerEventHandler {
     private long lastKillSoundTime = 0;
     private static final long KILL_SOUND_COOLDOWN = 800;
 
-    // ── 僵尸末日 "+" 号 + 物品减少检测 ──
-    private int prevHeldStackSize = -1;
-    private Item prevHeldItemType = null;
+    // ── 僵尸末日 "+" 号 + 物品减少检测（热键栏 9 槽快照，支持秒切换枪） ──
+    private final int[] prevHotbarSizes = new int[9];
+    private final Item[] prevHotbarTypes = new Item[9];
+    private boolean prevHotbarInitialized = false;
     private static final long PLUS_CHAT_WINDOW_MS = 200;
 
     // ── S19 多人命中确认 ──
@@ -249,33 +250,39 @@ public class HitMarkerEventHandler {
             triggerHitEffects(eid);
         }
 
-        // ── "+" 号 + 物品减少检测（僵尸末日等模组服） ──
+        // ── "+" 号 + 物品减少检测（僵尸末日等模组服，热键栏 9 槽快照） ──
         if (BetterPlayerHUD.config.enablePlusChatDetection) {
-            ItemStack held = mc.thePlayer.getHeldItem();
             boolean shotFired = false;
-            int curSize = (held == null) ? 0 : held.stackSize;
-            Item curType = (held == null) ? null : held.getItem();
 
-            // 物品数量减少：同一类物品 stack 变小
-            if (prevHeldItemType != null && curType == prevHeldItemType && curSize < prevHeldStackSize) {
-                shotFired = true;
+            // 扫描全部 9 个热键栏，检测任意栏位数量减少（支持秒切换枪）
+            for (int i = 0; i < 9; i++) {
+                ItemStack stack = mc.thePlayer.inventory.mainInventory[i];
+                int curSize = (stack == null) ? 0 : stack.stackSize;
+                Item curType = (stack == null) ? null : stack.getItem();
+
+                // 先用旧快照检测减少（必须在更新快照之前）
+                if (prevHotbarInitialized) {
+                    if (prevHotbarTypes[i] != null && curType == prevHotbarTypes[i] && curSize < prevHotbarSizes[i]) {
+                        shotFired = true;
+                    }
+                    if (prevHotbarTypes[i] != null && stack == null) {
+                        shotFired = true;
+                    }
+                }
+
+                // 更新快照
+                prevHotbarSizes[i] = curSize;
+                prevHotbarTypes[i] = curType;
             }
-            // 物品从有到无（打空弹匣）
-            if (prevHeldItemType != null && held == null) {
-                shotFired = true;
-            }
+            prevHotbarInitialized = true;
 
             if (shotFired) {
                 if (Math.abs(System.currentTimeMillis() - HitMarkerChatListener.lastPlusChatTime) <= PLUS_CHAT_WINDOW_MS) {
                     triggerPlusChatHit();
                 }
             }
-
-            prevHeldStackSize = curSize;
-            prevHeldItemType = curType;
         } else {
-            prevHeldStackSize = -1;
-            prevHeldItemType = null;
+            prevHotbarInitialized = false;
         }
 
         long now = System.currentTimeMillis();
