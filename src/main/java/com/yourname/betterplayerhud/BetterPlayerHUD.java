@@ -184,11 +184,11 @@ public class BetterPlayerHUD {
                 (x) -> config.comboXOffset = x, (y) -> config.comboYOffset = y,
                 0, 0,
                 (absX, absY, sw, sh) -> {
-                    int w = Math.round(50 * config.comboScale);
-                    int h = Math.round(20 * config.comboScale);
+                    int w = Math.round(60 * config.comboScale);
+                    int h = Math.round(24 * config.comboScale);
                     return new int[]{ absX - sw / 2 + w / 2, absY - sh / 2 + h / 2 };
                 });
-        HUDEditManager.setDefaultSize("连击计数", 50, 20);
+        HUDEditManager.setDefaultSize("连击计数", 60, 24);
         HUDEditManager.registerToggle("连击计数",
                 () -> config.enableCombo, (v) -> config.enableCombo = v);
         HUDEditManager.setSize("连击计数", (d, r) -> {
@@ -196,8 +196,8 @@ public class BetterPlayerHUD {
             int centerX = r.x + r.width / 2;
             int centerY = r.y + r.height / 2;
             config.comboScale = Math.max(0.25f, Math.min(4.0f, config.comboScale + d * 0.05f));
-            int newW = Math.round(50 * config.comboScale);
-            int newH = Math.round(20 * config.comboScale);
+            int newW = Math.round(60 * config.comboScale);
+            int newH = Math.round(24 * config.comboScale);
             r.setBounds(centerX - newW / 2, centerY - newH / 2, newW, newH);
         });
         HUDEditManager.registerSizeReset("连击计数", () -> config.comboScale = 1.0f);

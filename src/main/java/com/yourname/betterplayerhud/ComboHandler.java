@@ -1,7 +1,6 @@
 package com.yourname.betterplayerhud;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
@@ -14,9 +13,9 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 /**
  * 模块25：连击计数（Combo Display）
  *
- * 使用 S19HitManager 获取服务器确认的命中事件，
- * 屏幕显示当前连击数。
- * 支持 F7 编辑模式：可拖拽、可缩放（Ctrl+滚轮）。
+ * 使用 S19HitManager 获取服务器确认的命中事件。
+ * 无背景框，纯文字，弹性弹跳动画。
+ * F7 编辑模式：可拖拽、可缩放（Ctrl+滚轮）、可开关（Delete）。
  */
 @SideOnly(Side.CLIENT)
 public class ComboHandler {
@@ -26,6 +25,8 @@ public class ComboHandler {
     // ── 常量 ──
     private static final long COMBO_TIMEOUT_MS = 3000;    // 3秒无命中重置
     private static final long MISS_TIMEOUT_MS = 500;      // 挥刀后500ms无S19确认→miss
+    private static final int BOX_W = 60;   // 固定宽度（缩放前），确保拖拽不跳动
+    private static final int BOX_H = 24;   // 固定高度（缩放前）
 
     // ── 状态 ──
     private int comboCount = 0;
@@ -36,8 +37,13 @@ public class ComboHandler {
 
     private boolean registered = false;
 
+    // ── 弹跳动画 ──
+    private float animScale = 1.0f;         // 当前动画缩放值
+    private float animVel = 0.0f;           // 速度（弹性衰减用）
+    private boolean comboJustIncremented = false;  // 这一帧是否刚增加
+
     // ═══════════════════════════════════════════════════════
-    //  客户端 Tick：重置状态 + 重新注入
+    //  客户端 Tick：重置状态 + 注册 + 动画更新
     // ═══════════════════════════════════════════════════════
 
     @SubscribeEvent
@@ -50,11 +56,13 @@ public class ComboHandler {
             swingConfirmed = false;
             lastSwingTime = 0;
             lastConfirmTime = 0;
+            animScale = 1.0f;
+            animVel = 0.0f;
             S19HitManager.reset();
             return;
         }
 
-        // 注册监听器（懒加载，等世界就绪）
+        // 注册监听器（懒加载）
         if (!registered && mc.thePlayer != null && mc.thePlayer.sendQueue != null) {
             S19HitManager.registerListener(this::onS19Hit);
             registered = true;
@@ -64,6 +72,17 @@ public class ComboHandler {
         if (comboCount > 0 && System.currentTimeMillis() - lastConfirmTime > COMBO_TIMEOUT_MS) {
             comboCount = 0;
         }
+
+        // ── 弹性动画更新 ──
+        // 每次增量触发瞬间拉高 animScale → 弹性阻尼衰减到 1.0
+        float target = 1.0f;
+        float diff = target - animScale;
+        animVel += diff * 0.35f;     // 弹簧刚度
+        animVel *= 0.72f;             // 阻尼
+        animScale += animVel;
+
+        // 防止震荡过度时负值
+        if (animScale < 0.5f) animScale = 0.5f;
     }
 
     // ═══════════════════════════════════════════════════════
@@ -75,11 +94,12 @@ public class ComboHandler {
             swingConfirmed = true;
             comboCount++;
             lastConfirmTime = time;
+            comboJustIncremented = true;
         }
     }
 
     // ═══════════════════════════════════════════════════════
-    //  攻击事件：记下目标
+    //  攻击事件：记下目标 + miss 检测
     // ═══════════════════════════════════════════════════════
 
     @SubscribeEvent
@@ -108,57 +128,56 @@ public class ComboHandler {
     @SubscribeEvent
     public void onRenderGameOverlay(RenderGameOverlayEvent.Post event) {
         if (event.type != RenderGameOverlayEvent.ElementType.TEXT) return;
-        if (!BetterPlayerHUD.config.enableCombo) {
-            if (HUDEditManager.isEditing()) {
-                ScaledResolution sr = new ScaledResolution(mc);
-                int sw = sr.getScaledWidth(), sh = sr.getScaledHeight();
-                int x = sw / 2 + BetterPlayerHUD.config.comboXOffset;
-                int y = sh / 2 + BetterPlayerHUD.config.comboYOffset;
-                HUDEditManager.report("连击计数", x, y, 50, 20);
-            }
-            return;
-        }
 
-        ScaledResolution sr = new ScaledResolution(mc);
         BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
+        ScaledResolution sr = new ScaledResolution(mc);
+        int sw = sr.getScaledWidth(), sh = sr.getScaledHeight();
 
-        int x = sr.getScaledWidth() / 2 + cfg.comboXOffset;
-        int y = sr.getScaledHeight() / 2 + cfg.comboYOffset;
+        // 中心锚点
+        int centerX = sw / 2 + cfg.comboXOffset;
+        int centerY = sh / 2 + cfg.comboYOffset;
 
-        if (comboCount <= 0) {
-            if (HUDEditManager.isEditing()) {
-                HUDEditManager.report("连击计数", x, y, 50, 20);
-            }
-            return;
-        }
+        // 缩放后尺寸
+        int scaledW = Math.round(BOX_W * cfg.comboScale);
+        int scaledH = Math.round(BOX_H * cfg.comboScale);
+
+        // 报告框（固定尺寸，不随文字宽度变化）
+        int boxX = centerX - scaledW / 2;
+        int boxY = centerY - scaledH / 2;
+        HUDEditManager.report("连击计数", boxX, boxY, scaledW, scaledH);
+
+        if (!cfg.enableCombo) return;
+        if (comboCount <= 0) return;
 
         String text = String.valueOf(comboCount);
+        int textColor;
+        if (comboCount >= 10) textColor = 0xFFFF5555;
+        else if (comboCount >= 5) textColor = 0xFFFFFF55;
+        else textColor = 0xFFFFFFFF;
+
+        // 触发弹跳（组合中刚增加的那一帧）
+        if (comboJustIncremented) {
+            animScale = 1.35f;
+            animVel = 0.0f;
+            comboJustIncremented = false;
+        }
+
+        // ── 绘制文字（无背景框） ──
+        // 先应用位置缩放，再乘上弹跳缩放
+        float finalScale = cfg.comboScale * animScale;
 
         GlStateManager.pushMatrix();
-        GlStateManager.translate(x, y, 0);
-        GlStateManager.scale(cfg.comboScale, cfg.comboScale, 1.0f);
+        GlStateManager.translate(centerX, centerY, 0);
+        GlStateManager.scale(finalScale, finalScale, 1.0f);
 
-        // 背景
         int textW = mc.fontRendererObj.getStringWidth(text);
-        int bgW = textW + 10;
-        int bgH = 20;
-        Gui.drawRect(-bgW / 2, -bgH / 2, bgW / 2, bgH / 2, 0x88000000);
+        int drawX = -textW / 2;
+        int drawY = -4;  // 垂直居中（FONT_HEIGHT=9, -4 ≈ 居中）
 
-        // 文字（根据连击数变色）
-        int color;
-        if (comboCount >= 10) color = 0xFFFF5555;
-        else if (comboCount >= 5) color = 0xFFFFFF55;
-        else color = 0xFFFFFFFF;
-
-        mc.fontRendererObj.drawString(text, -textW / 2, -4, color, true);
+        // 文字阴影
+        mc.fontRendererObj.drawString(text, drawX + 1, drawY + 1, 0x40000000, false);
+        mc.fontRendererObj.drawString(text, drawX, drawY, textColor, true);
 
         GlStateManager.popMatrix();
-
-        // F7 编辑报告
-        if (HUDEditManager.isEditing()) {
-            int scaledW = (int)(bgW * cfg.comboScale);
-            int scaledH = (int)(bgH * cfg.comboScale);
-            HUDEditManager.report("连击计数", x - scaledW / 2, y - scaledH / 2, scaledW, scaledH);
-        }
     }
 }
