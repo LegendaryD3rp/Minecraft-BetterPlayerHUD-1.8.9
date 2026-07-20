@@ -200,8 +200,13 @@ public class PotionTimerHandler {
             int u = iconIndex % 8 * 18;
             int v = 198 + iconIndex / 8 * 18;
 
+            GlStateManager.pushMatrix();
+            GlStateManager.translate(x, y, 0);
+            float scale = (float)iconSize() / 18.0f;
+            GlStateManager.scale(scale, scale, 1.0f);
             mc.getTextureManager().bindTexture(INVENTORY_TEXTURE);
-            Gui.drawModalRectWithCustomSizedTexture(x, y, (float) u, (float) v, iconSize(), iconSize(), 256.0f, 256.0f);
+            Gui.drawModalRectWithCustomSizedTexture(0, 0, (float) u, (float) v, 18, 18, 256.0f, 256.0f);
+            GlStateManager.popMatrix();
 
             // 时长文字：白色，最后10秒变红
             int totalSec = effect.getDuration() / 20;

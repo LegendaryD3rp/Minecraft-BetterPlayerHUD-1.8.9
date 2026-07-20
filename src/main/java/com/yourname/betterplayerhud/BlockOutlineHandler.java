@@ -99,32 +99,44 @@ public class BlockOutlineHandler {
      * 获取方块描边颜色（考虑 RGB 模式）。
      */
     private int getEffectiveBlockOutlineColor() {
+        int color;
         if (BetterPlayerHUD.config.enableRGBMode && BetterPlayerHUD.config.rgbApplyBlockOutline) {
             // uniform 模式：整框同色
             if ("uniform".equals(BetterPlayerHUD.config.rgbFlowMode)) {
-                return RGBFlowColor.getUniformColorByConfig(System.currentTimeMillis(),
+                color = RGBFlowColor.getUniformColorByConfig(System.currentTimeMillis(),
                     BetterPlayerHUD.config.rgbSpeed, BetterPlayerHUD.config.rgbStepMs,
                     BetterPlayerHUD.config.rgbColorAlgo);
+            } else {
+                // perimeter 模式：由 drawFlowingBoundingBox 处理
+                color = RGBFlowColor.getColor(BetterPlayerHUD.config.rgbSpeed);
             }
-            // perimeter 模式：由 drawFlowingBoundingBox 处理
-            return RGBFlowColor.getColor(BetterPlayerHUD.config.rgbSpeed);
+        } else {
+            color = BetterPlayerHUD.config.blockOutlineColor;
         }
-        return BetterPlayerHUD.config.blockOutlineColor;
+        // 用配置的 alpha 替换颜色的 alpha 通道
+        int alpha = BetterPlayerHUD.config.blockOutlineAlpha;
+        return (color & 0x00FFFFFF) | (alpha << 24);
     }
 
     /**
      * 获取实体描边颜色（考虑 RGB 模式）。
      */
     private int getEffectiveEntityOutlineColor(net.minecraft.entity.Entity entity) {
+        int color;
         if (BetterPlayerHUD.config.enableRGBMode && BetterPlayerHUD.config.rgbApplyEntityHitbox) {
             if ("uniform".equals(BetterPlayerHUD.config.rgbFlowMode)) {
-                return RGBFlowColor.getUniformColorByConfig(System.currentTimeMillis(),
+                color = RGBFlowColor.getUniformColorByConfig(System.currentTimeMillis(),
                     BetterPlayerHUD.config.rgbSpeed, BetterPlayerHUD.config.rgbStepMs,
                     BetterPlayerHUD.config.rgbColorAlgo);
+            } else {
+                color = RGBFlowColor.getColor(BetterPlayerHUD.config.rgbSpeed);
             }
-            return RGBFlowColor.getColor(BetterPlayerHUD.config.rgbSpeed);
+        } else {
+            color = getEntityOutlineColor(entity);
         }
-        return getEntityOutlineColor(entity);
+        // 用配置的 alpha 替换颜色的 alpha 通道
+        int alpha = BetterPlayerHUD.config.entityOutlineAlpha;
+        return (color & 0x00FFFFFF) | (alpha << 24);
     }
 
     /**
@@ -423,6 +435,9 @@ public class BlockOutlineHandler {
                     double vz = e[2] + t * (e[5] - e[2]);
                     float vertexPos = pos + (float)(t * len);
                     int color = RGBFlowColor.getFlowColorByConfig(currentTimeMs, vertexPos, totalPerimeter, speed, stepMs, BetterPlayerHUD.config.rgbColorAlgo);
+                    // 用配置的 alpha 替换 RGB 流光颜色 alpha 通道
+                    int flowAlpha = isEntity ? BetterPlayerHUD.config.entityOutlineAlpha : BetterPlayerHUD.config.blockOutlineAlpha;
+                    color = (color & 0x00FFFFFF) | (flowAlpha << 24);
                     float r = ((color >> 16) & 0xFF) / 255f;
                     float g = ((color >> 8) & 0xFF) / 255f;
                     float b = (color & 0xFF) / 255f;

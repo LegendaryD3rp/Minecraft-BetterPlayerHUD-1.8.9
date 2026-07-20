@@ -264,7 +264,7 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
     private static List<IConfigElement> getBlockOutlineConfigElements() {
         List<IConfigElement> list = new ArrayList<>();
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.blockoutline.basic", "bhud.blockoutline.basic", el(
-                "enableBlockHighlight", "blockOutlineWidth")));
+                "enableBlockHighlight", "blockOutlineWidth", "blockOutlineAlpha")));
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.blockoutline.face", "bhud.blockoutline.face", el(
                 "drawVisibleFacesOnlyBlocks")));
         List<IConfigElement> colorList = new ArrayList<>();
@@ -280,7 +280,7 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
     private static List<IConfigElement> getEntityHighlightConfigElements() {
         List<IConfigElement> list = new ArrayList<>();
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.entity.basic", "bhud.entity.basic", el(
-                "enableEntityHighlight", "entityOutlineWidth", "hideHitboxForInvisible")));
+                "enableEntityHighlight", "entityOutlineWidth", "entityOutlineAlpha", "hideHitboxForInvisible")));
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.entity.face", "bhud.entity.face", el(
                 "drawVisibleFacesOnlyEntities")));
         List<IConfigElement> colorList = new ArrayList<>();
@@ -381,8 +381,7 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.crosshair.detail", "bhud.crosshair.detail", el(
                 "crosshairDotSize", "crosshairCircleRadius", "crosshairCircleSegments", "crosshairRotation")));
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.crosshair.entityColor", "bhud.crosshair.entityColor", el(
-                "crosshairEntityColor", "crosshairColorPlayer", "crosshairColorHostile",
-                "crosshairColorPassive", "crosshairColorNeutral", "crosshairColorOther",
+                "crosshairEntityColor",
                 "crosshairEntityRange", "crosshairIgnoreInvisible")));
         List<IConfigElement> colorList = new ArrayList<>();
         ColorPreviewHelper.addColorElements(colorList, cfg(), cat(), "crosshairColor");
@@ -391,6 +390,22 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
                 new ColorPreviewHelper.ColorInfo[]{
                         new ColorPreviewHelper.ColorInfo("crosshairColor", "准星颜色"),
                         new ColorPreviewHelper.ColorInfo("crosshairOutlineColor", "描边颜色"),
+                }, ""));
+
+        // 实体颜色 — RGB三色滚轮
+        List<IConfigElement> entityColorList = new ArrayList<>();
+        ColorPreviewHelper.addColorElements(entityColorList, cfg(), cat(), "crosshairColorPlayer");
+        ColorPreviewHelper.addColorElements(entityColorList, cfg(), cat(), "crosshairColorHostile");
+        ColorPreviewHelper.addColorElements(entityColorList, cfg(), cat(), "crosshairColorPassive");
+        ColorPreviewHelper.addColorElements(entityColorList, cfg(), cat(), "crosshairColorNeutral");
+        ColorPreviewHelper.addColorElements(entityColorList, cfg(), cat(), "crosshairColorOther");
+        list.add(ColorPreviewHelper.createPreviewCategory("bhud.crosshair.entityColorPreview", "bhud.crosshair.entityColorPreview", entityColorList,
+                new ColorPreviewHelper.ColorInfo[]{
+                        new ColorPreviewHelper.ColorInfo("crosshairColorPlayer", "玩家"),
+                        new ColorPreviewHelper.ColorInfo("crosshairColorHostile", "敌对"),
+                        new ColorPreviewHelper.ColorInfo("crosshairColorPassive", "被动"),
+                        new ColorPreviewHelper.ColorInfo("crosshairColorNeutral", "中立"),
+                        new ColorPreviewHelper.ColorInfo("crosshairColorOther", "其他"),
                 }, ""));
         return list;
     }

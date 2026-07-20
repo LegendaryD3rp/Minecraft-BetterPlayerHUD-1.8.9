@@ -101,6 +101,7 @@ public class BetterPlayerHUDConfig {
     public int blockOutlineColor = 0xFFFFFF00;
     public float blockOutlineWidth = 3.0f;
     public boolean drawVisibleFacesOnlyBlocks = true;
+    public int blockOutlineAlpha = 255;
 
     // ================================================================
     //  模块14：实体碰撞箱高亮
@@ -111,6 +112,7 @@ public class BetterPlayerHUDConfig {
     public int entityOutlineColorFriendly = 0xFF00FF00;
     public float entityOutlineWidth = 2.0f;
     public boolean drawVisibleFacesOnlyEntities = false;
+    public int entityOutlineAlpha = 255;
 
     // ================================================================
     //  模块14b：RGB 动态流光 & 隐身隐藏（描边/碰撞箱专用）
@@ -544,7 +546,7 @@ public class BetterPlayerHUDConfig {
             keysTextColor = loadColor(C, "keysTextColor", 255, 255, 255);
 
             p = config.get(C, "keysScale", 1.0f);
-            p.comment = "按键整体缩放"; keysScale = (float) p.getDouble();
+            p.comment = "按键整体缩放"; p.setMinValue(0.1).setMaxValue(5.0); keysScale = (float) p.getDouble();
 
             p = config.get(C, "showKeysBackground", false);
             p.comment = "是否显示按键背景"; showKeysBackground = p.getBoolean();
@@ -561,10 +563,12 @@ public class BetterPlayerHUDConfig {
             blockOutlineColor = loadColor(C, "blockOutlineColor", 255, 255, 0);
 
             p = config.get(C, "blockOutlineWidth", 3.0f);
-            p.comment = "方块描边宽度"; blockOutlineWidth = (float) p.getDouble();
+            p.comment = "方块描边宽度"; p.setMinValue(0.1).setMaxValue(10.0); blockOutlineWidth = (float) p.getDouble();
 
             p = config.get(C, "drawVisibleFacesOnlyBlocks", true);
             p.comment = "方块描边仅绘制可见面"; drawVisibleFacesOnlyBlocks = p.getBoolean();
+            p = config.get(C, "blockOutlineAlpha", 255);
+            p.comment = "方块描边透明度(0~255)"; blockOutlineAlpha = p.getInt();
         }
 
         // --- 模块14：实体碰撞箱高亮 ---
@@ -579,10 +583,12 @@ public class BetterPlayerHUDConfig {
             entityOutlineColorFriendly = loadColor(C, "entityOutlineColorFriendly", 0, 255, 0);
 
             p = config.get(C, "entityOutlineWidth", 2.0f);
-            p.comment = "实体描边宽度"; entityOutlineWidth = (float) p.getDouble();
+            p.comment = "实体描边宽度"; p.setMinValue(0.1).setMaxValue(10.0); entityOutlineWidth = (float) p.getDouble();
 
             p = config.get(C, "drawVisibleFacesOnlyEntities", false);
             p.comment = "实体描边仅绘制可见面"; drawVisibleFacesOnlyEntities = p.getBoolean();
+            p = config.get(C, "entityOutlineAlpha", 255);
+            p.comment = "实体碰撞箱透明度(0~255)"; entityOutlineAlpha = p.getInt();
         }
 
         // --- 模块14b：RGB 动态流光 & 隐身隐藏 ---
@@ -795,7 +801,7 @@ public class BetterPlayerHUDConfig {
             p.comment = "启用动态扩散"; crosshairSpread = p.getBoolean();
 
             p = config.get(C, "crosshairSpreadAmount", 1.0);
-            p.comment = "扩散强度(倍数)"; crosshairSpreadAmount = (float) p.getDouble();
+            p.comment = "扩散强度(倍数)"; p.setMinValue(0.0).setMaxValue(5.0); crosshairSpreadAmount = (float) p.getDouble();
 
             p = config.get(C, "crosshairSpreadWalk", true);
             p.comment = "行走时扩散"; crosshairSpreadWalk = p.getBoolean();
@@ -831,16 +837,18 @@ public class BetterPlayerHUDConfig {
             // 准星实体感应变色
             p = config.get(C, "crosshairEntityColor", true);
             p.comment = "准星瞄准实体时变色"; crosshairEntityColor = p.getBoolean();
-            p = config.get(C, "crosshairColorPlayer", 0xFFFF5555);
-            p.comment = "瞄准玩家颜色(红)"; crosshairColorPlayer = p.getInt() | 0xFF000000;
-            p = config.get(C, "crosshairColorHostile", 0xFFFFAA55);
-            p.comment = "瞄准敌对颜色(橙)"; crosshairColorHostile = p.getInt() | 0xFF000000;
-            p = config.get(C, "crosshairColorPassive", 0xFF55FF55);
-            p.comment = "瞄准被动颜色(绿)"; crosshairColorPassive = p.getInt() | 0xFF000000;
-            p = config.get(C, "crosshairColorNeutral", 0xFFFFFF55);
-            p.comment = "瞄准中立颜色(黄)"; crosshairColorNeutral = p.getInt() | 0xFF000000;
-            p = config.get(C, "crosshairColorOther", 0xFFFFFFFF);
-            p.comment = "瞄准其他颜色(白)"; crosshairColorOther = p.getInt() | 0xFF000000;
+            // 清除旧单int键
+            config.getCategory(C).remove("crosshairColorPlayer");
+            config.getCategory(C).remove("crosshairColorHostile");
+            config.getCategory(C).remove("crosshairColorPassive");
+            config.getCategory(C).remove("crosshairColorNeutral");
+            config.getCategory(C).remove("crosshairColorOther");
+
+            crosshairColorPlayer = loadColor(C, "crosshairColorPlayer", 255, 85, 85);
+            crosshairColorHostile = loadColor(C, "crosshairColorHostile", 255, 170, 85);
+            crosshairColorPassive = loadColor(C, "crosshairColorPassive", 85, 255, 85);
+            crosshairColorNeutral = loadColor(C, "crosshairColorNeutral", 255, 255, 85);
+            crosshairColorOther = loadColor(C, "crosshairColorOther", 255, 255, 255);
             p = config.get(C, "crosshairEntityRange", 10);
             p.comment = "实体感应距离(格)"; crosshairEntityRange = p.getInt();
             p = config.get(C, "crosshairIgnoreInvisible", true);
@@ -954,26 +962,26 @@ public class BetterPlayerHUDConfig {
             p.comment = "击中标识透明度"; hitAlpha = (float) p.getDouble();
             hitColor = loadColor(C, "hitColor", 255, 255, 255);
             p = config.get(C, "hitSize", 8.0);
-            p.comment = "击中标识尺寸"; hitSize = (float) p.getDouble();
+            p.comment = "击中标识尺寸"; p.setMinValue(1.0).setMaxValue(40.0); hitSize = (float) p.getDouble();
 
             // visual: kill
             p = config.get(C, "killAlpha", 1.0);
             p.comment = "击杀标识透明度"; killAlpha = (float) p.getDouble();
             killColor = loadColor(C, "killColor", 255, 0, 0);
             p = config.get(C, "killSize", 12.0);
-            p.comment = "击杀标识尺寸"; killSize = (float) p.getDouble();
+            p.comment = "击杀标识尺寸"; p.setMinValue(1.0).setMaxValue(40.0); killSize = (float) p.getDouble();
 
             // border
             p = config.get(C, "hitMarkerEnableBorder", false);
             p.comment = "显示边框"; hitMarkerEnableBorder = p.getBoolean();
             p = config.get(C, "hitMarkerBorderWidth", 1.5);
-            p.comment = "边框宽度"; hitMarkerBorderWidth = (float) p.getDouble();
+            p.comment = "边框宽度"; p.setMinValue(0.5).setMaxValue(5.0); hitMarkerBorderWidth = (float) p.getDouble();
             hitMarkerBorderColor = loadColor(C, "hitMarkerBorderColor", 0, 0, 0);
             hitMarkerKillBorderColor = loadColor(C, "hitMarkerKillBorderColor", 0, 0, 0);
 
             // effects
             p = config.get(C, "hitBloodIntensity", 0.3);
-            p.comment = "血迹粒子浓度(0~1)"; hitBloodIntensity = (float) p.getDouble();
+            p.comment = "血迹粒子浓度(0~1)"; p.setMinValue(0.0).setMaxValue(1.0); hitBloodIntensity = (float) p.getDouble();
 
             // chat
             p = config.get(C, "enableChatKillDetection", true);
@@ -1064,6 +1072,7 @@ public class BetterPlayerHUDConfig {
         saveColor(C, "blockOutlineColor", blockOutlineColor);
         config.get(C, "blockOutlineWidth", 3.0f).set(blockOutlineWidth);
         config.get(C, "drawVisibleFacesOnlyBlocks", true).set(drawVisibleFacesOnlyBlocks);
+        config.get(C, "blockOutlineAlpha", 255).set(blockOutlineAlpha);
 
         // --- 模块14 ---
         config.get(C, "enableEntityHighlight", true).set(enableEntityHighlight);
@@ -1072,6 +1081,7 @@ public class BetterPlayerHUDConfig {
         saveColor(C, "entityOutlineColorFriendly", entityOutlineColorFriendly);
         config.get(C, "entityOutlineWidth", 2.0f).set(entityOutlineWidth);
         config.get(C, "drawVisibleFacesOnlyEntities", false).set(drawVisibleFacesOnlyEntities);
+        config.get(C, "entityOutlineAlpha", 255).set(entityOutlineAlpha);
 
         // --- 模块14b ---
         config.get(C, "enableRGBMode", true).set(enableRGBMode);
@@ -1162,11 +1172,11 @@ public class BetterPlayerHUDConfig {
         config.get(C, "crosshairCircleRadius", 8).set(crosshairCircleRadius);
         config.get(C, "crosshairCircleSegments", 24).set(crosshairCircleSegments);
         config.get(C, "crosshairEntityColor", true).set(crosshairEntityColor);
-        config.get(C, "crosshairColorPlayer", 0xFFFF5555).set(crosshairColorPlayer);
-        config.get(C, "crosshairColorHostile", 0xFFFFAA55).set(crosshairColorHostile);
-        config.get(C, "crosshairColorPassive", 0xFF55FF55).set(crosshairColorPassive);
-        config.get(C, "crosshairColorNeutral", 0xFFFFFF55).set(crosshairColorNeutral);
-        config.get(C, "crosshairColorOther", 0xFFFFFFFF).set(crosshairColorOther);
+        saveColor(C, "crosshairColorPlayer", crosshairColorPlayer);
+        saveColor(C, "crosshairColorHostile", crosshairColorHostile);
+        saveColor(C, "crosshairColorPassive", crosshairColorPassive);
+        saveColor(C, "crosshairColorNeutral", crosshairColorNeutral);
+        saveColor(C, "crosshairColorOther", crosshairColorOther);
         config.get(C, "crosshairEntityRange", 10).set(crosshairEntityRange);
         config.get(C, "crosshairIgnoreInvisible", true).set(crosshairIgnoreInvisible);
 
