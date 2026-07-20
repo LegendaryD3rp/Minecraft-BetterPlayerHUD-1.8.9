@@ -257,6 +257,29 @@ public class BetterPlayerHUD {
             config.potionTimerIconSize = 32;
         });
         MinecraftForge.EVENT_BUS.register(new PotionTimerHandler());
+
+        // ════════════════════════════════════════════════════════════
+        //  ChromaChat — 「蜃楼」现代聊天框
+        // ════════════════════════════════════════════════════════════
+        ChromaChatManager chromaChat = new ChromaChatManager();
+        MinecraftForge.EVENT_BUS.register(chromaChat);
+        HUDEditManager.register("蜃楼聊天框",
+                (x) -> config.chromaChatXOffset = x,
+                (y) -> config.chromaChatYOffset = y,
+                2, 20);  // 默认位置 = 原版聊天框
+        HUDEditManager.setDefaultSize("蜃楼聊天框", 320, 80);
+        HUDEditManager.registerToggle("蜃楼聊天框",
+                () -> config.enableChromaChat,
+                (v) -> config.enableChromaChat = v);
+        HUDEditManager.setSize("蜃楼聊天框", (d, r) -> {
+            int newWidth = Math.max(80, Math.min(800, config.chromaChatWidth + d));
+            config.chromaChatWidth = newWidth;
+            r.setSize(newWidth, r.height);
+        });
+        HUDEditManager.registerSizeReset("蜃楼聊天框", () -> {
+            config.chromaChatWidth = 320;
+            config.chromaChatLineCount = 8;
+        });
     }
 
     /**

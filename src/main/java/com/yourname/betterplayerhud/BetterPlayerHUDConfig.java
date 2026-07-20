@@ -311,6 +311,25 @@ public class BetterPlayerHUDConfig {
     public float comboScale = 1.0f;
 
     // ================================================================
+    //  模块27：「蜃楼」ChromaChat — 现代聊天框
+    // ================================================================
+    public boolean enableChromaChat = false;           // 总开关
+    // ── 位置 & 尺寸 ──
+    public int chromaChatXOffset = 0;                  // F7 编辑 X 偏移
+    public int chromaChatYOffset = 0;                  // F7 编辑 Y 偏移
+    public int chromaChatWidth = 320;                  // 聊天框宽度(px)
+    public int chromaChatLineCount = 8;                // 可见行数
+    // ── 外观 ──
+    public int chromaChatBackgroundColor = 0x88000000; // 背景色 ARGB
+    public int chromaChatBorderColor = 0x44000000;     // 边框色 ARGB
+    public int chromaChatBorderRadius = 3;             // 圆角半径(px)
+    // ── 弹性动画 ──
+    public float chromaChatAnimBounciness = 0.35f;     // 弹性系数 (0~1, 0=无弹性)
+    // ── 消息入场动画 ──
+    public boolean chromaChatMsgAnimEnable = true;     // 新消息弹入动画
+    public int chromaChatMsgAnimDuration = 300;        // 动画时长 (ms)
+
+    // ================================================================
     //  颜色工具方法
     // ================================================================
     private static int packRGB(int r, int g, int b) {
@@ -1020,10 +1039,35 @@ public class BetterPlayerHUDConfig {
             p.comment = "缩放"; p.setMinValue(0.1).setMaxValue(5.0); comboScale = (float) p.getDouble();
         }
 
+        // --- 模块27：ChromaChat ---
+        {
+            Property p = config.get(C, "enableChromaChat", false);
+            p.comment = "启用「蜃楼」现代聊天框（取消原版，叠层绘制）"; enableChromaChat = p.getBoolean();
+            p = config.get(C, "chromaChatXOffset", 0);
+            p.comment = "位置偏移X（F7编辑模式设置）"; chromaChatXOffset = p.getInt();
+            p = config.get(C, "chromaChatYOffset", 0);
+            p.comment = "位置偏移Y（F7编辑模式设置）"; chromaChatYOffset = p.getInt();
+            p = config.get(C, "chromaChatWidth", 320);
+            p.comment = "聊天框宽度"; p.setMinValue(80).setMaxValue(800); chromaChatWidth = p.getInt();
+            p = config.get(C, "chromaChatLineCount", 8);
+            p.comment = "可见行数"; p.setMinValue(1).setMaxValue(50); chromaChatLineCount = p.getInt();
+            p = config.get(C, "chromaChatBackground", 0x88000000);
+            p.comment = "背景色 ARGB 十六进制"; chromaChatBackgroundColor = p.getInt();
+            p = config.get(C, "chromaChatBorder", 0x44000000);
+            p.comment = "边框色 ARGB 十六进制"; chromaChatBorderColor = p.getInt();
+            p = config.get(C, "chromaChatBorderRadius", 3);
+            p.comment = "圆角半径"; p.setMinValue(0).setMaxValue(20); chromaChatBorderRadius = p.getInt();
+            p = config.get(C, "chromaChatAnimBounciness", 0.35);
+            p.comment = "弹性系数(0~1, 0=无弹性)"; p.setMinValue(0.0).setMaxValue(1.0); chromaChatAnimBounciness = (float) p.getDouble();
+            p = config.get(C, "chromaChatMsgAnimEnable", true);
+            p.comment = "新消息弹入动画"; chromaChatMsgAnimEnable = p.getBoolean();
+            p = config.get(C, "chromaChatMsgAnimDuration", 300);
+            p.comment = "入场动画时长(ms)"; p.setMinValue(50).setMaxValue(1000); chromaChatMsgAnimDuration = p.getInt();
+        }
+
     }
 
     // ================================================================
-    //  saveConfig — 将 Java 字段值写回 Configuration 并保存到磁盘
     //  主动写入每一个字段，不再依赖 Forge 的 hasChanged() 标志
     // ================================================================
     public void saveConfig() {
@@ -1275,6 +1319,19 @@ public class BetterPlayerHUDConfig {
         config.get(C, "comboXOffset", 0).set(comboXOffset);
         config.get(C, "comboYOffset", 0).set(comboYOffset);
         config.get(C, "comboScale", 1.0).set(comboScale);
+
+        // --- 模块27：ChromaChat ---
+        config.get(C, "enableChromaChat", false).set(enableChromaChat);
+        config.get(C, "chromaChatXOffset", 0).set(chromaChatXOffset);
+        config.get(C, "chromaChatYOffset", 0).set(chromaChatYOffset);
+        config.get(C, "chromaChatWidth", 320).set(chromaChatWidth);
+        config.get(C, "chromaChatLineCount", 8).set(chromaChatLineCount);
+        config.get(C, "chromaChatBackground", 0x88000000).set(chromaChatBackgroundColor);
+        config.get(C, "chromaChatBorder", 0x44000000).set(chromaChatBorderColor);
+        config.get(C, "chromaChatBorderRadius", 3).set(chromaChatBorderRadius);
+        config.get(C, "chromaChatAnimBounciness", 0.35).set(chromaChatAnimBounciness);
+        config.get(C, "chromaChatMsgAnimEnable", true).set(chromaChatMsgAnimEnable);
+        config.get(C, "chromaChatMsgAnimDuration", 300).set(chromaChatMsgAnimDuration);
 
         // 持久化到磁盘
         config.save();
