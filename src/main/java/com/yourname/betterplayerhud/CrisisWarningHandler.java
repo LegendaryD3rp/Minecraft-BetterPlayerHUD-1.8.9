@@ -101,6 +101,9 @@ public class CrisisWarningHandler {
     // ══════════════════════════════════════════════════════════════
     //  渲染级：仅读缓存，不扫实体
     // ══════════════════════════════════════════════════════════════
+
+    @SubscribeEvent
+    public void onRenderGameOverlay(RenderGameOverlayEvent.Post event) {
         if (event.type != RenderGameOverlayEvent.ElementType.TEXT) return;
         if (mc.thePlayer == null || mc.theWorld == null) return;
         BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
