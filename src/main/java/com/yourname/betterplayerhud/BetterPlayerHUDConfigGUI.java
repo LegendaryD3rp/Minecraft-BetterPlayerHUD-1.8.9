@@ -419,7 +419,7 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.hitmarker.audio", "bhud.hitmarker.audio", el(
                 "enableHitMarker", "hitMarkerUseS19", "enableHitSounds", "enableKillSound", "soundVolume")));
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.hitmarker.killchat", "bhud.hitmarker.killchat", el(
-                "enableChatKillDetection")));
+                "enableChatKillDetection", "enablePlusChatDetection")));
 
         list.add(ColorPreviewHelper.createPreviewCategory("bhud.hitmarker.hit", "bhud.hitmarker.hit",
                 el("hitColor", "hitSize", "hitAlpha", "hitBloodIntensity"),

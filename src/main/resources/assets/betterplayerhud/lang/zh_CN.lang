@@ -333,3 +333,5 @@ comboScale=缩放
 # ── 命中标识（新增） ──
 hitMarkerUseS19=使用S19多人命中确认
 hitMarkerUseS19.tooltip=通过Netty Pipeline拦截服务器确认，多人模式更精确（默认开启）
+enablePlusChatDetection="+"号命中检测
+enablePlusChatDetection.tooltip=聊天"+"号+物品减少同时满足时判定命中（僵尸末日等模组服）

@@ -298,6 +298,7 @@ public class BetterPlayerHUDConfig {
     public float hitBloodIntensity = 0.3f;
     // ── chat ──
     public boolean enableChatKillDetection = true;
+    public boolean enablePlusChatDetection = false; // 僵尸末日 "+"号+物品减少命中检测
     // ── rotation ──
     public boolean hitMarkerRandomRotate = true;
     public float hitMarkerRandomRotateStrength = 20.0f;
@@ -997,6 +998,8 @@ public class BetterPlayerHUDConfig {
             // chat
             p = config.get(C, "enableChatKillDetection", true);
             p.comment = "聊天击杀检测(中英文)"; enableChatKillDetection = p.getBoolean();
+            p = config.get(C, "enablePlusChatDetection", false);
+            p.comment = "聊天\"+\"号+物品减少检测(僵尸末日等模组服)"; enablePlusChatDetection = p.getBoolean();
 
             // rotation
             p = config.get(C, "hitMarkerRandomRotate", true);
@@ -1262,6 +1265,7 @@ public class BetterPlayerHUDConfig {
         saveColor(C, "hitMarkerKillBorderColor", hitMarkerKillBorderColor);
         config.get(C, "hitBloodIntensity", 0.3).set(hitBloodIntensity);
         config.get(C, "enableChatKillDetection", true).set(enableChatKillDetection);
+        config.get(C, "enablePlusChatDetection", false).set(enablePlusChatDetection);
         config.get(C, "hitMarkerRandomRotate", true).set(hitMarkerRandomRotate);
         config.get(C, "hitMarkerRandomRotateStrength", 20.0).set(hitMarkerRandomRotateStrength);
 

@@ -7,6 +7,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.projectile.EntityArrow;
 import net.minecraft.entity.projectile.EntityThrowable;
 import net.minecraft.entity.projectile.EntityFishHook;
+import net.minecraft.item.ItemStack;
 import net.minecraftforge.event.entity.player.AttackEntityEvent;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
@@ -76,6 +77,10 @@ public class HitMarkerEventHandler {
     // ── 击杀音效防抖 ──
     private long lastKillSoundTime = 0;
     private static final long KILL_SOUND_COOLDOWN = 800;
+
+    // ── 僵尸末日 "+" 号 + 物品减少检测 ──
+    private ItemStack prevHeldItem = null;
+    private static final long PLUS_CHAT_WINDOW_MS = 200;
 
     // ── S19 多人命中确认 ──
     private boolean s19Registered = false;
@@ -240,6 +245,32 @@ public class HitMarkerEventHandler {
             int eid = s19PendingEntityId;
             s19PendingEntityId = -1; // 消费掉
             triggerHitEffects(eid);
+        }
+
+        // ── "+" 号 + 物品减少检测（僵尸末日等模组服） ──
+        if (BetterPlayerHUD.config.enablePlusChatDetection) {
+            ItemStack held = mc.thePlayer.getHeldItem();
+            // 判断物品数量减少（同一物品 stack 变少）
+            boolean shotFired = false;
+            if (prevHeldItem != null && held != null
+                    && prevHeldItem.getItem() == held.getItem()
+                    && prevHeldItem.stackSize > held.stackSize) {
+                shotFired = true;
+            }
+            // 物品从有到无（打空弹匣）
+            if (prevHeldItem != null && held == null) {
+                shotFired = true;
+            }
+            if (shotFired) {
+                long chatTime = HitMarkerChatListener.lastPlusChatTime;
+                if (Math.abs(System.currentTimeMillis() - chatTime) <= PLUS_CHAT_WINDOW_MS) {
+                    // 同时满足：对话"+"号 + 物品减少 → 命中
+                    triggerPlusChatHit();
+                }
+            }
+            prevHeldItem = held == null ? null : held.copy();
+        } else {
+            prevHeldItem = null; // 关闭时清空，下次开启时重新追踪
         }
 
         long now = System.currentTimeMillis();
@@ -413,6 +444,17 @@ public class HitMarkerEventHandler {
                     target.posZ, 30, BetterPlayerHUD.config.hitBloodIntensity);
         } catch (Exception e) {
             System.err.println("[BHUD] Hit effects failed: " + e.getMessage());
+        }
+    }
+
+    /** 无目标位置的命中触发（仅标识+音效，不含粒子） */
+    private void triggerPlusChatHit() {
+        entityHitTimestamps.put(-1, System.currentTimeMillis());
+        try {
+            HitMarkerRendererBHUD.showHitMarker();
+            playRandomHitSound();
+        } catch (Exception e) {
+            System.err.println("[BHUD] PlusChat hit effects failed: " + e.getMessage());
         }
     }
 

@@ -15,18 +15,34 @@ import java.util.Random;
  * 击杀聊天检测器（由 HitMarkerMod 移植）。
  *
  * 中英文击杀/弓箭命中消息 → 触发标识 / 音效。
+ *
+ * 同时为「+ 号命中检测」提供数据源：
+ * 当服务端发送 "+..." 开头的消息时，
+ * 记录时间戳供 HitMarkerEventHandler 消费。
  */
 @SideOnly(Side.CLIENT)
 public class HitMarkerChatListener {
 
     private final Random random = new Random();
 
+    /** 最近一次 "+" 开头聊天消息的时间戳（ms），供外部读取 */
+    public static volatile long lastPlusChatTime = 0;
+
     @SubscribeEvent
     public void onChatReceived(ClientChatReceivedEvent event) {
         if (event.type != 0) return;
-        if (!BetterPlayerHUD.config.enableHitMarker || !BetterPlayerHUD.config.enableChatKillDetection) return;
+        if (!BetterPlayerHUD.config.enableHitMarker) return;
 
         String raw = EnumChatFormatting.getTextWithoutFormattingCodes(event.message.getUnformattedText());
+        if (raw == null || raw.isEmpty()) return;
+
+        // ── "+ 号数据检测（永不触发效果，只记时间戳） ──
+        if (raw.startsWith("+")) {
+            lastPlusChatTime = System.currentTimeMillis();
+        }
+
+        if (!BetterPlayerHUD.config.enableChatKillDetection) return;
+
         String clientName = Minecraft.getMinecraft().thePlayer.getName();
         if (clientName == null || clientName.isEmpty()) return;
 

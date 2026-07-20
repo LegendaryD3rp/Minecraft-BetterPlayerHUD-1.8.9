@@ -333,3 +333,5 @@ comboScale=Scale
 # ── Hit Marker (new) ──
 hitMarkerUseS19=Use S19 Confirmation
 hitMarkerUseS19.tooltip=Use Netty Pipeline S19 interception for accurate multiplayer hit detection (default on)
+enablePlusChatDetection="+" Chat Hit Detection
+enablePlusChatDetection.tooltip=Trigger hit marker on "+" chat + inventory decrease simultaneously (modded servers like Zombie Apocalypse)
