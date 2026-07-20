@@ -104,9 +104,16 @@ public class ChromaChatManager {
     @SubscribeEvent
     public void onChatRender(RenderGameOverlayEvent.Chat event) {
         BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
-        if (cfg == null || !cfg.enableChromaChat || !reflectionReady) return;
 
-        event.setCanceled(true);
+        // cancel original first - even if reflection fails
+        if (cfg != null && cfg.enableChromaChat) {
+            event.setCanceled(true);
+        } else {
+            return;
+        }
+
+        // if reflection not ready, return after cancellation
+        if (!reflectionReady) return;
 
         List<ChatLine> drawnLines = getDrawnLines();
         int scrollPos = getScrollPos();
