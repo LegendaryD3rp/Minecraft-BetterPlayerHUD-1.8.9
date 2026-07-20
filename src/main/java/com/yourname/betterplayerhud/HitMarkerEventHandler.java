@@ -470,12 +470,15 @@ public class HitMarkerEventHandler {
         }
     }
 
+    private static final String[] HIT_SOUNDS = {
+            "betterplayerhud:hit1", "betterplayerhud:hit2", "betterplayerhud:hit3"
+    };
+
     private void playRandomHitSound() {
         try {
             if (!BetterPlayerHUD.config.enableHitSounds) return;
-            String[] sounds = {"betterplayerhud:hit1", "betterplayerhud:hit2", "betterplayerhud:hit3"};
             Minecraft.getMinecraft().thePlayer.playSound(
-                    sounds[random.nextInt(sounds.length)],
+                    HIT_SOUNDS[random.nextInt(HIT_SOUNDS.length)],
                     BetterPlayerHUD.config.soundVolume, 1.0F);
         } catch (Exception ignored) {}
     }
