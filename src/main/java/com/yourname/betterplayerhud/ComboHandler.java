@@ -29,6 +29,8 @@ public class ComboHandler {
     private static final int BOX_H = 24;   // 固定高度（缩放前）
 
     // ── 状态 ──
+    private static ComboHandler INSTANCE;
+
     private int comboCount = 0;
     private long lastConfirmTime = 0;
     private int pendingEntityId = -1;
@@ -42,6 +44,19 @@ public class ComboHandler {
     private float animScale = 1.0f;         // 当前动画缩放值
     private float animVel = 0.0f;           // 速度（弹性衰减用）
     private boolean comboJustIncremented = false;  // 这一帧是否刚增加
+
+    public ComboHandler() {
+        INSTANCE = this;
+    }
+
+    /** 供外部（如僵尸末日枪械命中）触发连击计数 */
+    public static void onExternalHit() {
+        if (INSTANCE != null) {
+            INSTANCE.comboCount++;
+            INSTANCE.lastConfirmTime = System.currentTimeMillis();
+            INSTANCE.comboJustIncremented = true;
+        }
+    }
 
     // ═══════════════════════════════════════════════════════
     //  客户端 Tick：重置状态 + 注册 + 动画更新

@@ -82,6 +82,7 @@ public class HitMarkerEventHandler {
     // ── 僵尸末日 "+" 号 + 物品减少检测（热键栏 9 槽快照，支持秒切换枪） ──
     private final int[] prevHotbarSizes = new int[9];
     private final Item[] prevHotbarTypes = new Item[9];
+    private final int[] prevHotbarDamages = new int[9];   // 耐久度快照（最后一发子弹检测）
     private boolean prevHotbarInitialized = false;
     private static final long PLUS_CHAT_WINDOW_MS = 200;
 
@@ -259,6 +260,7 @@ public class HitMarkerEventHandler {
                 ItemStack stack = mc.thePlayer.inventory.mainInventory[i];
                 int curSize = (stack == null) ? 0 : stack.stackSize;
                 Item curType = (stack == null) ? null : stack.getItem();
+                int curDamage = (stack == null || stack.getMaxDamage() <= 0) ? 0 : stack.getItemDamage();
 
                 // 先用旧快照检测减少（必须在更新快照之前）
                 if (prevHotbarInitialized) {
@@ -268,11 +270,17 @@ public class HitMarkerEventHandler {
                     if (prevHotbarTypes[i] != null && stack == null) {
                         shotFired = true;
                     }
+                    // 最后一发子弹：stackSize 不变，但耐久度增加（枪械损伤）
+                    if (prevHotbarTypes[i] != null && curType == prevHotbarTypes[i] && curSize == prevHotbarSizes[i]
+                            && curDamage > prevHotbarDamages[i]) {
+                        shotFired = true;
+                    }
                 }
 
                 // 更新快照
                 prevHotbarSizes[i] = curSize;
                 prevHotbarTypes[i] = curType;
+                prevHotbarDamages[i] = curDamage;
             }
             prevHotbarInitialized = true;
 
@@ -465,6 +473,8 @@ public class HitMarkerEventHandler {
         try {
             HitMarkerRendererBHUD.showHitMarker();
             playRandomHitSound();
+            // 僵尸末日枪械命中 → 联动连击计数
+            ComboHandler.onExternalHit();
         } catch (Exception e) {
             System.err.println("[BHUD] PlusChat hit effects failed: " + e.getMessage());
         }
