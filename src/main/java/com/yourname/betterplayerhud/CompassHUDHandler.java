@@ -14,6 +14,14 @@ public class CompassHUDHandler {
     private long lastUpdateTime = 0;
     private float smoothYaw = 0;
 
+    /** 地平线字符串缓存（避免每帧 StringBuilder 分配） */
+    private static final String HORIZON_LINE;
+    static {
+        StringBuilder sb = new StringBuilder(40);
+        for (int i = 0; i < 40; i++) sb.append('―');
+        HORIZON_LINE = sb.toString();
+    }
+
     @SubscribeEvent
     public void onRenderGameOverlay(RenderGameOverlayEvent.Post event) {
         if (event.type != RenderGameOverlayEvent.ElementType.TEXT) {
@@ -159,7 +167,7 @@ public class CompassHUDHandler {
 
             // 显示当前精确角度（F3角度）
             if (BetterPlayerHUD.config.showExactAngle) {
-                String currentAngle = String.format("%d", (int)f3Yaw);
+                String currentAngle = String.valueOf((int)f3Yaw);
                 int angleWidth = fr.getStringWidth(currentAngle);
 
                 // 绘制黄色角度
@@ -174,8 +182,7 @@ public class CompassHUDHandler {
 
         // === 4. 绘制地平线（可选） ===
         if (BetterPlayerHUD.config.showHorizon) {
-            String horizonLine = repeatString("―", 40);
-            fr.drawStringWithShadow(horizonLine, xPos, compassTopY + 5, 0x888888);
+            fr.drawStringWithShadow(HORIZON_LINE, xPos, compassTopY + 5, 0x888888);
         }
 
         GlStateManager.popMatrix();
@@ -216,17 +223,6 @@ public class CompassHUDHandler {
         return "SE"; // 东南 (292.5-337.5)
     }
 
-    // 自定义字符串重复方法
-    private String repeatString(String str, int count) {
-        if (count <= 0) return "";
-
-        StringBuilder result = new StringBuilder();
-        for (int i = 0; i < count; i++) {
-            result.append(str);
-        }
-        return result.toString();
-    }
-
     // 简化罗盘样式 - 基于F3实际方向
     private void renderSimpleCompass(float yaw, int screenWidth, int screenHeight, float partialTicks) {
         FontRenderer fr = mc.fontRendererObj;
@@ -236,7 +232,7 @@ public class CompassHUDHandler {
         String direction = getCardinalDirection(f3Yaw);
 
         // 显示方向+F3角度数值
-        String displayText = String.format("%s %d", direction, (int)f3Yaw);
+        String displayText = direction + " " + (int)f3Yaw;
 
         int xPos = calculateXPosition(screenWidth, fr.getStringWidth(displayText));
         int yPos = calculateYPosition(screenHeight);
@@ -253,7 +249,7 @@ public class CompassHUDHandler {
         String direction = getCardinalDirection(f3Yaw);
 
         // 显示箭头+方向首字母
-        String displayText = String.format("↑%s", direction.substring(0, 1));
+        String displayText = "↑" + direction.substring(0, 1);
 
         int xPos = calculateXPosition(screenWidth, fr.getStringWidth(displayText));
         int yPos = calculateYPosition(screenHeight);

@@ -11,12 +11,13 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.BlockPos;
-import java.util.List;
-import java.util.ArrayList;
 
 public class DistanceHUDHandler {
 
     private Minecraft mc = Minecraft.getMinecraft();
+
+    // 固定数组避免每帧 ArrayList 分配（最多 6 行：距离+方块名+坐标+硬度+工具+实体名）
+    private final String[] lineBuffer = new String[6];
 
     @SubscribeEvent
     public void onRenderGameOverlay(RenderGameOverlayEvent.Post event) {
@@ -71,32 +72,32 @@ public class DistanceHUDHandler {
             return;
         }
 
-        // 获取所有要显示的文本行
-        List<String> displayLines = getDisplayLines(mouseOver, distance);
+        // 获取所有要显示的文本行（固定数组，零分配）
+        int lineCount = getDisplayLines(mouseOver, distance, lineBuffer);
 
-        if (displayLines.isEmpty()) {
+        if (lineCount == 0) {
             return;
         }
 
         // 计算最大文本宽度
         int maxWidth = 0;
-        for (String text : displayLines) {
-            int width = fr.getStringWidth(text);
+        for (int i = 0; i < lineCount; i++) {
+            int width = fr.getStringWidth(lineBuffer[i]);
             if (width > maxWidth) {
                 maxWidth = width;
             }
         }
-        int textHeight = displayLines.size() * 10;
+        int textHeight = lineCount * 10;
 
         // 计算位置
         int xPos = calculateDistanceXPosition(screenWidth, maxWidth);
         int yPos = calculateDistanceYPosition(screenHeight, textHeight);
 
         // 绘制文本
-        for (int i = 0; i < displayLines.size(); i++) {
+        for (int i = 0; i < lineCount; i++) {
             int color = getTextColor(i);
             fr.drawStringWithShadow(
-                    displayLines.get(i),
+                    lineBuffer[i],
                     xPos,
                     yPos + (i * 10),
                     color
@@ -104,16 +105,22 @@ public class DistanceHUDHandler {
         }
 
         if (HUDEditManager.isEditing())
-            HUDEditManager.report("距离信息", xPos, yPos, 120, displayLines.size() * 10 + 2);
+            HUDEditManager.report("距离信息", xPos, yPos, 120, lineCount * 10 + 2);
     }
 
-    private List<String> getDisplayLines(MovingObjectPosition mouseOver, double distance) {
-        List<String> lines = new ArrayList<String>();
+    private int getDisplayLines(MovingObjectPosition mouseOver, double distance, String[] out) {
+        int lc = 0;
 
-        // 第一行：距离信息
-        String formatString = "%." + BetterPlayerHUD.config.distancePrecision + "f";
-        String distanceText = String.format(formatString, distance) + "m";
-        lines.add(distanceText);
+        // 第一行：距离信息（手动格式化，避免 String.format）
+        int precision = BetterPlayerHUD.config.distancePrecision;
+        String distanceText;
+        if (precision == 0) {
+            distanceText = (int)Math.round(distance) + "m";
+        } else {
+            double factor = Math.pow(10, precision);
+            distanceText = String.valueOf((long)(distance * factor + 0.5) / factor) + "m";
+        }
+        out[lc++] = distanceText;
 
         // 如果是方块，显示详细信息
         if (mouseOver.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK &&
@@ -130,28 +137,33 @@ public class DistanceHUDHandler {
                     if (blockName.length() > 20) {
                         blockName = blockName.substring(0, 20) + "...";
                     }
-                    lines.add("方块: " + blockName);
+                    out[lc++] = "方块: " + blockName;
                 } catch (Exception e) {
-                    lines.add("未知方块");
+                    out[lc++] = "未知方块";
                 }
             }
 
-            // 方块坐标信息
+            // 方块坐标信息（字符串拼接替代 String.format）
             if (BetterPlayerHUD.config.showBlockCoordinates) {
-                lines.add(String.format("坐标: %d, %d, %d", pos.getX(), pos.getY(), pos.getZ()));
+                out[lc++] = "坐标: " + pos.getX() + ", " + pos.getY() + ", " + pos.getZ();
             }
 
             // 方块硬度信息
             if (BetterPlayerHUD.config.showBlockHardness) {
                 float hardness = block.getBlockHardness(mc.theWorld, pos);
-                String hardnessText = hardness >= 0 ? String.format("%.1f", hardness) : "不可破坏";
-                lines.add("硬度: " + hardnessText);
+                String hText;
+                if (hardness < 0) {
+                    hText = "不可破坏";
+                } else {
+                    hText = String.valueOf((int)(hardness * 10 + 0.5f) / 10.0f);
+                }
+                out[lc++] = "硬度: " + hText;
             }
 
             // 所需工具信息
             if (BetterPlayerHUD.config.showRequiredTool) {
                 String toolInfo = getToolInfo(block, blockState);
-                lines.add("工具: " + toolInfo);
+                out[lc++] = "工具: " + toolInfo;
             }
 
         } else if (mouseOver.typeOfHit == MovingObjectPosition.MovingObjectType.ENTITY &&
@@ -166,11 +178,11 @@ public class DistanceHUDHandler {
                 if (entityName.length() > 15) {
                     entityName = entityName.substring(0, 15) + "...";
                 }
-                lines.add("实体: " + entityName);
+                out[lc++] = "实体: " + entityName;
             }
         }
 
-        return lines;
+        return lc;
     }
 
     private String getToolInfo(Block block, IBlockState state) {

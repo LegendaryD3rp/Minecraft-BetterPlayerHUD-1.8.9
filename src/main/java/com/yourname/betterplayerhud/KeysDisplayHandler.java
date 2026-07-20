@@ -184,7 +184,9 @@ public class KeysDisplayHandler {
         renderKeysLayout(xPos, yPos, keySize, keySpacing, fr);
 
         // 在按键下方显示 CPS
-        String cpsText = String.format("%.1f | %.1f", leftCps, rightCps);
+        int leftInt = (int)(leftCps * 10f + 0.5f);
+        int rightInt = (int)(rightCps * 10f + 0.5f);
+        String cpsText = (leftInt / 10) + "." + (leftInt % 10) + " | " + (rightInt / 10) + "." + (rightInt % 10);
         int cpsWidth = fr.getStringWidth(cpsText);
         int cpsX = xPos + (displayWidth - cpsWidth) / 2;
         int cpsY = yPos + displayHeight + 4;

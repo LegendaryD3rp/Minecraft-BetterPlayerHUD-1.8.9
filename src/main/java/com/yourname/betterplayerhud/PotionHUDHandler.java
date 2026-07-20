@@ -83,9 +83,14 @@ public class PotionHUDHandler {
             int totalSec = effect.getDuration() / 20;
             String time;
             if (totalSec >= 3600) {
-                time = String.format("%d:%02d:%02d", totalSec / 3600, (totalSec % 3600) / 60, totalSec % 60);
+                int h = totalSec / 3600;
+                int m = (totalSec % 3600) / 60;
+                int s = totalSec % 60;
+                time = h + ":" + (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
             } else {
-                time = String.format("%d:%02d", totalSec / 60, totalSec % 60);
+                int m = totalSec / 60;
+                int s = totalSec % 60;
+                time = m + ":" + (s < 10 ? "0" : "") + s;
             }
             mc.fontRendererObj.drawStringWithShadow(time, x + 22, y + 5, cfg.potionTextColor);
 

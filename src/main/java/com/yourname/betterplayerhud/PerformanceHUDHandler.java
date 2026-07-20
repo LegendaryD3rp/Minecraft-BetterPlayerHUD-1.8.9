@@ -159,13 +159,14 @@ public class PerformanceHUDHandler {
             int px = (int) Math.floor(mc.thePlayer.posX);
             int py = (int) Math.floor(mc.thePlayer.posY);
             int pz = (int) Math.floor(mc.thePlayer.posZ);
-            fr.drawStringWithShadow(String.format("XYZ: %d / %d / %d", px, py, pz), baseX, y, color);
+            fr.drawStringWithShadow("XYZ: " + px + " / " + py + " / " + pz, baseX, y, color);
             y += lineH;
         }
 
         // ── TPS ──
         if (BetterPlayerHUD.config.showTPS) {
-            String tpsStr = String.format("TPS: %.1f", currentTPS);
+            int tpsInt = (int)(currentTPS * 10.0f + 0.5f);
+            String tpsStr = "TPS: " + (tpsInt / 10) + "." + (tpsInt % 10);
             int tpsColor = getTpsColor(currentTPS);
             fr.drawStringWithShadow(tpsStr, baseX, y, tpsColor);
             y += lineH;
@@ -173,7 +174,7 @@ public class PerformanceHUDHandler {
 
         // ── Ping ──
         if (BetterPlayerHUD.config.showPing) {
-            String pingStr = (lastPing > 0) ? String.format("Ping: %dms", lastPing) : "Ping: --";
+            String pingStr = (lastPing > 0) ? "Ping: " + lastPing + "ms" : "Ping: --";
             fr.drawStringWithShadow(pingStr, baseX, y, pingStr.contains("--") ? color : getPingColor(lastPing));
             y += lineH;
         }
