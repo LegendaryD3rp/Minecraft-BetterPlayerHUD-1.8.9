@@ -101,8 +101,8 @@ public class TargetHealthHandler {
         int armorLabelW = 0;
         int maxLabelW = 0;
         if (showHpLabels) {
-            hpLabel = String.format("%.0f/%.0f", health, maxHealth);
-            if (absorb > 0) hpLabel += " +" + String.format("%.0f", absorb);
+            hpLabel = (int)(health + 0.5f) + "/" + (int)(maxHealth + 0.5f);
+            if (absorb > 0) hpLabel += " +" + (int)(absorb + 0.5f);
             armorLabel = armorValue + "/20";
             hpLabelW = mc.fontRendererObj.getStringWidth(hpLabel);
             armorLabelW = mc.fontRendererObj.getStringWidth(armorLabel);
@@ -216,8 +216,8 @@ public class TargetHealthHandler {
         // ── 画文字 ──
         if (showText && BetterPlayerHUD.config.targetHPShowName) {
             String displayName = getDisplayName(target);
-            String hpStr = String.format("%.0f/%.0f", health, maxHealth);
-            if (absorb > 0) hpStr += " +" + String.format("%.0f", absorb);
+            String hpStr = (int)(health + 0.5f) + "/" + (int)(maxHealth + 0.5f);
+            if (absorb > 0) hpStr += " +" + (int)(absorb + 0.5f);
 
             String display = displayName + " " + hpStr;
             int textColor = packColor(

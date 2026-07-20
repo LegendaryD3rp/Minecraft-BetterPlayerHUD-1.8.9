@@ -15,6 +15,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.potion.Potion;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.TickEvent;
 
 public class CrisisWarningHandler {
 
@@ -33,8 +34,73 @@ public class CrisisWarningHandler {
     /** 箭头检测消退计时器（tick），让警告持续一段时间 */
     private int arrowWarnCooldown = 0;
 
+    // ── Tick 缓存：代替每帧全实体扫描 ──
+    private boolean tickArrowNear = false;
+    private boolean tickExplosiveNear = false;
+
+    // ══════════════════════════════════════════════════════════════
+    //  Tick 级扫描（20 tps），缓存结果供渲染帧使用
+    // ══════════════════════════════════════════════════════════════
+
     @SubscribeEvent
-    public void onRenderGameOverlay(RenderGameOverlayEvent.Post event) {
+    public void onClientTick(TickEvent.ClientTickEvent event) {
+        if (event.phase != TickEvent.Phase.END) return;
+        if (mc.thePlayer == null || mc.theWorld == null) return;
+        BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
+        if (!cfg.enableCrisisWarning) return;
+
+        tickArrowNear = false;
+        tickExplosiveNear = false;
+
+        double px = mc.thePlayer.posX, py = mc.thePlayer.posY, pz = mc.thePlayer.posZ;
+
+        // 单次遍历 loadedEntityList，同时检测箭矢和爆炸物
+        for (Object o : mc.theWorld.loadedEntityList) {
+            if (o instanceof EntityArrow && cfg.crisisWarnArrow && !tickArrowNear) {
+                EntityArrow arrow = (EntityArrow) o;
+                if (arrow.shootingEntity == mc.thePlayer) continue;
+                double radiusSq = cfg.crisisArrowRadius * cfg.crisisArrowRadius;
+                double dx = arrow.posX - px, dy = arrow.posY - py, dz = arrow.posZ - pz;
+                if (dx * dx + dy * dy + dz * dz <= radiusSq) {
+                    tickArrowNear = true;
+                }
+            }
+            if (cfg.crisisWarnTnt && !tickExplosiveNear) {
+                double radiusSq = cfg.crisisTntRadius * cfg.crisisTntRadius;
+                boolean found = false;
+                if (o instanceof EntityTNTPrimed) {
+                    EntityTNTPrimed tnt = (EntityTNTPrimed) o;
+                    double dx = tnt.posX - px, dy = tnt.posY - py, dz = tnt.posZ - pz;
+                    found = (dx * dx + dy * dy + dz * dz <= radiusSq);
+                } else if (o instanceof EntityCreeper) {
+                    EntityCreeper creeper = (EntityCreeper) o;
+                    if (creeper.getCreeperState() > 0) {
+                        double dx = creeper.posX - px, dy = creeper.posY - py, dz = creeper.posZ - pz;
+                        found = (dx * dx + dy * dy + dz * dz <= radiusSq);
+                    }
+                } else if (o instanceof EntityFireball) {
+                    EntityFireball fb = (EntityFireball) o;
+                    double dx = fb.posX - px, dy = fb.posY - py, dz = fb.posZ - pz;
+                    found = (dx * dx + dy * dy + dz * dz <= radiusSq);
+                }
+                if (found) tickExplosiveNear = true;
+            }
+
+            // 两个都找到了，提前结束遍历
+            if ((!cfg.crisisWarnArrow || tickArrowNear) && (!cfg.crisisWarnTnt || tickExplosiveNear)) break;
+        }
+
+        // 消退计时器（每 tick 精确递减）
+        if (tickArrowNear) {
+            arrowWarnCooldown = 80; // persist 4 seconds
+        } else if (arrowWarnCooldown > 0) {
+            arrowWarnCooldown--;
+        }
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    //  渲染级：仅读缓存，不扫实体
+    // ══════════════════════════════════════════════════════════════
         if (event.type != RenderGameOverlayEvent.ElementType.TEXT) return;
         if (mc.thePlayer == null || mc.theWorld == null) return;
         BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
@@ -61,26 +127,9 @@ public class CrisisWarningHandler {
         int topY = screenHeight / 2 - 120 + cfg.crisisYOffset;
 
         // ── 消退计时器提前处理（不受闪烁影响，保证精确计时） ──
-        if (cfg.crisisWarnArrow) {
-            double radiusSq = cfg.crisisArrowRadius * cfg.crisisArrowRadius;
-            boolean arrowNear = false;
-            double px = mc.thePlayer.posX, py = mc.thePlayer.posY, pz = mc.thePlayer.posZ;
-            for (Object o : mc.theWorld.loadedEntityList) {
-                if (o instanceof EntityArrow) {
-                    EntityArrow arrow = (EntityArrow) o;
-                    // 排除自己射出的箭
-                    if (arrow.shootingEntity == mc.thePlayer) continue;
-                    double dx = arrow.posX - px, dy = arrow.posY - py, dz = arrow.posZ - pz;
-                    if (dx * dx + dy * dy + dz * dz <= radiusSq) {
-                        arrowNear = true; break;
-                    }
-                }
-            }
-            if (arrowNear) {
-                arrowWarnCooldown = 80; // persist 4 seconds (80 ticks)
-            } else if (arrowWarnCooldown > 0) {
-                arrowWarnCooldown--; // 每 tick 精确递减，不受闪烁影响
-            }
+        // （实际扫描已在 onClientTick 中完成，此处只做消退衰减）
+        if (cfg.crisisWarnArrow && arrowWarnCooldown > 0) {
+            // 等到闪烁时才绘制图标，计时器衰减在 tick 中处理
         }
 
         // ── 闪烁 ──
@@ -103,39 +152,8 @@ public class CrisisWarningHandler {
         if (cfg.crisisWarnHunger && mc.thePlayer.getFoodStats().getFoodLevel() <= cfg.crisisHungerThreshold) {
             types.add(1); stacks.add(null);
         }
-        // 附近即将引爆的爆炸物：TNT 或 苦力怕（点燃状态）
-        if (cfg.crisisWarnTnt) {
-            double radiusSq = cfg.crisisTntRadius * cfg.crisisTntRadius;
-            boolean explosiveNear = false;
-            double px = mc.thePlayer.posX, py = mc.thePlayer.posY, pz = mc.thePlayer.posZ;
-            for (Object o : mc.theWorld.loadedEntityList) {
-                if (o instanceof EntityTNTPrimed) {
-                    EntityTNTPrimed tnt = (EntityTNTPrimed) o;
-                    double dx = tnt.posX - px, dy = tnt.posY - py, dz = tnt.posZ - pz;
-                    if (dx * dx + dy * dy + dz * dz <= radiusSq) {
-                        explosiveNear = true; break;
-                    }
-                }
-                if (o instanceof EntityCreeper) {
-                    EntityCreeper creeper = (EntityCreeper) o;
-                    if (creeper.getCreeperState() > 0) { // 点燃状态（即将爆炸）
-                        double dx = creeper.posX - px, dy = creeper.posY - py, dz = creeper.posZ - pz;
-                        if (dx * dx + dy * dy + dz * dz <= radiusSq) {
-                            explosiveNear = true; break;
-                        }
-                    }
-                }
-                // 飞行火球（烈焰弹/恶魂火球）→ 同属爆炸危险
-                if (o instanceof EntityFireball) {
-                    EntityFireball fb = (EntityFireball) o;
-                    double dx = fb.posX - px, dy = fb.posY - py, dz = fb.posZ - pz;
-                    if (dx * dx + dy * dy + dz * dz <= radiusSq) {
-                        explosiveNear = true; break;
-                    }
-                }
-            }
-            if (explosiveNear) { types.add(2); stacks.add(ICON_TNT); }
-        }
+        // 附近即将引爆的爆炸物：TNT 或 苦力怕（点燃状态）— 使用 tick 缓存
+        if (cfg.crisisWarnTnt && tickExplosiveNear) { types.add(2); stacks.add(ICON_TNT); }
         // 箭矢警告（消退计时已提前处理，此处仅判断是否显示）
         if (cfg.crisisWarnArrow && arrowWarnCooldown > 0) {
             types.add(4); stacks.add(ICON_BOW);

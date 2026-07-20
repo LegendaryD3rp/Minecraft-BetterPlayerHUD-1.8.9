@@ -120,31 +120,31 @@ public class EquipHUDHandler {
         mc.getRenderItem().renderItemAndEffectIntoGUI(stack, x + 2, y + 2);
         RenderHelper.disableStandardItemLighting();
 
-        // ── 构建附魔行列表（每行一个附魔） ──
-        java.util.List<String> lines = new java.util.ArrayList<>();
+        // ── 构建附魔行列表（每行一个附魔，固定数组零分配） ──
+        String[] lines = new String[5];
+        int lineCount = 0;
 
         if (stack.isItemEnchanted()) {
             java.util.Map<Integer, Integer> enchMap = EnchantmentHelper.getEnchantments(stack);
             for (java.util.Map.Entry<Integer, Integer> entry : enchMap.entrySet()) {
+                if (lineCount >= 5) break;
                 Enchantment ench = Enchantment.getEnchantmentById(entry.getKey());
                 if (ench == null) continue;
-                lines.add("§b" + ench.getTranslatedName(entry.getValue()));
+                lines[lineCount++] = "§b" + ench.getTranslatedName(entry.getValue());
             }
         }
 
         // 耐久行
-        String durText = "";
         if (stack.isItemStackDamageable()) {
             int maxDmg = stack.getMaxDamage();
             int curDmg = maxDmg - stack.getItemDamage();
-            durText = "§7(" + curDmg + "/" + maxDmg + ")";
-            lines.add(durText);
+            lines[lineCount++] = "§7(" + curDmg + "/" + maxDmg + ")";
         }
 
-        if (lines.isEmpty()) return; // 无附魔也无耐久则只画图标
+        if (lineCount == 0) return; // 无附魔也无耐久则只画图标
 
         int lineHeight = mc.fontRendererObj.FONT_HEIGHT + 1;
-        int totalTextH = lines.size() * lineHeight;
+        int totalTextH = lineCount * lineHeight;
 
         // 文字起始 Y：让文字块垂直居中于图标（图标 20px，文字块从图标中间开始）
         int textStartY = y + (20 - totalTextH) / 2;
@@ -153,20 +153,18 @@ public class EquipHUDHandler {
             // 左列：文字在图标左侧，右对齐
             // 先算最宽一行
             int maxW = 0;
-            for (String ln : lines) maxW = Math.max(maxW, mc.fontRendererObj.getStringWidth(ln));
+            for (int i = 0; i < lineCount; i++) maxW = Math.max(maxW, mc.fontRendererObj.getStringWidth(lines[i]));
             int tx = x - 4 - maxW;
             if (tx < 2) tx = 2;
-            for (int i = 0; i < lines.size(); i++) {
-                int tw = mc.fontRendererObj.getStringWidth(lines.get(i));
-                mc.fontRendererObj.drawStringWithShadow(lines.get(i), tx + (maxW - tw), textStartY + i * lineHeight, 0xFFFFFFFF);
+            for (int i = 0; i < lineCount; i++) {
+                int tw = mc.fontRendererObj.getStringWidth(lines[i]);
+                mc.fontRendererObj.drawStringWithShadow(lines[i], tx + (maxW - tw), textStartY + i * lineHeight, 0xFFFFFFFF);
             }
         } else {
             // 右列：文字在图标右侧，左对齐
             int tx = x + 22;
-            int maxW = 0;
-            for (String ln : lines) maxW = Math.max(maxW, mc.fontRendererObj.getStringWidth(ln));
-            for (int i = 0; i < lines.size(); i++) {
-                mc.fontRendererObj.drawStringWithShadow(lines.get(i), tx, textStartY + i * lineHeight, 0xFFFFFFFF);
+            for (int i = 0; i < lineCount; i++) {
+                mc.fontRendererObj.drawStringWithShadow(lines[i], tx, textStartY + i * lineHeight, 0xFFFFFFFF);
             }
         }
     }

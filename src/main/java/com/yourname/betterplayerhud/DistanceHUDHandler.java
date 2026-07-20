@@ -3,14 +3,12 @@ package com.yourname.betterplayerhud;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.ScaledResolution;
-import net.minecraft.entity.Entity;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.item.ItemStack;
 import net.minecraft.util.BlockPos;
 import java.util.List;
 import java.util.ArrayList;
@@ -18,7 +16,6 @@ import java.util.ArrayList;
 public class DistanceHUDHandler {
 
     private Minecraft mc = Minecraft.getMinecraft();
-    private static final double MAX_DETECTION_DISTANCE = 1000.0D;
 
     @SubscribeEvent
     public void onRenderGameOverlay(RenderGameOverlayEvent.Post event) {
@@ -52,7 +49,7 @@ public class DistanceHUDHandler {
 
     private void renderDistanceHUD(int screenWidth, int screenHeight) {
         FontRenderer fr = mc.fontRendererObj;
-        MovingObjectPosition mouseOver = getMouseOverExtended(MAX_DETECTION_DISTANCE);
+        MovingObjectPosition mouseOver = mc.objectMouseOver;
 
         if (mouseOver == null || mouseOver.typeOfHit == MovingObjectPosition.MovingObjectType.MISS) {
             // 编辑模式下即使无目标也上报 placeholder
@@ -218,51 +215,8 @@ public class DistanceHUDHandler {
         }
     }
 
-    // 以下是原有的辅助方法，保持不变
-    private MovingObjectPosition getMouseOverExtended(double maxDistance) {
-        if (mc.getRenderViewEntity() == null || mc.theWorld == null) {
-            return null;
-        }
-        MovingObjectPosition objectMouseOver = mc.getRenderViewEntity().rayTrace(maxDistance, 1.0F);
-        if (objectMouseOver != null && objectMouseOver.typeOfHit != MovingObjectPosition.MovingObjectType.MISS) {
-            return objectMouseOver;
-        }
-        return getEntityMouseOver(maxDistance);
-    }
-
-    private MovingObjectPosition getEntityMouseOver(double maxDistance) {
-        MovingObjectPosition entityHit = null;
-        double closestDistance = maxDistance;
-        Vec3 playerPos = mc.getRenderViewEntity().getPositionEyes(1.0F);
-        Vec3 lookVec = mc.getRenderViewEntity().getLook(1.0F);
-        Vec3 targetPos = playerPos.addVector(
-                lookVec.xCoord * maxDistance,
-                lookVec.yCoord * maxDistance,
-                lookVec.zCoord * maxDistance
-        );
-
-        for (Entity entity : mc.theWorld.loadedEntityList) {
-            if (!entity.canBeCollidedWith() || entity == mc.getRenderViewEntity()) {
-                continue;
-            }
-            float collisionBorderSize = entity.getCollisionBorderSize();
-            net.minecraft.util.AxisAlignedBB entityBoundingBox = entity.getEntityBoundingBox();
-            if (entityBoundingBox == null) continue;
-            net.minecraft.util.AxisAlignedBB expandedBoundingBox = entityBoundingBox.expand(
-                    collisionBorderSize, collisionBorderSize, collisionBorderSize
-            );
-            MovingObjectPosition intercept = expandedBoundingBox.calculateIntercept(playerPos, targetPos);
-            if (intercept != null) {
-                double distance = playerPos.distanceTo(intercept.hitVec);
-                if (distance < closestDistance) {
-                    closestDistance = distance;
-                    entityHit = new MovingObjectPosition(entity, intercept.hitVec);
-                }
-            }
-        }
-        return entityHit;
-    }
-
+    // 使用 Minecraft 内置的 objectMouseOver（EntityRenderer 每帧免费计算），
+    // 不再自建全实体扫描。
     private double calculateDistance(MovingObjectPosition mouseOver) {
         if (mouseOver.hitVec == null) {
             return -1;
