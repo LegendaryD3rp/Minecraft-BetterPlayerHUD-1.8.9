@@ -35,7 +35,8 @@ public class ComboHandler {
     private boolean swingConfirmed = false;
     private long lastSwingTime = 0;
 
-    private boolean registered = false;
+    private boolean handlerRegistered = false;  // S19 监听器已注册
+    private boolean injectionRequested = false; // 已请求注入
 
     // ── 弹跳动画 ──
     private float animScale = 1.0f;         // 当前动画缩放值
@@ -62,10 +63,13 @@ public class ComboHandler {
             return;
         }
 
-        // 注册监听器（懒加载）
-        if (!registered && mc.thePlayer != null && mc.thePlayer.sendQueue != null) {
+        // 注册监听器 + 重试注入直到成功
+        if (!handlerRegistered && mc.thePlayer != null && mc.thePlayer.sendQueue != null) {
             S19HitManager.registerListener(this::onS19Hit);
-            registered = true;
+            handlerRegistered = true;
+        }
+        if (handlerRegistered) {
+            S19HitManager.ensureInjected();
         }
 
         // 超时重置

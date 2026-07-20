@@ -83,12 +83,17 @@ public class HitMarkerEventHandler {
     private volatile long s19LastAttackTime = 0;
     private static final long S19_TIMEOUT_MS = 1000;
 
-    /** S19 命中回调（Netty 线程） */
+    // S19 回调（Netty 线程）→ 暂存到 volatile，主线程 tick 处理
+    private volatile int s19PendingEntityId = -1;
+    private volatile long s19PendingTime = 0;
+
+    /** S19 命中回调（Netty 线程 — 只存 volatile，不能调 Minecraft API） */
     private void onS19Hit(int entityId, long time) {
         if (time - s19LastAttackTime > S19_TIMEOUT_MS) return;
         if (entityId != s19LastAttackedEntity) return;
-        // S19 确认命中 → 触发击中效果
-        triggerHitEffects(entityId);
+        // 暂存，等主线程 tick 处理
+        s19PendingEntityId = entityId;
+        s19PendingTime = time;
     }
 
     /** 注册 S19 监听器（懒加载） */
@@ -112,7 +117,8 @@ public class HitMarkerEventHandler {
         if (!shouldTriggerHitMarker(targetId)) return;
 
         if (BetterPlayerHUD.config.hitMarkerUseS19) {
-            // S19 模式：先记录目标，等服务器确认
+            // S19 模式：先记录目标，等服务器确认；确保 pipeline 已注入
+            S19HitManager.ensureInjected();
             s19LastAttackedEntity = targetId;
             s19LastAttackTime = System.currentTimeMillis();
         } else {
@@ -224,6 +230,17 @@ public class HitMarkerEventHandler {
 
         // 确保 S19 监听器已注册
         ensureS19Registered();
+        // 确保 Pipeline 已注入（每 tick 重试直到成功）
+        if (BetterPlayerHUD.config.hitMarkerUseS19) {
+            S19HitManager.ensureInjected();
+        }
+
+        // 处理 S19 待命中击（Netty 线程暂存，主线程触发）
+        if (s19PendingEntityId >= 0) {
+            int eid = s19PendingEntityId;
+            s19PendingEntityId = -1; // 消费掉
+            triggerHitEffects(eid);
+        }
 
         long now = System.currentTimeMillis();
 
