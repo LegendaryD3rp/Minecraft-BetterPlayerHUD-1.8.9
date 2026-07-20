@@ -75,27 +75,75 @@ public class ChromaChatManager {
     // =================================================================
     //  Constructor & Reflection
     // =================================================================
+    private boolean lazyInitDone = false;
+
     public ChromaChatManager() {
         for (int i = 0; i < TRACK_SIZE; i++) trackCounters[i] = -1;
-        initReflection();
+        // 延迟初始化：首次 onChatRender 时再初始化，确保 mc.ingameGUI 已就绪
     }
 
     public void onConfigChanged() {}
 
-    private void initReflection() {
+    /** 延迟初始化 — 只在首次 onChatRender 时执行一次 */
+    private void ensureInitialized() {
+        if (lazyInitDone) return;
+        lazyInitDone = true;
+
+        System.out.println("[ChromaChat] === Initializing (LAZY) ===");
+
+        // 1) 检查 Minecraft 实例
+        if (mc == null) {
+            System.out.println("[ChromaChat] FAIL: mc is null");
+            return;
+        }
+        System.out.println("[ChromaChat] mc=" + mc);
+
+        // 2) 获取 ingameGUI
+        Object ig = mc.ingameGUI;
+        if (ig == null) {
+            System.out.println("[ChromaChat] FAIL: mc.ingameGUI is null");
+            return;
+        }
+        System.out.println("[ChromaChat] ingameGUI=" + ig.getClass().getName());
+
+        // 3) 获取 chatGUI
         try {
             vanillaChat = mc.ingameGUI.getChatGUI();
-            Class<?> c = GuiNewChat.class;
-            fieldDrawnChatLines = findField(c, "drawnChatLines", "field_146253_i");
-            fieldChatLines      = findField(c, "chatLines",      "field_146252_h");
-            fieldScrollPos      = findField(c, "scrollPos",      "field_146250_j");
-            fieldIsScrolled     = findField(c, "isScrolled",     "field_146251_k");
-            reflectionReady = (fieldDrawnChatLines != null && fieldScrollPos != null);
-            if (!reflectionReady)
-                System.err.println("[ChromaChat] Reflection fields not ready");
         } catch (Exception e) {
-            System.err.println("[ChromaChat] Reflection init failed: " + e.getMessage());
+            System.out.println("[ChromaChat] FAIL: getChatGUI() threw " + e.getClass().getSimpleName()
+                    + ": " + e.getMessage());
+            return;
         }
+        if (vanillaChat == null) {
+            System.out.println("[ChromaChat] FAIL: getChatGUI() returned null");
+            return;
+        }
+        System.out.println("[ChromaChat] vanillaChat=" + vanillaChat.getClass().getName());
+
+        // 4) 逐个反射字段
+        Class<?> c = GuiNewChat.class;
+        System.out.println("[ChromaChat] GuiNewChat class=" + c.getName()
+                + " loader=" + c.getClassLoader());
+
+        // 显示所有声明字段（调试）
+        StringBuilder sb = new StringBuilder("[ChromaChat] Declared fields: ");
+        for (java.lang.reflect.Field f : c.getDeclaredFields()) {
+            sb.append(f.getName()).append("(").append(f.getType().getSimpleName()).append(") ");
+        }
+        System.out.println(sb.toString());
+
+        fieldDrawnChatLines = findField(c, "drawnChatLines", "field_146253_i");
+        fieldChatLines      = findField(c, "chatLines",      "field_146252_h");
+        fieldScrollPos      = findField(c, "scrollPos",      "field_146250_j");
+        fieldIsScrolled     = findField(c, "isScrolled",     "field_146251_k");
+
+        System.out.println("[ChromaChat]   fieldDrawnChatLines=" + fieldDrawnChatLines);
+        System.out.println("[ChromaChat]   fieldChatLines="      + fieldChatLines);
+        System.out.println("[ChromaChat]   fieldScrollPos="      + fieldScrollPos);
+        System.out.println("[ChromaChat]   fieldIsScrolled="     + fieldIsScrolled);
+
+        reflectionReady = (fieldDrawnChatLines != null && fieldScrollPos != null);
+        System.out.println("[ChromaChat] reflectionReady=" + reflectionReady);
     }
 
     // =================================================================
@@ -105,15 +153,20 @@ public class ChromaChatManager {
     public void onChatRender(RenderGameOverlayEvent.Chat event) {
         BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
 
-        // cancel original first - even if reflection fails
-        if (cfg != null && cfg.enableChromaChat) {
-            event.setCanceled(true);
-        } else {
+        // 未启用 ChromaChat → 不干预原版
+        if (cfg == null || !cfg.enableChromaChat) return;
+
+        // ═══ 取消原版聊天框 ═══
+        event.setCanceled(true);
+
+        // ═══ 延迟初始化 ═══
+        ensureInitialized();
+
+        // ═══ 反射未就绪 → 画占位框以便调试 ═══
+        if (!reflectionReady) {
+            drawFallbackPlaceholder(event);
             return;
         }
-
-        // if reflection not ready, return after cancellation
-        if (!reflectionReady) return;
 
         List<ChatLine> drawnLines = getDrawnLines();
         int scrollPos = getScrollPos();
@@ -551,6 +604,23 @@ public class ChromaChatManager {
 
         GlStateManager.enableTexture2D();
         GlStateManager.disableBlend();
+    }
+
+    /** 反射失败时的占位框 — 确认事件系统正常，只是数据通路不通 */
+    private void drawFallbackPlaceholder(RenderGameOverlayEvent.Chat event) {
+        ScaledResolution res = event.resolution;
+        int x = 2, y = 20;
+        int w = 320, h = 40;
+
+        // 半透明红框（Gui::drawRect 是 static 方法）
+        Gui.drawRect(x, y, x + w, y + h, 0x55FF0000);
+        // 白字
+        mc.fontRendererObj.drawString("[ChromaChat] Placeholder - Event OK",
+                x + 4, y + 4, 0xFFFFFFFF);
+        mc.fontRendererObj.drawString("[ChromaChat] Reflection FAILED - check logs",
+                x + 4, y + 14, 0xFFFF6666);
+        mc.fontRendererObj.drawString("[ChromaChat] Confirm field_146253_i exists in GuiNewChat",
+                x + 4, y + 24, 0xFFFFAAAA);
     }
 
     // =================================================================
