@@ -324,35 +324,70 @@ public class KeysDisplayHandler {
         GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
     }
 
-    // 工具方法：绘制圆角矩形
-    private void drawRoundedRect(int x, int y, int width, int height, int radius, int color) {
-        // 主矩形
-        drawRect(x + radius, y, width - radius, height, color);
-        drawRect(x, y + radius, width, height - radius, color);
+    // ── 合批渲染：一个 drawRoundedRect = 一次 Tessellator 调用 ──
 
-        // 四个角
-        drawCircleQuadrant(x + radius, y + radius, radius, 1, color);
-        drawCircleQuadrant(width - radius, y + radius, radius, 2, color);
-        drawCircleQuadrant(x + radius, height - radius, radius, 3, color);
-        drawCircleQuadrant(width - radius, height - radius, radius, 4, color);
+    /** 向 WorldRenderer 添加一个矩形（4 顶点，GL_QUADS 模式） */
+    private void addQuad(WorldRenderer wr, int left, int top, int right, int bottom) {
+        wr.pos((double)left,  (double)bottom, 0.0D).endVertex();
+        wr.pos((double)right, (double)bottom, 0.0D).endVertex();
+        wr.pos((double)right, (double)top,    0.0D).endVertex();
+        wr.pos((double)left,  (double)top,    0.0D).endVertex();
     }
 
-    // 工具方法：绘制圆的四分之一
-    private void drawCircleQuadrant(int centerX, int centerY, int radius, int quadrant, int color) {
+    /** 向 WorldRenderer 添加一个圆角象限的像素（批量 1px 矩形） */
+    private void addCirclePixels(WorldRenderer wr, int centerX, int centerY, int radius, int quadrant) {
         for (int i = 0; i <= radius; i++) {
             for (int j = 0; j <= radius; j++) {
                 if (i * i + j * j <= radius * radius) {
                     int drawX = centerX, drawY = centerY;
                     switch (quadrant) {
-                        case 1: drawX = centerX - i; drawY = centerY - j; break; // 左上
-                        case 2: drawX = centerX + i; drawY = centerY - j; break; // 右上
-                        case 3: drawX = centerX - i; drawY = centerY + j; break; // 左下
-                        case 4: drawX = centerX + i; drawY = centerY + j; break; // 右下
+                        case 1: drawX = centerX - i; drawY = centerY - j; break;
+                        case 2: drawX = centerX + i; drawY = centerY - j; break;
+                        case 3: drawX = centerX - i; drawY = centerY + j; break;
+                        case 4: drawX = centerX + i; drawY = centerY + j; break;
                     }
-                    drawRect(drawX, drawY, drawX + 1, drawY + 1, color);
+                    addQuad(wr, drawX, drawY, drawX + 1, drawY + 1);
                 }
             }
         }
+    }
+
+    /** 绘制圆角矩形 — 整个用一个 Tessellator 批次完成 */
+    private void drawRoundedRect(int x, int y, int width, int height, int radius, int color) {
+        int left   = Math.min(x, width);
+        int right  = Math.max(x, width);
+        int top    = Math.min(y, height);
+        int bottom = Math.max(y, height);
+
+        float alpha = (float)(color >> 24 & 255) / 255.0F;
+        float red   = (float)(color >> 16 & 255) / 255.0F;
+        float green = (float)(color >> 8  & 255) / 255.0F;
+        float blue  = (float)(color       & 255) / 255.0F;
+
+        GlStateManager.disableTexture2D();
+        GlStateManager.enableBlend();
+        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+        GlStateManager.color(red, green, blue, alpha);
+
+        Tessellator tessellator = Tessellator.getInstance();
+        WorldRenderer wr = tessellator.getWorldRenderer();
+        wr.begin(7, DefaultVertexFormats.POSITION);
+
+        // 中央矩形区域
+        addQuad(wr, left + radius, top,              right - radius, bottom);
+        addQuad(wr, left,          top + radius,      right,          bottom - radius);
+
+        // 四个圆角（每个角包含 radius×radius 个 1px 矩形）
+        addCirclePixels(wr, left  + radius, top    + radius, radius, 1);
+        addCirclePixels(wr, right - radius - 1, top    + radius, radius, 2);
+        addCirclePixels(wr, left  + radius, bottom - radius - 1, radius, 3);
+        addCirclePixels(wr, right - radius - 1, bottom - radius - 1, radius, 4);
+
+        tessellator.draw();
+
+        GlStateManager.disableBlend();
+        GlStateManager.enableTexture2D();
+        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
     }
 
     // 在CompassMod主类中注册

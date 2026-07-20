@@ -19,6 +19,22 @@ public class BlockOutlineHandler {
     // 可见性判断的容差系数，用于提高描边灵敏度。可微调（例如0.01-0.03）。
   //  private static final double FACE_VISIBILITY_EPSILON = 0.01;
 
+    // 每条棱属于哪些面: 0=下 1=上 2=北 3=南 4=西 5=东（常量，类加载时一次分配）
+    private static final int[][] EDGE_FACES = {
+        {0,2},   // 0: 底-后
+        {0,5},   // 1: 底-右
+        {0,3},   // 2: 底-前
+        {0,4},   // 3: 底-左
+        {2,4},   // 4: 北-左(垂直)
+        {2,5},   // 5: 北-右(垂直)
+        {3,5},   // 6: 南-右(垂直)
+        {3,4},   // 7: 南-左(垂直)
+        {1,2},   // 8: 顶-后
+        {1,5},   // 9: 顶-右
+        {1,3},   // 10: 顶-前
+        {1,4},   // 11: 顶-左
+    };
+
     // 快捷键防连发
     private boolean wasBlockKeyPressed = false;
     private boolean wasEntityKeyPressed = false;
@@ -394,21 +410,8 @@ public class BlockOutlineHandler {
             {minX, maxY, maxZ, minX, maxY, minZ},
         };
 
-        // 每条棱属于哪些面: 0=下 1=上 2=北 3=南 4=西 5=东
-        int[][] edgeFaces = {
-            {0,2},   // 0: 底-后
-            {0,5},   // 1: 底-右
-            {0,3},   // 2: 底-前
-            {0,4},   // 3: 底-左
-            {2,4},   // 4: 北-左(垂直)
-            {2,5},   // 5: 北-右(垂直)
-            {3,5},   // 6: 南-右(垂直)
-            {3,4},   // 7: 南-左(垂直)
-            {1,2},   // 8: 顶-后
-            {1,5},   // 9: 顶-右
-            {1,3},   // 10: 顶-前
-            {1,4},   // 11: 顶-左
-        };
+        // 每条棱属于哪些面（引用类级常量，零分配）
+        // usage: for (int fi : EDGE_FACES[i])
 
         float pos = 0;  // 周界累计位置
         for (int i = 0; i < 12; i++) {
@@ -418,7 +421,7 @@ public class BlockOutlineHandler {
 
             boolean visible = drawAllFaces;
             if (!drawAllFaces) {
-                for (int fi : edgeFaces[i]) {
+                for (int fi : EDGE_FACES[i]) {
                     if (faceVis[fi]) { visible = true; break; }
                 }
             }
