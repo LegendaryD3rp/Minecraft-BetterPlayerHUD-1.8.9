@@ -19,192 +19,302 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import org.lwjgl.input.Mouse;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.util.List;
 
 /**
- * 「蜃楼」ChromaChat — 现代聊天框
- *
- * 取消原版聊天框渲染，叠层绘制自定义聊天框。
- * 反射读原版 GuiNewChat 数据（只读），不影响其他 mod。
- *
- * Phase 1 骨架：事件取消 + 数据桥 + 弹性动画 + 文字渲染 + 入场跟踪
+ * \u201c\u86ed\u697c\u201d ChromaChat \u2014 \u73b0\u4ee3\u804a\u5929\u6846
+ * <p>
+ * Phase 1: \u9aa8\u67b6
+ * Phase 2: \u60ac\u505c\u9ad8\u4eae + \u9f20\u6807\u4ea4\u4e92
+ * Phase 3: \u6d88\u606f\u5206\u7ec4\u6298\u53e0
+ * Phase 4: \u914d\u7f6e GUI \u96c6\u6210
  */
 @SideOnly(Side.CLIENT)
 public class ChromaChatManager {
 
+    private static final long CLICK_THRESHOLD_MS = 200L;
     private static final Minecraft mc = Minecraft.getMinecraft();
 
-    // ═══════════════════════════════════════════════════════════════
-    //  反射数据桥
-    // ═══════════════════════════════════════════════════════════════
+    // === Reflection ===
     private GuiNewChat vanillaChat;
-    private Field fieldDrawnChatLines;  // List<ChatLine>
-    private Field fieldChatLines;      // List<ChatLine> (持久)
-    private Field fieldScrollPos;      // int
-    private Field fieldIsScrolled;     // boolean
+    private Field fieldDrawnChatLines;
+    private Field fieldChatLines;
+    private Field fieldScrollPos;
+    private Field fieldIsScrolled;
     private boolean reflectionReady = false;
 
-    // ═══════════════════════════════════════════════════════════════
-    //  弹簧动画
-    // ═══════════════════════════════════════════════════════════════
-    private float animAmount = 1.0f;       // 当前开合度 (0=收, 1=展)
+    // === Spring Animation (P1) ===
+    private float animAmount = 1.0f;
     private float animVelocity = 0.0f;
     private long lastAnimTime = 0L;
 
-    // ═══════════════════════════════════════════════════════════════
-    //  消息入场跟踪（环形缓冲）
-    // ═══════════════════════════════════════════════════════════════
+    // === Message Tracking (P1) ===
     private static final int TRACK_SIZE = 100;
     private final int[] trackCounters = new int[TRACK_SIZE];
     private final long[] trackTimesMs = new long[TRACK_SIZE];
     private int trackHead = 0;
     private int prevLineCount = 0;
 
-    // ═══════════════════════════════════════════════════════════════
-    //  构造 & 反射初始化
-    // ═══════════════════════════════════════════════════════════════
+    // === Hover Interaction (P2) ===
+    private int hoveredLineIdx = -1;
+    private int hoveredLineAbsIdx = -1;
+    private long hoverUpdateTime = 0L;
+    private boolean mouseBtnDown = false;
+    private long mousePressTime = 0L;
+
+    // === Message Grouping (P3) ===
+    private List<ChatLine> lastDrawnLinesRef = null;
+    private GroupInfo[] groupCache = null;
+
+    private static class GroupInfo {
+        final ChatLine line;
+        final int count;
+        GroupInfo(ChatLine line, int count) { this.line = line; this.count = count; }
+    }
+
+    // =================================================================
+    //  Constructor & Reflection
+    // =================================================================
     public ChromaChatManager() {
-        // 清空消息跟踪
-        for (int i = 0; i < TRACK_SIZE; i++) {
-            trackCounters[i] = -1;
-            trackTimesMs[i] = 0L;
-        }
+        for (int i = 0; i < TRACK_SIZE; i++) trackCounters[i] = -1;
         initReflection();
     }
 
-    public void onConfigChanged() {
-        // 配置变更时无需额外操作，渲染时直接读 BetterPlayerHUD.config
-    }
+    public void onConfigChanged() {}
 
     private void initReflection() {
         try {
             vanillaChat = mc.ingameGUI.getChatGUI();
             Class<?> c = GuiNewChat.class;
-
             fieldDrawnChatLines = findField(c, "drawnChatLines", "field_146253_i");
             fieldChatLines      = findField(c, "chatLines",      "field_146252_h");
             fieldScrollPos      = findField(c, "scrollPos",      "field_146250_j");
             fieldIsScrolled     = findField(c, "isScrolled",     "field_146251_k");
-
             reflectionReady = (fieldDrawnChatLines != null && fieldScrollPos != null);
-            if (!reflectionReady) {
-                System.err.println("[ChromaChat] 反射字段未完全就绪");
-            }
+            if (!reflectionReady)
+                System.err.println("[ChromaChat] Reflection fields not ready");
         } catch (Exception e) {
-            System.err.println("[ChromaChat] 反射初始化失败: " + e.getMessage());
+            System.err.println("[ChromaChat] Reflection init failed: " + e.getMessage());
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    //  主事件 — 取消原版 + 叠层渲染
-    // ═══════════════════════════════════════════════════════════════
+    // =================================================================
+    //  Main Event
+    // =================================================================
     @SubscribeEvent
     public void onChatRender(RenderGameOverlayEvent.Chat event) {
         BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
         if (cfg == null || !cfg.enableChromaChat || !reflectionReady) return;
 
-        // 1) 取消原版渲染
         event.setCanceled(true);
 
-        // 2) 读原版数据
-        List<ChatLine> drawnLines  = getDrawnLines();
-        int scrollPos              = getScrollPos();
-        boolean isScrolled         = getIsScrolled();
+        List<ChatLine> drawnLines = getDrawnLines();
+        int scrollPos = getScrollPos();
+        boolean isScrolled = getIsScrolled();
+        if (drawnLines == null) return;
 
-        // 3) 计算可见行数（去除超出 viewport 的行）
-        int totalLines = (drawnLines != null) ? drawnLines.size() : 0;
-        int visibleCount = Math.min(totalLines, cfg.chromaChatLineCount);
-
-        // 4) 动画更新
+        int totalLines = drawnLines.size();
         boolean chatOpen = mc.currentScreen instanceof GuiChat;
         long now = Minecraft.getSystemTime();
         updateSpring(chatOpen, now, cfg);
 
-        // 5) 常态关闭且无消息 → 跳过渲染
         if (!chatOpen && animAmount < 0.01f && totalLines == 0) return;
 
-        // 6) 消息入场跟踪
-        trackNewMessages(drawnLines, cfg, now);
-
-        // 7) ═══ 渲染 ═══
-        ScaledResolution res = event.resolution;
         float scale = MathHelper.clamp_float(animAmount, 0.0f, 1.25f);
-
-        int baseX = 2;           // 原版聊天框 X
-        int baseY = 20;          // 原版聊天框 Y
-        int chatWidth = cfg.chromaChatWidth;
-        int lineH = 9;           // fontHeight
-        int contentH = visibleCount * lineH;
-        int bgH = contentH + 4;  // 上下各 2px padding
-
-        // 如果缩放极小 → 只画极简
         if (scale < 0.01f) return;
 
-        // 整体弹性变换（从底部锚点缩放）
+        // Layout
+        ScaledResolution res = event.resolution;
+        int baseX = 2;
+        int baseY = 20;
+        int chatWidth = cfg.chromaChatWidth;
+        int lineH = 9;
+        int visibleCount = Math.min(totalLines - scrollPos, cfg.chromaChatLineCount);
+        int contentH = visibleCount * lineH;
+        int bgH = contentH + 4;
+
+        // === P2: Mouse ===
+        int mouseSx = Mouse.getX() * res.getScaledWidth() / mc.displayWidth;
+        int mouseSy = res.getScaledHeight()
+                - Mouse.getY() * res.getScaledHeight() / mc.displayHeight - 1;
+
+        boolean inChat = mouseSx >= baseX && mouseSx <= baseX + chatWidth
+                      && mouseSy >= baseY && mouseSy <= baseY + bgH;
+
+        int newHoveredIdx = -1, newHoveredAbs = -1;
+        if (inChat) {
+            int relY = mouseSy - (baseY + 2);
+            int li = relY / lineH;
+            if (li >= 0 && li < visibleCount) {
+                newHoveredIdx = li;
+                newHoveredAbs = scrollPos + li;
+            }
+        }
+
+        // Debounce
+        long hdt = now - hoverUpdateTime;
+        if (newHoveredAbs != hoveredLineAbsIdx) {
+            if (hdt > 80L) {
+                hoveredLineIdx = newHoveredIdx;
+                hoveredLineAbsIdx = newHoveredAbs;
+                hoverUpdateTime = now;
+            }
+        } else {
+            hoverUpdateTime = now;
+        }
+
+        // Click detection
+        boolean mouseClicked = false;
+        if (Mouse.isButtonDown(0)) {
+            if (!mouseBtnDown) { mouseBtnDown = true; mousePressTime = now; }
+        } else {
+            if (mouseBtnDown && (now - mousePressTime) < CLICK_THRESHOLD_MS) {
+                if (hoveredLineAbsIdx >= 0 && inChat && chatOpen) mouseClicked = true;
+            }
+            mouseBtnDown = false;
+        }
+
+        // === P1: Track ===
+        trackNewMessages(drawnLines, cfg, now);
+
+        // === P3: Group cache ===
+        boolean grouping = cfg.chromaChatMessageGrouping;
+        if (grouping && drawnLines != lastDrawnLinesRef) {
+            rebuildGroupCache(drawnLines);
+            lastDrawnLinesRef = drawnLines;
+        }
+
+        // =============== Render ===============
         GlStateManager.pushMatrix();
-        // 支点 = 聊天框左下角
         float anchorY = baseY + bgH;
         GlStateManager.translate(0.0f, anchorY, 0.0f);
         GlStateManager.scale(scale, scale, 1.0f);
         GlStateManager.translate(0.0f, -anchorY, 0.0f);
 
-        // ── 背景（圆角矩形） ──
+        // -- Background --
+        drawRoundedRect(baseX, baseY, baseX + chatWidth, baseY + bgH,
+                cfg.chromaChatBorderRadius, cfg.chromaChatBackgroundColor, cfg.chromaChatBorderColor);
+
+        // -- Messages --
         if (visibleCount > 0) {
-            drawRoundedRect(baseX, baseY, baseX + chatWidth, baseY + bgH,
-                    cfg.chromaChatBorderRadius, cfg.chromaChatBackgroundColor,
-                    cfg.chromaChatBorderColor);
-        }
-
-        // ── 消息文本 ──
-        if (drawnLines != null && !drawnLines.isEmpty()) {
-            // 原版透明度
             float opacity = mc.gameSettings.chatOpacity * 0.9F + 0.1F;
-            int drawEnd = Math.min(scrollPos + visibleCount, totalLines);
-            int drawStart = scrollPos;
-            int y = baseY + 2; // 顶部 padding 2px
+            int updateCounter = mc.ingameGUI.getUpdateCounter();
+            int y = baseY + 2;
 
-            for (int i = drawStart; i < drawEnd && i < totalLines; i++) {
-                ChatLine cl = drawnLines.get(i);
-                if (cl == null) { y -= lineH; continue; }
-
-                int age = mc.ingameGUI.getUpdateCounter() - cl.getUpdatedCounter();
-                int alpha = calcAlpha(age, chatOpen, opacity);
-
-                if (alpha <= 3) { y -= lineH; continue; }
-
-                // 新消息入场偏移
-                int msgOffset = getMsgOffset(cl.getUpdatedCounter(), cfg);
-                y += msgOffset; // 向下偏移（新消息从底部弹入）
-
-                String text = cl.getChatComponent().getFormattedText();
-                mc.fontRendererObj.drawString(text,
-                        baseX + 2, y,
-                        0xFFFFFF | (alpha << 24));
-
-                y -= lineH;
+            if (grouping && groupCache != null) {
+                renderGrouped(cfg, scrollPos, visibleCount, baseX, chatWidth, lineH, y,
+                        updateCounter, chatOpen, opacity, now, mouseClicked);
+            } else {
+                renderNormal(cfg, drawnLines, scrollPos, visibleCount, baseX, chatWidth, lineH, y,
+                        updateCounter, chatOpen, opacity, now, mouseClicked);
             }
         }
 
-        // ── 滚动指示器 ──
+        // -- Scroll indicator --
         if (isScrolled) {
-            int indicatorX = baseX + chatWidth - 3;
-            int indicatorH = Math.max(4, bgH * visibleCount / Math.max(totalLines, 1));
-            int indicatorY = baseY + bgH - bgH * scrollPos / Math.max(totalLines, 1);
-            Gui.drawRect(indicatorX, indicatorY,
-                    indicatorX + 2, indicatorY + indicatorH,
-                    0x99FFFFFF | (0x88 << 24));
+            int ix = baseX + chatWidth - 3;
+            int ih = Math.max(4, bgH * visibleCount / Math.max(totalLines, 1));
+            int iy = baseY + bgH - bgH * scrollPos / Math.max(totalLines, 1);
+            Gui.drawRect(ix, iy, ix + 2, iy + ih, 0x99FFFFFF | (0x88 << 24));
         }
 
         GlStateManager.popMatrix();
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    //  弹簧物理
-    // ═══════════════════════════════════════════════════════════════
+    // =================================================================
+    //  Render: Normal mode
+    // =================================================================
+    private void renderNormal(BetterPlayerHUDConfig cfg, List<ChatLine> lines, int scrollPos,
+                              int vis, int baseX, int chatWidth, int lineH, int y,
+                              int updateCounter, boolean chatOpen, float opacity, long now,
+                              boolean mouseClicked) {
+        int drawEnd = Math.min(scrollPos + vis, lines.size());
+        for (int i = scrollPos; i < drawEnd; i++) {
+            ChatLine cl = lines.get(i);
+            if (cl == null) { y -= lineH; continue; }
+
+            int age = updateCounter - cl.getUpdatedCounter();
+            int alpha = calcAlpha(age, chatOpen, opacity);
+            if (alpha <= 3) { y -= lineH; continue; }
+
+            y += getMsgOffset(cl.getUpdatedCounter(), cfg);
+
+            // P2: Hover
+            if (i == hoveredLineAbsIdx) {
+                drawHover(baseX + 1, y, baseX + chatWidth - 1, y + lineH, cfg);
+                if (mouseClicked) forwardClick(cl);
+            }
+
+            String text = cl.getChatComponent().getFormattedText();
+            mc.fontRendererObj.drawString(text, baseX + 2, y, 0xFFFFFF | (alpha << 24));
+            y -= lineH;
+        }
+    }
+
+    // =================================================================
+    //  Render: Grouped mode (P3)
+    // =================================================================
+    private void renderGrouped(BetterPlayerHUDConfig cfg, int scrollPos,
+                               int vis, int baseX, int chatWidth, int lineH, int y,
+                               int updateCounter, boolean chatOpen, float opacity, long now,
+                               boolean mouseClicked) {
+        int drawn = 0;
+        for (int gi = 0; gi < groupCache.length && drawn < vis; gi++) {
+            if (gi < scrollPos) continue;
+
+            GroupInfo g = groupCache[gi];
+            if (gi > scrollPos) y -= lineH * (g.count - 1);
+
+            ChatLine cl = g.line;
+            if (cl == null) { y -= lineH; drawn++; continue; }
+
+            int age = updateCounter - cl.getUpdatedCounter();
+            int alpha = calcAlpha(age, chatOpen, opacity);
+            if (alpha <= 3) { y -= lineH; drawn++; continue; }
+
+            y += getMsgOffset(cl.getUpdatedCounter(), cfg);
+
+            // P2: Hover
+            if (gi == hoveredLineAbsIdx) {
+                drawHover(baseX + 1, y, baseX + chatWidth - 1, y + lineH, cfg);
+                if (mouseClicked) forwardClick(cl);
+            }
+
+            String text = cl.getChatComponent().getFormattedText();
+            mc.fontRendererObj.drawString(text, baseX + 2, y, 0xFFFFFF | (alpha << 24));
+
+            // P3: Badge
+            if (g.count > 1) {
+                String badge = "[" + g.count + "x]";
+                int bw = mc.fontRendererObj.getStringWidth(badge);
+                int bc = 0xAAFFFFFF | (Math.min(alpha + 40, 255) << 24);
+                mc.fontRendererObj.drawString(badge, baseX + chatWidth - bw - 2, y, bc);
+            }
+
+            y -= lineH;
+            drawn++;
+        }
+    }
+
+    // =================================================================
+    //  Click forward (P2)
+    // =================================================================
+    private void forwardClick(ChatLine cl) {
+        IChatComponent comp = cl.getChatComponent();
+        if (comp != null && comp.getChatStyle() != null
+                && comp.getChatStyle().getChatClickEvent() != null) {
+            String val = comp.getChatStyle().getChatClickEvent().getValue();
+            if (val != null) {
+                mc.thePlayer.sendChatMessage(val.startsWith("/") ? val : "/" + val);
+            }
+        }
+    }
+
+    // =================================================================
+    //  Spring physics (P1)
+    // =================================================================
     private void updateSpring(boolean chatOpen, long now, BetterPlayerHUDConfig cfg) {
         if (lastAnimTime == 0L) { lastAnimTime = now; return; }
-
         float dt = (now - lastAnimTime) / 1000.0f;
         lastAnimTime = now;
         if (dt > 0.1f || dt <= 0.0f) return;
@@ -219,14 +329,13 @@ public class ChromaChatManager {
         animAmount += animVelocity * dt;
 
         if (target == 0.0f && animAmount < 0.001f && Math.abs(animVelocity) < 0.01f) {
-            animAmount = 0.0f;
-            animVelocity = 0.0f;
+            animAmount = 0.0f; animVelocity = 0.0f;
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    //  Alpha 计算（与原版一致）
-    // ═══════════════════════════════════════════════════════════════
+    // =================================================================
+    //  Alpha calculation (P1)
+    // =================================================================
     private int calcAlpha(int age, boolean chatOpen, float opacity) {
         int alpha;
         if (chatOpen) {
@@ -241,34 +350,14 @@ public class ChromaChatManager {
         return (int) (alpha * opacity);
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    //  消息入场跟踪
-    // ═══════════════════════════════════════════════════════════════
+    // =================================================================
+    //  Message tracking (P1)
+    // =================================================================
     private void trackNewMessages(List<ChatLine> lines, BetterPlayerHUDConfig cfg, long now) {
         if (lines == null || !cfg.chromaChatMsgAnimEnable) return;
-        int currentCount = lines.size();
-
-        if (currentCount > 0 && currentCount > trackHead) {
-            // 新消息排在最前面（索引 0 = 最新）
-            // 比较 trackHead 和当前 count 可发现增量
-            // 但更可靠的方式：检查 updateCounter
-            ChatLine newest = lines.get(0);
-            int ctr = newest.getUpdatedCounter();
-            // 如果这个 counter 还没记录过 → 是新消息
-            boolean found = false;
-            for (int i = 0; i < TRACK_SIZE; i++) {
-                if (trackCounters[i] == ctr) { found = true; break; }
-            }
-            if (!found) {
-                trackCounters[trackHead] = ctr;
-                trackTimesMs[trackHead] = now;
-                trackHead = (trackHead + 1) % TRACK_SIZE;
-            }
-        }
-
-        // 简单后备：当行数增加时，记录新行
-        if (currentCount > prevLineCount) {
-            int diff = currentCount - prevLineCount;
+        int cur = lines.size();
+        if (cur > prevLineCount) {
+            int diff = cur - prevLineCount;
             for (int i = 0; i < diff && i < lines.size(); i++) {
                 ChatLine cl = lines.get(i);
                 boolean found = false;
@@ -282,19 +371,17 @@ public class ChromaChatManager {
                 }
             }
         }
-        prevLineCount = currentCount;
+        prevLineCount = cur;
     }
 
-    private int getMsgOffset(int updateCounter, BetterPlayerHUDConfig cfg) {
+    private int getMsgOffset(int ctr, BetterPlayerHUDConfig cfg) {
         if (!cfg.chromaChatMsgAnimEnable) return 0;
         long now = Minecraft.getSystemTime();
         for (int i = 0; i < TRACK_SIZE; i++) {
-            if (trackCounters[i] == updateCounter) {
+            if (trackCounters[i] == ctr) {
                 long elapsed = now - trackTimesMs[i];
                 if (elapsed < cfg.chromaChatMsgAnimDuration) {
-                    float progress = (float) elapsed / cfg.chromaChatMsgAnimDuration;
-                    // 从 6px 偏移 → 0px，弹性衰减
-                    return (int) (6.0f * (1.0f - progress));
+                    return (int) (6.0f * (1.0f - (float) elapsed / cfg.chromaChatMsgAnimDuration));
                 }
                 return 0;
             }
@@ -302,13 +389,50 @@ public class ChromaChatManager {
         return 0;
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    //  圆角矩形渲染
-    // ═══════════════════════════════════════════════════════════════
+    // =================================================================
+    //  Message grouping (P3)
+    // =================================================================
+    private void rebuildGroupCache(List<ChatLine> lines) {
+        if (lines == null || lines.isEmpty()) { groupCache = null; return; }
+        GroupInfo[] tmp = new GroupInfo[lines.size()];
+        int out = 0;
+        String prevText = null;
+        ChatLine groupLine = null;
+        int count = 0;
+
+        for (ChatLine cl : lines) {
+            String text = cl.getChatComponent().getFormattedText();
+            if (text.equals(prevText) && groupLine != null) {
+                count++;
+                tmp[out - 1] = new GroupInfo(groupLine, count);
+            } else {
+                groupLine = cl;
+                count = 1;
+                prevText = text;
+                tmp[out] = new GroupInfo(cl, 1);
+                out++;
+            }
+        }
+
+        GroupInfo[] result = new GroupInfo[out];
+        System.arraycopy(tmp, 0, result, 0, out);
+        groupCache = result;
+    }
+
+    // =================================================================
+    //  Render helpers
+    // =================================================================
+    private void drawHover(int left, int top, int right, int bottom, BetterPlayerHUDConfig cfg) {
+        if (cfg == null || !cfg.chromaChatHoverHighlight) return;
+        Gui.drawRect(left, top, right, bottom, cfg.chromaChatHoverColor);
+    }
+
+    // =================================================================
+    //  Rounded rect (batched)
+    // =================================================================
     private void drawRoundedRect(int left, int top, int right, int bottom,
                                   int radius, int fillColor, int borderColor) {
         if (radius <= 0) {
-            // 无圆角 → 直接 drawRect
             Gui.drawRect(left, top, right, bottom, fillColor);
             if ((borderColor >>> 24) > 0) {
                 Gui.drawRect(left, top, right, top + 1, borderColor);
@@ -319,146 +443,126 @@ public class ChromaChatManager {
             return;
         }
 
-        // 用 Tessellator 画圆角（单批次）
         int r = Math.min(radius, Math.min((right - left) / 2, (bottom - top) / 2));
-        float f = 0.5f; // 校正像素对齐
-
         GlStateManager.enableBlend();
         GlStateManager.disableTexture2D();
         GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
 
         Tessellator tess = Tessellator.getInstance();
         WorldRenderer wr = tess.getWorldRenderer();
+        int fr = (fillColor >> 16) & 0xFF, fg = (fillColor >> 8) & 0xFF,
+            fb = fillColor & 0xFF, fa = (fillColor >>> 24) & 0xFF;
 
-        // 填充色
-        int fillR = (fillColor >> 16) & 0xFF;
-        int fillG = (fillColor >> 8) & 0xFF;
-        int fillB = fillColor & 0xFF;
-        int fillA = (fillColor >> 24) & 0xFF;
-
-        // 四个角圆弧 + 中心矩形 = 大约 5 个四边形批次
-        // 中心矩形
+        // Center rect
         wr.begin(7, DefaultVertexFormats.POSITION_COLOR);
-        wr.pos(left + r, top + r, 0.0).color(fillR, fillG, fillB, fillA).endVertex();
-        wr.pos(right - r, top + r, 0.0).color(fillR, fillG, fillB, fillA).endVertex();
-        wr.pos(right - r, bottom - r, 0.0).color(fillR, fillG, fillB, fillA).endVertex();
-        wr.pos(left + r, bottom - r, 0.0).color(fillR, fillG, fillB, fillA).endVertex();
+        wr.pos(left + r, top + r, 0).color(fr, fg, fb, fa).endVertex();
+        wr.pos(right - r, top + r, 0).color(fr, fg, fb, fa).endVertex();
+        wr.pos(right - r, bottom - r, 0).color(fr, fg, fb, fa).endVertex();
+        wr.pos(left + r, bottom - r, 0).color(fr, fg, fb, fa).endVertex();
         tess.draw();
 
-        // 上条
+        // Top bar
         wr.begin(7, DefaultVertexFormats.POSITION_COLOR);
-        wr.pos(left + r, top, 0.0).color(fillR, fillG, fillB, fillA).endVertex();
-        wr.pos(right - r, top, 0.0).color(fillR, fillG, fillB, fillA).endVertex();
-        wr.pos(right - r, top + r, 0.0).color(fillR, fillG, fillB, fillA).endVertex();
-        wr.pos(left + r, top + r, 0.0).color(fillR, fillG, fillB, fillA).endVertex();
+        wr.pos(left + r, top, 0).color(fr, fg, fb, fa).endVertex();
+        wr.pos(right - r, top, 0).color(fr, fg, fb, fa).endVertex();
+        wr.pos(right - r, top + r, 0).color(fr, fg, fb, fa).endVertex();
+        wr.pos(left + r, top + r, 0).color(fr, fg, fb, fa).endVertex();
         tess.draw();
 
-        // 下条
+        // Bottom bar
         wr.begin(7, DefaultVertexFormats.POSITION_COLOR);
-        wr.pos(left + r, bottom - r, 0.0).color(fillR, fillG, fillB, fillA).endVertex();
-        wr.pos(right - r, bottom - r, 0.0).color(fillR, fillG, fillB, fillA).endVertex();
-        wr.pos(right - r, bottom, 0.0).color(fillR, fillG, fillB, fillA).endVertex();
-        wr.pos(left + r, bottom, 0.0).color(fillR, fillG, fillB, fillA).endVertex();
+        wr.pos(left + r, bottom - r, 0).color(fr, fg, fb, fa).endVertex();
+        wr.pos(right - r, bottom - r, 0).color(fr, fg, fb, fa).endVertex();
+        wr.pos(right - r, bottom, 0).color(fr, fg, fb, fa).endVertex();
+        wr.pos(left + r, bottom, 0).color(fr, fg, fb, fa).endVertex();
         tess.draw();
 
-        // 左条
+        // Left bar
         wr.begin(7, DefaultVertexFormats.POSITION_COLOR);
-        wr.pos(left, top + r, 0.0).color(fillR, fillG, fillB, fillA).endVertex();
-        wr.pos(left + r, top + r, 0.0).color(fillR, fillG, fillB, fillA).endVertex();
-        wr.pos(left + r, bottom - r, 0.0).color(fillR, fillG, fillB, fillA).endVertex();
-        wr.pos(left, bottom - r, 0.0).color(fillR, fillG, fillB, fillA).endVertex();
+        wr.pos(left, top + r, 0).color(fr, fg, fb, fa).endVertex();
+        wr.pos(left + r, top + r, 0).color(fr, fg, fb, fa).endVertex();
+        wr.pos(left + r, bottom - r, 0).color(fr, fg, fb, fa).endVertex();
+        wr.pos(left, bottom - r, 0).color(fr, fg, fb, fa).endVertex();
         tess.draw();
 
-        // 右条
+        // Right bar
         wr.begin(7, DefaultVertexFormats.POSITION_COLOR);
-        wr.pos(right - r, top + r, 0.0).color(fillR, fillG, fillB, fillA).endVertex();
-        wr.pos(right, top + r, 0.0).color(fillR, fillG, fillB, fillA).endVertex();
-        wr.pos(right, bottom - r, 0.0).color(fillR, fillG, fillB, fillA).endVertex();
-        wr.pos(right - r, bottom - r, 0.0).color(fillR, fillG, fillB, fillA).endVertex();
+        wr.pos(right - r, top + r, 0).color(fr, fg, fb, fa).endVertex();
+        wr.pos(right, top + r, 0).color(fr, fg, fb, fa).endVertex();
+        wr.pos(right, bottom - r, 0).color(fr, fg, fb, fa).endVertex();
+        wr.pos(right - r, bottom - r, 0).color(fr, fg, fb, fa).endVertex();
         tess.draw();
 
-        // 四个圆角用矩形近似（6 个顶点每个角 = 4 个四边形）
-        // 左上
-        for (int angle = 0; angle < 90; angle += 10) {
-            double rad1 = Math.toRadians(angle);
-            double rad2 = Math.toRadians(angle + 10);
-            wr.begin(7, DefaultVertexFormats.POSITION_COLOR);
-            double x1 = left + r - r * Math.cos(rad1);
-            double y1 = top + r - r * Math.sin(rad1);
-            double x2 = left + r - r * Math.cos(rad2);
-            double y2 = top + r - r * Math.sin(rad2);
-            wr.pos(left + r, top + r, 0.0).color(fillR, fillG, fillB, fillA).endVertex();
-            wr.pos(x2, y2, 0.0).color(fillR, fillG, fillB, fillA).endVertex();
-            wr.pos(x1, y1, 0.0).color(fillR, fillG, fillB, fillA).endVertex();
-            tess.draw();
+        // 4 corners: 9 segments each, 1 draw per corner
+        // TL
+        wr.begin(7, DefaultVertexFormats.POSITION_COLOR);
+        for (int a = 0; a < 90; a += 10) {
+            double r1 = Math.toRadians(a), r2 = Math.toRadians(a + 10);
+            double x1 = left + r - r * Math.cos(r1), y1 = top + r - r * Math.sin(r1);
+            double x2 = left + r - r * Math.cos(r2), y2 = top + r - r * Math.sin(r2);
+            wr.pos(left + r, top + r, 0).color(fr, fg, fb, fa).endVertex();
+            wr.pos(x2, y2, 0).color(fr, fg, fb, fa).endVertex();
+            wr.pos(x1, y1, 0).color(fr, fg, fb, fa).endVertex();
         }
-        // 右上
-        for (int angle = 0; angle < 90; angle += 10) {
-            double rad1 = Math.toRadians(angle);
-            double rad2 = Math.toRadians(angle + 10);
-            wr.begin(7, DefaultVertexFormats.POSITION_COLOR);
-            double x1 = right - r + r * Math.cos(rad1);
-            double y1 = top + r - r * Math.sin(rad1);
-            double x2 = right - r + r * Math.cos(rad2);
-            double y2 = top + r - r * Math.sin(rad2);
-            wr.pos(right - r, top + r, 0.0).color(fillR, fillG, fillB, fillA).endVertex();
-            wr.pos(x1, y1, 0.0).color(fillR, fillG, fillB, fillA).endVertex();
-            wr.pos(x2, y2, 0.0).color(fillR, fillG, fillB, fillA).endVertex();
-            tess.draw();
+        tess.draw();
+
+        // TR
+        wr.begin(7, DefaultVertexFormats.POSITION_COLOR);
+        for (int a = 0; a < 90; a += 10) {
+            double r1 = Math.toRadians(a), r2 = Math.toRadians(a + 10);
+            double x1 = right - r + r * Math.cos(r1), y1 = top + r - r * Math.sin(r1);
+            double x2 = right - r + r * Math.cos(r2), y2 = top + r - r * Math.sin(r2);
+            wr.pos(right - r, top + r, 0).color(fr, fg, fb, fa).endVertex();
+            wr.pos(x1, y1, 0).color(fr, fg, fb, fa).endVertex();
+            wr.pos(x2, y2, 0).color(fr, fg, fb, fa).endVertex();
         }
-        // 右下
-        for (int angle = 0; angle < 90; angle += 10) {
-            double rad1 = Math.toRadians(angle);
-            double rad2 = Math.toRadians(angle + 10);
-            wr.begin(7, DefaultVertexFormats.POSITION_COLOR);
-            double x1 = right - r + r * Math.cos(rad1);
-            double y1 = bottom - r + r * Math.sin(rad1);
-            double x2 = right - r + r * Math.cos(rad2);
-            double y2 = bottom - r + r * Math.sin(rad2);
-            wr.pos(right - r, bottom - r, 0.0).color(fillR, fillG, fillB, fillA).endVertex();
-            wr.pos(x1, y1, 0.0).color(fillR, fillG, fillB, fillA).endVertex();
-            wr.pos(x2, y2, 0.0).color(fillR, fillG, fillB, fillA).endVertex();
-            tess.draw();
+        tess.draw();
+
+        // BR
+        wr.begin(7, DefaultVertexFormats.POSITION_COLOR);
+        for (int a = 0; a < 90; a += 10) {
+            double r1 = Math.toRadians(a), r2 = Math.toRadians(a + 10);
+            double x1 = right - r + r * Math.cos(r1), y1 = bottom - r + r * Math.sin(r1);
+            double x2 = right - r + r * Math.cos(r2), y2 = bottom - r + r * Math.sin(r2);
+            wr.pos(right - r, bottom - r, 0).color(fr, fg, fb, fa).endVertex();
+            wr.pos(x1, y1, 0).color(fr, fg, fb, fa).endVertex();
+            wr.pos(x2, y2, 0).color(fr, fg, fb, fa).endVertex();
         }
-        // 左下
-        for (int angle = 0; angle < 90; angle += 10) {
-            double rad1 = Math.toRadians(angle);
-            double rad2 = Math.toRadians(angle + 10);
-            wr.begin(7, DefaultVertexFormats.POSITION_COLOR);
-            double x1 = left + r - r * Math.cos(rad1);
-            double y1 = bottom - r + r * Math.sin(rad1);
-            double x2 = left + r - r * Math.cos(rad2);
-            double y2 = bottom - r + r * Math.sin(rad2);
-            wr.pos(left + r, bottom - r, 0.0).color(fillR, fillG, fillB, fillA).endVertex();
-            wr.pos(x2, y2, 0.0).color(fillR, fillG, fillB, fillA).endVertex();
-            wr.pos(x1, y1, 0.0).color(fillR, fillG, fillB, fillA).endVertex();
-            tess.draw();
+        tess.draw();
+
+        // BL
+        wr.begin(7, DefaultVertexFormats.POSITION_COLOR);
+        for (int a = 0; a < 90; a += 10) {
+            double r1 = Math.toRadians(a), r2 = Math.toRadians(a + 10);
+            double x1 = left + r - r * Math.cos(r1), y1 = bottom - r + r * Math.sin(r1);
+            double x2 = left + r - r * Math.cos(r2), y2 = bottom - r + r * Math.sin(r2);
+            wr.pos(left + r, bottom - r, 0).color(fr, fg, fb, fa).endVertex();
+            wr.pos(x2, y2, 0).color(fr, fg, fb, fa).endVertex();
+            wr.pos(x1, y1, 0).color(fr, fg, fb, fa).endVertex();
         }
+        tess.draw();
 
         GlStateManager.enableTexture2D();
         GlStateManager.disableBlend();
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    //  反射工具
-    // ═══════════════════════════════════════════════════════════════
+    // =================================================================
+    //  Reflection helpers
+    // =================================================================
     @SuppressWarnings("unchecked")
     private List<ChatLine> getDrawnLines() {
-        try {
-            return (List<ChatLine>) fieldDrawnChatLines.get(vanillaChat);
-        } catch (Exception e) { return null; }
+        try { return (List<ChatLine>) fieldDrawnChatLines.get(vanillaChat); }
+        catch (Exception e) { return null; }
     }
 
     private int getScrollPos() {
-        try {
-            return fieldScrollPos.getInt(vanillaChat);
-        } catch (Exception e) { return 0; }
+        try { return fieldScrollPos.getInt(vanillaChat); }
+        catch (Exception e) { return 0; }
     }
 
     private boolean getIsScrolled() {
-        try {
-            return fieldIsScrolled.getBoolean(vanillaChat);
-        } catch (Exception e) { return false; }
+        try { return fieldIsScrolled.getBoolean(vanillaChat); }
+        catch (Exception e) { return false; }
     }
 
     private static Field findField(Class<?> clazz, String mcpName, String srgName) {
@@ -471,9 +575,7 @@ public class ChromaChatManager {
                 Field f = clazz.getDeclaredField(srgName);
                 f.setAccessible(true);
                 return f;
-            } catch (NoSuchFieldException e2) {
-                return null;
-            }
+            } catch (NoSuchFieldException e2) { return null; }
         }
     }
 }

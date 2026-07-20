@@ -328,6 +328,11 @@ public class BetterPlayerHUDConfig {
     // ── 消息入场动画 ──
     public boolean chromaChatMsgAnimEnable = true;     // 新消息弹入动画
     public int chromaChatMsgAnimDuration = 300;        // 动画时长 (ms)
+    // ── 悬停高亮（Phase 2） ──
+    public boolean chromaChatHoverHighlight = true;    // 鼠标悬停高亮
+    public int chromaChatHoverColor = 0x44FFFFFF;      // 高亮颜色 ARGB
+    // ── 消息分组（Phase 3） ──
+    public boolean chromaChatMessageGrouping = true;   // 重复消息折叠
 
     // ================================================================
     //  颜色工具方法
@@ -1063,6 +1068,12 @@ public class BetterPlayerHUDConfig {
             p.comment = "新消息弹入动画"; chromaChatMsgAnimEnable = p.getBoolean();
             p = config.get(C, "chromaChatMsgAnimDuration", 300);
             p.comment = "入场动画时长(ms)"; p.setMinValue(50).setMaxValue(1000); chromaChatMsgAnimDuration = p.getInt();
+            p = config.get(C, "chromaChatHoverHighlight", true);
+            p.comment = "鼠标悬停高亮"; chromaChatHoverHighlight = p.getBoolean();
+            p = config.get(C, "chromaChatHoverColor", 0x44FFFFFF);
+            p.comment = "悬停高亮颜色 ARGB"; chromaChatHoverColor = p.getInt();
+            p = config.get(C, "chromaChatMessageGrouping", true);
+            p.comment = "重复消息折叠"; chromaChatMessageGrouping = p.getBoolean();
         }
 
     }
@@ -1332,6 +1343,9 @@ public class BetterPlayerHUDConfig {
         config.get(C, "chromaChatAnimBounciness", 0.35).set(chromaChatAnimBounciness);
         config.get(C, "chromaChatMsgAnimEnable", true).set(chromaChatMsgAnimEnable);
         config.get(C, "chromaChatMsgAnimDuration", 300).set(chromaChatMsgAnimDuration);
+        config.get(C, "chromaChatHoverHighlight", true).set(chromaChatHoverHighlight);
+        config.get(C, "chromaChatHoverColor", 0x44FFFFFF).set(chromaChatHoverColor);
+        config.get(C, "chromaChatMessageGrouping", true).set(chromaChatMessageGrouping);
 
         // 持久化到磁盘
         config.save();

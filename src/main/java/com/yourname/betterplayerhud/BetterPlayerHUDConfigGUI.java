@@ -168,6 +168,10 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
         elements.add(new DummyConfigElement.DummyCategoryElement(
                 "bhud.combo", "bhud.combo", getComboConfigElements()));
 
+        // === 模块27：ChromaChat ===
+        elements.add(new DummyConfigElement.DummyCategoryElement(
+                "bhud.chroma", "bhud.chroma", getChromaChatConfigElements()));
+
         return elements;
     }
 
@@ -505,6 +509,23 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
                 "crisisWarnBow")));
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.crisis.arrow", "bhud.crisis.arrow", el(
                 "crisisWarnArrow", "crisisArrowRadius")));
+        return list;
+    }
+
+    // ================================================================
+    //  模块27：ChromaChat
+    // ================================================================
+    private static List<IConfigElement> getChromaChatConfigElements() {
+        List<IConfigElement> list = new ArrayList<>();
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.chroma.basic", "bhud.chroma.basic", el(
+                "enableChromaChat", "chromaChatWidth", "chromaChatLineCount")));
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.chroma.appearance", "bhud.chroma.appearance", el(
+                "chromaChatBorderRadius", "chromaChatBackgroundColor", "chromaChatBorderColor",
+                "chromaChatHoverHighlight", "chromaChatHoverColor")));
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.chroma.animation", "bhud.chroma.animation", el(
+                "chromaChatAnimBounciness", "chromaChatMsgAnimEnable", "chromaChatMsgAnimDuration")));
+        list.add(new DummyConfigElement.DummyCategoryElement("bhud.chroma.grouping", "bhud.chroma.grouping", el(
+                "chromaChatMessageGrouping")));
         return list;
     }
 }
