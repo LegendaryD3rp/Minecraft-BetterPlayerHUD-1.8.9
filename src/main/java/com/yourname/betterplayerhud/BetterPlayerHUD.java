@@ -1,7 +1,5 @@
 package com.yourname.betterplayerhud;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiIngame;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.client.event.ConfigChangedEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -12,15 +10,12 @@ import net.minecraftforge.fml.common.gameevent.TickEvent;
 
 import java.io.File;
 import java.awt.Rectangle;
-import java.lang.reflect.Field;
 
 @Mod(modid = BetterPlayerHUD.MODID, version = BetterPlayerHUD.VERSION, guiFactory = "com.yourname.betterplayerhud.BetterPlayerHUDGuiFactory")
 public class BetterPlayerHUD {
     public static final String MODID = "betterplayerhud";
-    public static final String VERSION = "1.3.0";
+    public static final String VERSION = "1.0-elite";
     public static BetterPlayerHUDConfig config;
-    /** 弹性聊天框实例（反射替换后持有引用，供配置变更时通知） */
-    public static SmoothChatHandler smoothChatInstance;
 
     @Mod.EventHandler
     public void preInit(FMLPreInitializationEvent event) {
@@ -262,35 +257,6 @@ public class BetterPlayerHUD {
             config.potionTimerIconSize = 32;
         });
         MinecraftForge.EVENT_BUS.register(new PotionTimerHandler());
-
-        // ── 模块26：弹性动画聊天框（SmoothChatGUI） ──
-        // F7 编辑：注册一个固定占位模块（仅供 Delete 键开关）
-        HUDEditManager.register("聊天框动画",
-                (x) -> {}, (y) -> {},
-                2, 20,  // 默认位置与聊天框一致
-                (absX, absY, sw, sh) -> new int[]{ absX, absY });
-        HUDEditManager.setDefaultSize("聊天框动画", 320, 180);
-        HUDEditManager.registerToggle("聊天框动画",
-                () -> config.enableSmoothChat, (v) -> { config.enableSmoothChat = v; });
-
-        // 通过反射替换 GuiIngame.persistantChatGUI 为 SmoothChatHandler 实例
-        try {
-            Minecraft mc = Minecraft.getMinecraft();
-            GuiIngame guiIngame = mc.ingameGUI;
-            Field chatField = null;
-            try {
-                chatField = GuiIngame.class.getDeclaredField("persistantChatGUI");
-            } catch (NoSuchFieldException e1) {
-                chatField = GuiIngame.class.getDeclaredField("field_73840_e");
-            }
-            chatField.setAccessible(true);
-            smoothChatInstance = new SmoothChatHandler(mc);
-            chatField.set(guiIngame, smoothChatInstance);
-            System.out.println("[BetterPlayerHUD] SmoothChatGUI 已注入");
-        } catch (Exception e) {
-            System.err.println("[BetterPlayerHUD] SmoothChatGUI 注入失败: " + e.getMessage());
-            e.printStackTrace();
-        }
     }
 
     /**
@@ -301,10 +267,6 @@ public class BetterPlayerHUD {
         public void onConfigChanged(ConfigChangedEvent.OnConfigChangedEvent event) {
             if (event.modID.equals(MODID)) {
                 config.reloadFromMemory();
-                // 通知 SmoothChatHandler 配置已变更
-                if (smoothChatInstance != null) {
-                    smoothChatInstance.onConfigChanged();
-                }
             }
         }
     }

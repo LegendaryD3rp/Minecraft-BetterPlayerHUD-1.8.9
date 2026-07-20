@@ -311,15 +311,6 @@ public class BetterPlayerHUDConfig {
     public float comboScale = 1.0f;
 
     // ================================================================
-    //  模块26：弹性动画聊天框 (Smooth Chat GUI)
-    // ================================================================
-    public boolean enableSmoothChat = true;     // 总开关
-    public int chatAnimDuration = 300;          // 开合动画持续时间 (ms)
-    public float chatAnimBounciness = 0.4f;     // 弹性强度 (0~1, 0=无弹, 1=强弹)
-    public int chatMsgAnimDuration = 200;       // 新消息入场淡入时长 (ms)
-    public boolean chatMsgAnimEnable = true;    // 新消息入场动画开关
-
-    // ================================================================
     //  颜色工具方法
     // ================================================================
     private static int packRGB(int r, int g, int b) {
@@ -1029,19 +1020,6 @@ public class BetterPlayerHUDConfig {
             p.comment = "缩放"; p.setMinValue(0.1).setMaxValue(5.0); comboScale = (float) p.getDouble();
         }
 
-        // --- 模块26：弹性动画聊天框 ---
-        {
-            Property p = config.get(C, "enableSmoothChat", true);
-            p.comment = "启用弹性动画聊天框"; enableSmoothChat = p.getBoolean();
-            p = config.get(C, "chatAnimDuration", 300);
-            p.comment = "开合动画时长(ms)"; p.setMinValue(50).setMaxValue(2000); chatAnimDuration = p.getInt();
-            p = config.get(C, "chatAnimBounciness", 0.4);
-            p.comment = "弹性强度 0~1"; p.setMinValue(0.0).setMaxValue(1.0); chatAnimBounciness = (float) p.getDouble();
-            p = config.get(C, "chatMsgAnimDuration", 200);
-            p.comment = "新消息入场淡入时长(ms)"; p.setMinValue(0).setMaxValue(1000); chatMsgAnimDuration = p.getInt();
-            p = config.get(C, "chatMsgAnimEnable", true);
-            p.comment = "启用新消息入场动画"; chatMsgAnimEnable = p.getBoolean();
-        }
     }
 
     // ================================================================
@@ -1061,7 +1039,6 @@ public class BetterPlayerHUDConfig {
         config.get(C, "enableCrisisWarning", true).set(enableCrisisWarning);
         config.get(C, "enableItemCount", true).set(enableItemCount);
         config.get(C, "enableCombo", true).set(enableCombo);
-        config.get(C, "enableSmoothChat", true).set(enableSmoothChat);
 
         // --- 模块1 ---
         config.get(C, "showCompassHUD", true).set(showCompassHUD);
@@ -1298,13 +1275,6 @@ public class BetterPlayerHUDConfig {
         config.get(C, "comboXOffset", 0).set(comboXOffset);
         config.get(C, "comboYOffset", 0).set(comboYOffset);
         config.get(C, "comboScale", 1.0).set(comboScale);
-
-        // --- 模块26：弹性动画聊天框 ---
-        config.get(C, "enableSmoothChat", true).set(enableSmoothChat);
-        config.get(C, "chatAnimDuration", 300).set(chatAnimDuration);
-        config.get(C, "chatAnimBounciness", 0.4).set(chatAnimBounciness);
-        config.get(C, "chatMsgAnimDuration", 200).set(chatMsgAnimDuration);
-        config.get(C, "chatMsgAnimEnable", true).set(chatMsgAnimEnable);
 
         // 持久化到磁盘
         config.save();
