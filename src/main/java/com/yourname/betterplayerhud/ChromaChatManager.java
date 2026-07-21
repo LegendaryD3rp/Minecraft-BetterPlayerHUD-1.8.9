@@ -255,7 +255,7 @@ public class ChromaChatManager {
         pendingScroll = 0;
         if (wheel != 0) {
             int dir = (wheel > 0) ? -1 : 1;
-            int maxScroll = Math.max(0, totalLines - Math.min(5, totalLines));
+            int maxScroll = Math.max(0, totalLines - Math.min(8, totalLines));
             myScrollPos = MathHelper.clamp_int(myScrollPos + dir * 3, 0, maxScroll);
             myIsScrolled = myScrollPos > 0;
         }
@@ -366,7 +366,7 @@ public class ChromaChatManager {
         // -- 滚动指示器（有更多消息时显示） --
         if (totalLines > visibleCount && visibleCount > 0 && chatOpen) {
             int ix = baseX + chatWidth - 3;
-            int totalScrollable = totalLines - Math.min(5, totalLines);
+            int totalScrollable = totalLines - Math.min(8, totalLines);
             float ratio = totalScrollable > 0 ? (float) myScrollPos / totalScrollable : 0f;
             // 稳定轨道高度：固定 120px，不超过 bgH
             int stableTrackH = Math.min(120, bgH - 8);
