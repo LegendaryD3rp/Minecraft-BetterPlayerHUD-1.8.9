@@ -362,28 +362,17 @@ public class ChromaChatManager {
             }
         }
 
-        // -- 滚动指示器（基于文本行数比例） --
-        if (myIsScrolled && totalLines > 0) {
-            // 计算总文本行数（用于滚动比例条）
-            int totalTextLines = 0;
-            int maxLines = Math.min(totalLines, 200);  // 防长列表性能损
-            for (int i = 0; i < maxLines; i++) {
-                MyChatLine ml = myChatLines.get(i);
-                totalTextLines += (ml != null) ? ml.getLineCount(msgTextWidth) : 1;
-            }
-            int visibleTL = Math.max(visibleTextLines, 1);
-            int totalTL = Math.max(totalTextLines, 1);
-            int scrollTL = 0;
-            int scrollMax = Math.min(myScrollPos, maxLines);
-            for (int i = 0; i < scrollMax; i++) {
-                MyChatLine ml = myChatLines.get(i);
-                scrollTL += (ml != null) ? ml.getLineCount(msgTextWidth) : 1;
-            }
-
+        // -- 滚动指示器（有更多消息时显示） --
+        if (totalLines > visibleCount && visibleCount > 0 && chatOpen) {
+            // 固定条高 20px，位置表示已滚动比例
+            int ih = 20;
             int ix = baseX + chatWidth - 3;
-            int ih = Math.max(4, bgH * visibleTL / totalTL);
-            // 条顶部Y: scrollTL=0(未滚动)→底端, scrollTL=totalTL(最旧)→顶端
-            int iy = baseY + bgH - ih - (int)((long)(bgH - ih) * scrollTL / totalTL);
+            int totalScrollable = totalLines - visibleCount;
+            float ratio = totalScrollable > 0 ? (float) myScrollPos / totalScrollable : 0f;
+            int trackH = bgH - 4;
+            int iy = baseY + 2 + (int)((trackH - ih) * ratio);
+            if (iy < baseY + 2) iy = baseY + 2;
+            if (iy + ih > baseY + bgH - 2) iy = baseY + bgH - 2 - ih;
             Gui.drawRect(ix, iy, ix + 2, iy + ih, 0x99FFFFFF | (0x88 << 24));
         }
 
@@ -561,7 +550,7 @@ public class ChromaChatManager {
     // =================================================================
     @SubscribeEvent
     public void onClientTick(TickEvent.ClientTickEvent event) {
-        if (event.phase == TickEvent.Phase.START) {
+        if (event.phase == TickEvent.Phase.START && mc.currentScreen instanceof GuiChat) {
             int w = Mouse.getDWheel();
             if (w != 0) pendingScroll = w;
         }
