@@ -8,6 +8,7 @@ import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.WorldRenderer;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
+import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.IChatComponent;
 import net.minecraft.util.MathHelper;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
@@ -94,28 +95,22 @@ public class ChromaChatManager {
 
     // =================================================================
     //  ClientChatReceivedEvent — 消息源头拦截
-    //  HIGHEST 优先: 在其他模组(BetterChat)处理前拦截
     // =================================================================
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void onChatReceived(ClientChatReceivedEvent event) {
         BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
         if (cfg == null || !cfg.enableChromaChat) return;
 
-        // 取消事件 → BetterChat 不会收到此消息
         event.setCanceled(true);
 
-        // 存入自有列表 (index 0 = 最新，与原版一致)
         int ctr = mc.ingameGUI.getUpdateCounter();
-        IChatComponent msg = event.message;
-        // 在 cancel 的情况下直接引用 event.message 是安全的（不会被修改）
-        myChatLines.add(0, new MyChatLine(msg, ctr, nextLineId++));
+        myChatLines.add(0, new MyChatLine(event.message, ctr, nextLineId++));
 
-        // 裁剪上限
         while (myChatLines.size() > MAX_LINES) {
             myChatLines.remove(myChatLines.size() - 1);
         }
 
-        // 滚动置顶（新消息时回到最新位置）
+        // 新消息 → 回滚到最新
         myScrollPos = 0;
         myIsScrolled = false;
     }
@@ -128,26 +123,16 @@ public class ChromaChatManager {
         BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
         if (cfg == null || !cfg.enableChromaChat) return;
 
-        // 取消原版渲染 (包括 BetterChat 的定制渲染)
         event.setCanceled(true);
 
-        // ── 检测滚动 ──
-        int wheel = Mouse.getDWheel();
-        if (wheel != 0) {
-            int dir = (wheel > 0) ? -1 : 1; // 滚轮向上 = 看旧消息 (scrollPos++)
-            int maxScroll = Math.max(0, myChatLines.size() - cfg.chromaChatLineCount);
-            myScrollPos = MathHelper.clamp_int(myScrollPos + dir * 7, 0, maxScroll);
-            myIsScrolled = myScrollPos > 0;
-        }
-
-        // ── 布局 ──
+        // ── 布局参数 ──
         int totalLines = myChatLines.size();
         boolean chatOpen = mc.currentScreen instanceof GuiChat;
         long now = Minecraft.getSystemTime();
+
+        // ── 动画 ──
         updateSpring(chatOpen, now, cfg);
-
         if (!chatOpen && animAmount < 0.01f && totalLines == 0) return;
-
         float scale = MathHelper.clamp_float(animAmount, 0.0f, 1.25f);
         if (scale < 0.01f) return;
 
@@ -157,10 +142,22 @@ public class ChromaChatManager {
         int chatWidth = cfg.chromaChatWidth;
         int lineH = 9;
         int visibleCount = Math.min(totalLines - myScrollPos, cfg.chromaChatLineCount);
-        int contentH = visibleCount * lineH;
+
+        // 打开聊天框时至少显示一点空区域
+        int minH = chatOpen ? 20 : 0;
+        int contentH = Math.max(minH, visibleCount * lineH);
         int bgH = contentH + 4;
 
-        // ── 鼠标位置 (P2) ──
+        // ── 滚动检测 ──
+        int wheel = Mouse.getDWheel();
+        if (wheel != 0) {
+            int dir = (wheel > 0) ? -1 : 1;
+            int maxScroll = Math.max(0, totalLines - cfg.chromaChatLineCount);
+            myScrollPos = MathHelper.clamp_int(myScrollPos + dir * 7, 0, maxScroll);
+            myIsScrolled = myScrollPos > 0;
+        }
+
+        // ── 鼠标状态 (P2) ──
         int mouseSx = Mouse.getX() * res.getScaledWidth() / mc.displayWidth;
         int mouseSy = res.getScaledHeight()
                 - Mouse.getY() * res.getScaledHeight() / mc.displayHeight - 1;
@@ -170,14 +167,14 @@ public class ChromaChatManager {
 
         int newHoveredIdx = -1, newHoveredAbs = -1;
         if (inChat) {
-            int relY = mouseSy - (baseY + 2);
-            int li = relY / lineH;
+            int li = (mouseSy - (baseY + 2)) / lineH;
             if (li >= 0 && li < visibleCount) {
                 newHoveredIdx = li;
                 newHoveredAbs = myScrollPos + li;
             }
         }
 
+        // 消抖
         long hdt = now - hoverUpdateTime;
         if (newHoveredAbs != hoveredLineAbsIdx) {
             if (hdt > 80L) {
@@ -189,6 +186,7 @@ public class ChromaChatManager {
             hoverUpdateTime = now;
         }
 
+        // 点击检测
         boolean mouseClicked = false;
         if (Mouse.isButtonDown(0)) {
             if (!mouseBtnDown) { mouseBtnDown = true; mousePressTime = now; }
@@ -216,11 +214,11 @@ public class ChromaChatManager {
         GlStateManager.scale(scale, scale, 1.0f);
         GlStateManager.translate(0.0f, -anchorY, 0.0f);
 
-        // -- Background --
+        // -- 背景 --
         drawRoundedRect(baseX, baseY, baseX + chatWidth, baseY + bgH,
                 cfg.chromaChatBorderRadius, cfg.chromaChatBackgroundColor, cfg.chromaChatBorderColor);
 
-        // -- Messages --
+        // -- 消息 --
         if (visibleCount > 0) {
             float opacity = mc.gameSettings.chatOpacity * 0.9F + 0.1F;
             int updateCounter = mc.ingameGUI.getUpdateCounter();
@@ -235,11 +233,13 @@ public class ChromaChatManager {
             }
         }
 
-        // -- Scroll indicator --
+        // -- 滚动指示器 --
         if (myIsScrolled) {
             int ix = baseX + chatWidth - 3;
-            int ih = Math.max(4, bgH * visibleCount / Math.max(totalLines, 1));
-            int iy = baseY + bgH - bgH * myScrollPos / Math.max(totalLines, 1);
+            int totalH = Math.max(totalLines, 1);
+            int visibleH = Math.max(visibleCount, 1);
+            int ih = Math.max(4, bgH * visibleH / totalH);
+            int iy = baseY + bgH - bgH * myScrollPos / totalH;
             Gui.drawRect(ix, iy, ix + 2, iy + ih, 0x99FFFFFF | (0x88 << 24));
         }
 
@@ -264,10 +264,12 @@ public class ChromaChatManager {
 
             y += getMsgOffset(ml.updateCounter, cfg);
 
-            // P2: Hover
+            // 悬停 + 点击
             if (i == hoveredLineAbsIdx) {
                 drawHover(baseX + 1, y, baseX + chatWidth - 1, y + lineH, cfg);
-                if (mouseClicked) forwardClick(ml);
+                if (mouseClicked) {
+                    forwardClick(ml.message);
+                }
             }
 
             String text = ml.message.getFormattedText();
@@ -285,11 +287,12 @@ public class ChromaChatManager {
                                boolean mouseClicked) {
         int drawn = 0;
         for (int gi = 0; gi < groupCache.length && drawn < vis; gi++) {
-            if (gi < scrollPos) continue;
+            if (gi < scrollPos) {
+                drawn++; // 跳过也要计数，保持滚动偏移正确
+                continue;
+            }
 
             GroupInfo g = groupCache[gi];
-            if (gi > scrollPos) y -= lineH * (g.count - 1);
-
             MyChatLine ml = g.line;
             if (ml == null) { y -= lineH; drawn++; continue; }
 
@@ -299,16 +302,18 @@ public class ChromaChatManager {
 
             y += getMsgOffset(ml.updateCounter, cfg);
 
-            // P2: Hover
+            // 悬停 + 点击
             if (gi == hoveredLineAbsIdx) {
                 drawHover(baseX + 1, y, baseX + chatWidth - 1, y + lineH, cfg);
-                if (mouseClicked) forwardClick(ml);
+                if (mouseClicked) {
+                    forwardClick(ml.message);
+                }
             }
 
             String text = ml.message.getFormattedText();
             mc.fontRendererObj.drawString(text, baseX + 2, y, 0xFFFFFF | (alpha << 24));
 
-            // P3: Badge
+            // 分组徽标 [Nx]
             if (g.count > 1) {
                 String badge = "[" + g.count + "x]";
                 int bw = mc.fontRendererObj.getStringWidth(badge);
@@ -322,16 +327,23 @@ public class ChromaChatManager {
     }
 
     // =================================================================
-    //  Click forward (P2)
+    //  Click forward (P2) — 递归查找子组件的 ClickEvent
     // =================================================================
-    private void forwardClick(MyChatLine ml) {
-        IChatComponent comp = ml.message;
-        if (comp != null && comp.getChatStyle() != null
-                && comp.getChatStyle().getChatClickEvent() != null) {
+    private void forwardClick(IChatComponent comp) {
+        if (comp == null) return;
+
+        // 先查当前节点
+        if (comp.getChatStyle() != null && comp.getChatStyle().getChatClickEvent() != null) {
             String val = comp.getChatStyle().getChatClickEvent().getValue();
-            if (val != null) {
+            if (val != null && !val.isEmpty()) {
                 mc.thePlayer.sendChatMessage(val.startsWith("/") ? val : "/" + val);
+                return;
             }
+        }
+
+        // 递归查子节点（大部分 clickable 在 sibling 上）
+        for (IChatComponent child : comp.getSiblings()) {
+            forwardClick(child);
         }
     }
 
@@ -366,10 +378,10 @@ public class ChromaChatManager {
         if (chatOpen) {
             alpha = 255;
         } else {
+            // 原版 200 ticks ≈ 10 秒淡出，但这里使用更平滑的曲线
             double fade = (double) Math.max(0, 200 - age) / 200.0;
-            fade = fade * 10.0;
             fade = MathHelper.clamp_double(fade, 0.0, 1.0);
-            fade = fade * fade;
+            fade = fade * fade; // 平方缓出
             alpha = (int) (255.0 * fade);
         }
         return (int) (alpha * opacity);
@@ -381,9 +393,11 @@ public class ChromaChatManager {
     private void trackNewMessages(List<MyChatLine> lines, BetterPlayerHUDConfig cfg, long now) {
         if (lines == null || !cfg.chromaChatMsgAnimEnable) return;
         int cur = lines.size();
-        if (cur > prevLineCount) {
-            for (int i = 0; i < cur - prevLineCount && i < lines.size(); i++) {
+        if (cur > prevLineCount && !lines.isEmpty()) {
+            int newCount = Math.min(cur - prevLineCount, cur);
+            for (int i = 0; i < newCount; i++) {
                 MyChatLine ml = lines.get(i);
+                if (ml == null) continue;
                 boolean found = false;
                 for (int j = 0; j < TRACK_SIZE; j++) {
                     if (trackCounters[j] == ml.updateCounter) { found = true; break; }
