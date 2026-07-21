@@ -360,7 +360,7 @@ public class ChromaChatManager {
                 Gui.drawRect(ix, iy, ix + sw, iy + ih, 0xAAFFFFFF | (0x88 << 24));
                 // 滚动条交互：拖拽 + 点击跳转
                 if (Mouse.isButtonDown(0)) {
-                    boolean onTrack = mouseSx >= ix - 6 && mouseSx <= ix + sw + 2
+                    boolean onTrack = mouseSx >= ix && mouseSx <= ix + sw
                                    && mouseSy >= trackY && mouseSy <= trackY + stableTrackH;
                     if (!scrollBtnDown) {
                         scrollBtnDown = true;
