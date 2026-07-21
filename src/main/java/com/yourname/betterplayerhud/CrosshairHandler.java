@@ -49,7 +49,7 @@ public class CrosshairHandler {
         if (event.type == RenderGameOverlayEvent.ElementType.TEXT
                 && BetterPlayerHUD.config.enableCrosshair
                 && shouldShow()) {
-            ScaledResolution sr = new ScaledResolution(mc);
+            ScaledResolution sr = event.resolution;
             renderCrosshair(sr.getScaledWidth(), sr.getScaledHeight());
         }
     }

@@ -109,7 +109,7 @@ public class CrisisWarningHandler {
         BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
         if (!cfg.enableCrisisWarning) {
             if (HUDEditManager.isEditing()) {
-                ScaledResolution sr2 = new ScaledResolution(mc);
+                ScaledResolution sr2 = event.resolution;
                 int centerX = sr2.getScaledWidth() / 2;
                 int iconSize = cfg.crisisIconSize;
                 int gap = iconSize / 3;
@@ -122,7 +122,7 @@ public class CrisisWarningHandler {
             return;
         }
 
-        ScaledResolution sr = new ScaledResolution(mc);
+        ScaledResolution sr = event.resolution;
         int centerX = sr.getScaledWidth() / 2;
         int screenHeight = sr.getScaledHeight();
 

@@ -49,6 +49,7 @@ public class ChromaChatManager {
     final List<MyChatLine> myChatLines = new ArrayList<MyChatLine>();
     private int myScrollPos = 0;
     private boolean myIsScrolled = false;
+    private boolean scrollBtnDown = false;
     private int nextLineId = 1;
     // 滚轮预读（绕过 GuiChat 消耗）
     private int pendingScroll = 0;
@@ -254,7 +255,7 @@ public class ChromaChatManager {
         pendingScroll = 0;
         if (wheel != 0) {
             int dir = (wheel > 0) ? -1 : 1;
-            int maxScroll = Math.max(0, totalLines - 1);
+            int maxScroll = Math.max(0, totalLines - Math.min(5, totalLines));
             myScrollPos = MathHelper.clamp_int(myScrollPos + dir * 3, 0, maxScroll);
             myIsScrolled = myScrollPos > 0;
         }
@@ -364,16 +365,35 @@ public class ChromaChatManager {
 
         // -- 滚动指示器（有更多消息时显示） --
         if (totalLines > visibleCount && visibleCount > 0 && chatOpen) {
-            // 固定条高 20px，位置表示已滚动比例
-            int ih = 20;
             int ix = baseX + chatWidth - 3;
-            int totalScrollable = totalLines - visibleCount;
+            int totalScrollable = totalLines - Math.min(5, totalLines);
             float ratio = totalScrollable > 0 ? (float) myScrollPos / totalScrollable : 0f;
-            int trackH = bgH - 4;
-            int iy = baseY + 2 + (int)((trackH - ih) * ratio);
-            if (iy < baseY + 2) iy = baseY + 2;
-            if (iy + ih > baseY + bgH - 2) iy = baseY + bgH - 2 - ih;
-            Gui.drawRect(ix, iy, ix + 2, iy + ih, 0x99FFFFFF | (0x88 << 24));
+            // 稳定轨道高度：固定 120px，不超过 bgH
+            int stableTrackH = Math.min(120, bgH - 8);
+            if (stableTrackH > 0) {
+                int ih = Math.min(16, stableTrackH / 3);
+                int trackY = baseY + (bgH - stableTrackH) / 2;
+                int iy = trackY + (int)((stableTrackH - ih) * ratio);
+                iy = MathHelper.clamp_int(iy, trackY, trackY + stableTrackH - ih);
+                // 轨道背景
+                Gui.drawRect(ix, trackY, ix + 2, trackY + stableTrackH, 0x33FFFFFF | (0x44 << 24));
+                // 滑块
+                Gui.drawRect(ix, iy, ix + 2, iy + ih, 0xAAFFFFFF | (0x88 << 24));
+                // 点击跳转
+                if (Mouse.isButtonDown(0)) {
+                    if (!scrollBtnDown) {
+                        scrollBtnDown = true;
+                        if (mouseSx >= ix && mouseSx <= ix + 2
+                            && mouseSy >= trackY && mouseSy <= trackY + stableTrackH) {
+                            int clickRatio = (int)((float)(mouseSy - trackY - ih / 2) / stableTrackH * totalScrollable);
+                            myScrollPos = MathHelper.clamp_int(clickRatio, 0, totalScrollable);
+                            myIsScrolled = myScrollPos > 0;
+                        }
+                    }
+                } else {
+                    scrollBtnDown = false;
+                }
+            }
         }
 
         // ── 悬停事件提示（ChatHoverEvent） ──

@@ -44,7 +44,7 @@ public class EquipHUDHandler {
 
         BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
 
-        ScaledResolution sr = new ScaledResolution(mc);
+        ScaledResolution sr = event.resolution;
         int w = sr.getScaledWidth();
         int h = sr.getScaledHeight();
 

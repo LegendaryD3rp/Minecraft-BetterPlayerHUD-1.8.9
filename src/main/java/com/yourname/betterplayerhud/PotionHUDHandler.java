@@ -30,7 +30,7 @@ public class PotionHUDHandler {
         if (event.type != RenderGameOverlayEvent.ElementType.TEXT) return;
         if (!BetterPlayerHUD.config.enablePotionHUD) {
             if (HUDEditManager.isEditing()) {
-                ScaledResolution sr2 = new ScaledResolution(mc);
+                ScaledResolution sr2 = event.resolution;
                 int sh = sr2.getScaledHeight();
                 int x = 2 + BetterPlayerHUD.config.potionXOffset;
                 int y = sh - 18 - 2 + BetterPlayerHUD.config.potionYOffset;
@@ -45,7 +45,7 @@ public class PotionHUDHandler {
         // 编辑模式下即使无药水也上报 placeholder
         if ((effects == null || effects.isEmpty())) {
             if (HUDEditManager.isEditing()) {
-                ScaledResolution sr2 = new ScaledResolution(mc);
+                ScaledResolution sr2 = event.resolution;
                 int sh = sr2.getScaledHeight();
                 int x = 2 + BetterPlayerHUD.config.potionXOffset;
                 int y = sh - 18 - 2 + BetterPlayerHUD.config.potionYOffset;
@@ -54,7 +54,7 @@ public class PotionHUDHandler {
             return;
         }
 
-        ScaledResolution sr = new ScaledResolution(mc);
+        ScaledResolution sr = event.resolution;
         int screenHeight = sr.getScaledHeight();
 
         // 从底部往上算起始Y

@@ -149,7 +149,7 @@ public class ComboHandler {
         if (event.type != RenderGameOverlayEvent.ElementType.TEXT) return;
 
         BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
-        ScaledResolution sr = new ScaledResolution(mc);
+        ScaledResolution sr = event.resolution;
         int sw = sr.getScaledWidth(), sh = sr.getScaledHeight();
 
         // 中心锚点

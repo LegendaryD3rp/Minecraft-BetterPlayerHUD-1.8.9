@@ -123,7 +123,7 @@ public class PerformanceHUDHandler {
         BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
         if (!cfg.enablePerformanceHUD) {
             if (HUDEditManager.isEditing()) {
-                ScaledResolution sr2 = new ScaledResolution(mc);
+                ScaledResolution sr2 = event.resolution;
                 int sw = sr2.getScaledWidth(), sh = sr2.getScaledHeight();
                 int baseX = cfg.performanceHudX >= 0 ? cfg.performanceHudX : sw + cfg.performanceHudX;
                 int baseY = cfg.performanceHudY >= 0 ? cfg.performanceHudY : sh + cfg.performanceHudY;
@@ -133,7 +133,7 @@ public class PerformanceHUDHandler {
         }
         if (mc.thePlayer == null || mc.theWorld == null) return;
 
-        ScaledResolution res = new ScaledResolution(mc);
+        ScaledResolution res = event.resolution;
         int sw = res.getScaledWidth(), sh = res.getScaledHeight();
         FontRenderer fr = mc.fontRendererObj;
 

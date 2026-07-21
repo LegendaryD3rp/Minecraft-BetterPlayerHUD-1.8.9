@@ -135,7 +135,7 @@ public class PotionTimerHandler {
 
         if (!cfg.enablePotionTimer && !milkOnly) {
             if (HUDEditManager.isEditing()) {
-                ScaledResolution sr2 = new ScaledResolution(mc);
+                ScaledResolution sr2 = event.resolution;
                 int sw2 = sr2.getScaledWidth() / 2;
                 int tY = 4 + cfg.potionTimerYOffset;
                 HUDEditManager.report("药水计时器", sw2 + cfg.potionTimerXOffset - 100, tY, 200, eh);
@@ -144,7 +144,7 @@ public class PotionTimerHandler {
         }
         if (mc.thePlayer == null) return;
 
-        ScaledResolution sr = new ScaledResolution(mc);
+        ScaledResolution sr = event.resolution;
         int sw = sr.getScaledWidth();
 
         int centerX = sw / 2 + cfg.potionTimerXOffset;

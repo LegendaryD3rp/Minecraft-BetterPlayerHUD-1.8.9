@@ -40,7 +40,7 @@ public class TargetHealthHandler {
         if (event.type != RenderGameOverlayEvent.ElementType.ALL) return;
         if (!BetterPlayerHUD.config.enableTargetHealth) {
             if (HUDEditManager.isEditing()) {
-                ScaledResolution sr = new ScaledResolution(mc);
+                ScaledResolution sr = event.resolution;
                 int sw = sr.getScaledWidth(), sh = sr.getScaledHeight();
                 BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
                 int bw = cfg.targetHPBarWidth;
@@ -75,7 +75,7 @@ public class TargetHealthHandler {
         boolean showArmor = BetterPlayerHUD.config.targetHPShowArmor && armorValue > 0;
 
         // ── 经验条位置 ──
-        ScaledResolution res = new ScaledResolution(mc);
+        ScaledResolution res = event.resolution;
         int centerX = res.getScaledWidth() / 2;
 
         int expBarTop = res.getScaledHeight() - 32 + 3;   // 原版经验条顶部

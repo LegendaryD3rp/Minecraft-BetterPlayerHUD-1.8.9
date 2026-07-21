@@ -50,7 +50,7 @@ public class KeysDisplayHandler {
 
         if (!BetterPlayerHUD.config.enableKeysDisplay) {
             if (HUDEditManager.isEditing()) {
-                ScaledResolution sr = new ScaledResolution(mc);
+                ScaledResolution sr = event.resolution;
                 int sw = sr.getScaledWidth(), sh = sr.getScaledHeight();
                 int ks = BetterPlayerHUD.config.keysSize;
                 int ksp = BetterPlayerHUD.config.keysSpacing;
@@ -65,7 +65,7 @@ public class KeysDisplayHandler {
             return;
         }
 
-        ScaledResolution scaledResolution = new ScaledResolution(mc);
+        ScaledResolution scaledResolution = event.resolution;
         renderKeysDisplay(scaledResolution.getScaledWidth(), scaledResolution.getScaledHeight());
     }
 

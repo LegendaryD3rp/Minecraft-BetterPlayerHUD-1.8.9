@@ -31,7 +31,7 @@ public class PlayerHUDHandler {
 
         if (!BetterPlayerHUD.config.enableHealthHUD) {
             if (HUDEditManager.isEditing()) {
-                ScaledResolution sr = new ScaledResolution(mc);
+                ScaledResolution sr = event.resolution;
                 int sh = sr.getScaledHeight();
                 int hudTop = BetterPlayerHUD.config.healthHudY >= 0
                         ? BetterPlayerHUD.config.healthHudY
@@ -41,7 +41,7 @@ public class PlayerHUDHandler {
             return;
         }
 
-        ScaledResolution scaledResolution = new ScaledResolution(mc);
+        ScaledResolution scaledResolution = event.resolution;
         int screenWidth = scaledResolution.getScaledWidth();
         int screenHeight = scaledResolution.getScaledHeight();
 

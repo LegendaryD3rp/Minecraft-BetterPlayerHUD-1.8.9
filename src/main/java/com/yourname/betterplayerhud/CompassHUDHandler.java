@@ -34,7 +34,7 @@ public class CompassHUDHandler {
 
         if (!BetterPlayerHUD.config.enableCompass) {
             if (HUDEditManager.isEditing()) {
-                ScaledResolution sr = new ScaledResolution(mc);
+                ScaledResolution sr = event.resolution;
                 int sw = sr.getScaledWidth(), sh = sr.getScaledHeight();
                 int offsetX = BetterPlayerHUD.config.xPosition;
                 int xPos = offsetX > 0 ? offsetX : (offsetX < 0 ? sw + offsetX - 240 : (sw - 240) / 2);
@@ -45,7 +45,7 @@ public class CompassHUDHandler {
             return;
         }
 
-        ScaledResolution scaledResolution = new ScaledResolution(mc);
+        ScaledResolution scaledResolution = event.resolution;
         int screenWidth = scaledResolution.getScaledWidth();
         int screenHeight = scaledResolution.getScaledHeight();
 

@@ -31,7 +31,7 @@ public class DistanceHUDHandler {
 
         if (!BetterPlayerHUD.config.enableDistanceHUD) {
             if (HUDEditManager.isEditing()) {
-                ScaledResolution sr = new ScaledResolution(mc);
+                ScaledResolution sr = event.resolution;
                 int sw2 = sr.getScaledWidth(), sh2 = sr.getScaledHeight();
                 int bx = BetterPlayerHUD.config.distanceHudX;
                 int by = BetterPlayerHUD.config.distanceHudY;
@@ -42,7 +42,7 @@ public class DistanceHUDHandler {
             return;
         }
 
-        ScaledResolution scaledResolution = new ScaledResolution(mc);
+        ScaledResolution scaledResolution = event.resolution;
         int screenWidth = scaledResolution.getScaledWidth();
         int screenHeight = scaledResolution.getScaledHeight();
 
