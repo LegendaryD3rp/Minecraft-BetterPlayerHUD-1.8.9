@@ -1,10 +1,8 @@
 package com.yourname.betterplayerhud;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.ChatLine;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiChat;
-import net.minecraft.client.gui.GuiNewChat;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.Tessellator;
@@ -12,22 +10,26 @@ import net.minecraft.client.renderer.WorldRenderer;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.util.IChatComponent;
 import net.minecraft.util.MathHelper;
+import net.minecraftforge.client.event.ClientChatReceivedEvent;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
+import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import org.lwjgl.input.Mouse;
 
-import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
- * \u201c\u86ed\u697c\u201d ChromaChat \u2014 \u73b0\u4ee3\u804a\u5929\u6846
+ * "蜃楼" ChromaChat — 现代聊天框
  * <p>
- * Phase 1: \u9aa8\u67b6
- * Phase 2: \u60ac\u505c\u9ad8\u4eae + \u9f20\u6807\u4ea4\u4e92
- * Phase 3: \u6d88\u606f\u5206\u7ec4\u6298\u53e0
- * Phase 4: \u914d\u7f6e GUI \u96c6\u6210
+ * Phase 1: 骨架
+ * Phase 2: 悬停高亮 + 鼠标交互
+ * Phase 3: 消息分组折叠
+ * Phase 4: 配置 GUI 集成
+ * <p>
+ * 数据通路: ClientChatReceivedEvent + 自管列表 (不依赖 GuiNewChat/任何覆盖模组)
  */
 @SideOnly(Side.CLIENT)
 public class ChromaChatManager {
@@ -35,20 +37,32 @@ public class ChromaChatManager {
     private static final long CLICK_THRESHOLD_MS = 200L;
     private static final Minecraft mc = Minecraft.getMinecraft();
 
-    // === Reflection ===
-    private GuiNewChat vanillaChat;
-    private Field fieldDrawnChatLines;
-    private Field fieldChatLines;
-    private Field fieldScrollPos;
-    private Field fieldIsScrolled;
-    private boolean reflectionReady = false;
+    // =================================================================
+    //  Own message list (完全独立于 BetterChat / 原版 GuiNewChat)
+    // =================================================================
+    private static final int MAX_LINES = 100;
+    private final List<MyChatLine> myChatLines = new ArrayList<MyChatLine>();
+    private int myScrollPos = 0;
+    private boolean myIsScrolled = false;
+    private int nextLineId = 1;
+
+    private static class MyChatLine {
+        final IChatComponent message;
+        final int updateCounter;
+        final int chatLineID;
+        MyChatLine(IChatComponent msg, int ctr, int id) {
+            this.message = msg;
+            this.updateCounter = ctr;
+            this.chatLineID = id;
+        }
+    }
 
     // === Spring Animation (P1) ===
     private float animAmount = 1.0f;
     private float animVelocity = 0.0f;
     private long lastAnimTime = 0L;
 
-    // === Message Tracking (P1) ===
+    // === Message Animation Tracking (P1) ===
     private static final int TRACK_SIZE = 100;
     private final int[] trackCounters = new int[TRACK_SIZE];
     private final long[] trackTimesMs = new long[TRACK_SIZE];
@@ -63,117 +77,71 @@ public class ChromaChatManager {
     private long mousePressTime = 0L;
 
     // === Message Grouping (P3) ===
-    private List<ChatLine> lastDrawnLinesRef = null;
+    private List<MyChatLine> lastDrawnLinesRef = null;
     private GroupInfo[] groupCache = null;
 
     private static class GroupInfo {
-        final ChatLine line;
+        final MyChatLine line;
         final int count;
-        GroupInfo(ChatLine line, int count) { this.line = line; this.count = count; }
+        GroupInfo(MyChatLine line, int count) { this.line = line; this.count = count; }
     }
-
-    // =================================================================
-    //  Constructor & Reflection
-    // =================================================================
-    private boolean lazyInitDone = false;
 
     public ChromaChatManager() {
         for (int i = 0; i < TRACK_SIZE; i++) trackCounters[i] = -1;
-        // 延迟初始化：首次 onChatRender 时再初始化，确保 mc.ingameGUI 已就绪
     }
 
     public void onConfigChanged() {}
 
-    /** 延迟初始化 — 只在首次 onChatRender 时执行一次 */
-    private void ensureInitialized() {
-        if (lazyInitDone) return;
-        lazyInitDone = true;
+    // =================================================================
+    //  ClientChatReceivedEvent — 消息源头拦截
+    //  HIGHEST 优先: 在其他模组(BetterChat)处理前拦截
+    // =================================================================
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public void onChatReceived(ClientChatReceivedEvent event) {
+        BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
+        if (cfg == null || !cfg.enableChromaChat) return;
 
-        System.out.println("[ChromaChat] === Initializing (LAZY) ===");
+        // 取消事件 → BetterChat 不会收到此消息
+        event.setCanceled(true);
 
-        // 1) 检查 Minecraft 实例
-        if (mc == null) {
-            System.out.println("[ChromaChat] FAIL: mc is null");
-            return;
+        // 存入自有列表 (index 0 = 最新，与原版一致)
+        int ctr = mc.ingameGUI.getUpdateCounter();
+        IChatComponent msg = event.message;
+        // 在 cancel 的情况下直接引用 event.message 是安全的（不会被修改）
+        myChatLines.add(0, new MyChatLine(msg, ctr, nextLineId++));
+
+        // 裁剪上限
+        while (myChatLines.size() > MAX_LINES) {
+            myChatLines.remove(myChatLines.size() - 1);
         }
-        System.out.println("[ChromaChat] mc=" + mc);
 
-        // 2) 获取 ingameGUI
-        Object ig = mc.ingameGUI;
-        if (ig == null) {
-            System.out.println("[ChromaChat] FAIL: mc.ingameGUI is null");
-            return;
-        }
-        System.out.println("[ChromaChat] ingameGUI=" + ig.getClass().getName());
-
-        // 3) 获取 chatGUI
-        try {
-            vanillaChat = mc.ingameGUI.getChatGUI();
-        } catch (Exception e) {
-            System.out.println("[ChromaChat] FAIL: getChatGUI() threw " + e.getClass().getSimpleName()
-                    + ": " + e.getMessage());
-            return;
-        }
-        if (vanillaChat == null) {
-            System.out.println("[ChromaChat] FAIL: getChatGUI() returned null");
-            return;
-        }
-        System.out.println("[ChromaChat] vanillaChat=" + vanillaChat.getClass().getName());
-
-        // 4) 逐个反射字段
-        Class<?> c = GuiNewChat.class;
-        System.out.println("[ChromaChat] GuiNewChat class=" + c.getName()
-                + " loader=" + c.getClassLoader());
-
-        // 显示所有声明字段（调试）
-        StringBuilder sb = new StringBuilder("[ChromaChat] Declared fields: ");
-        for (java.lang.reflect.Field f : c.getDeclaredFields()) {
-            sb.append(f.getName()).append("(").append(f.getType().getSimpleName()).append(") ");
-        }
-        System.out.println(sb.toString());
-
-        fieldDrawnChatLines = findField(c, "drawnChatLines", "field_146253_i");
-        fieldChatLines      = findField(c, "chatLines",      "field_146252_h");
-        fieldScrollPos      = findField(c, "scrollPos",      "field_146250_j");
-        fieldIsScrolled     = findField(c, "isScrolled",     "field_146251_k");
-
-        System.out.println("[ChromaChat]   fieldDrawnChatLines=" + fieldDrawnChatLines);
-        System.out.println("[ChromaChat]   fieldChatLines="      + fieldChatLines);
-        System.out.println("[ChromaChat]   fieldScrollPos="      + fieldScrollPos);
-        System.out.println("[ChromaChat]   fieldIsScrolled="     + fieldIsScrolled);
-
-        reflectionReady = (fieldDrawnChatLines != null && fieldScrollPos != null);
-        System.out.println("[ChromaChat] reflectionReady=" + reflectionReady);
+        // 滚动置顶（新消息时回到最新位置）
+        myScrollPos = 0;
+        myIsScrolled = false;
     }
 
     // =================================================================
-    //  Main Event
+    //  Main Render Event
     // =================================================================
     @SubscribeEvent
     public void onChatRender(RenderGameOverlayEvent.Chat event) {
         BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
-
-        // 未启用 ChromaChat → 不干预原版
         if (cfg == null || !cfg.enableChromaChat) return;
 
-        // ═══ 取消原版聊天框 ═══
+        // 取消原版渲染 (包括 BetterChat 的定制渲染)
         event.setCanceled(true);
 
-        // ═══ 延迟初始化 ═══
-        ensureInitialized();
-
-        // ═══ 反射未就绪 → 画占位框以便调试 ═══
-        if (!reflectionReady) {
-            drawFallbackPlaceholder(event);
-            return;
+        // ── 检测滚动 ──
+        int wheel = Mouse.getDWheel();
+        if (wheel != 0) {
+            int dir = (wheel > 0) ? -1 : 1; // 滚轮向上 = 看旧消息 (scrollPos++)
+            int maxScroll = Math.max(0, myChatLines.size() - cfg.chromaChatLineCount);
+            myScrollPos = MathHelper.clamp_int(myScrollPos + dir * 7, 0, maxScroll);
+            myIsScrolled = myScrollPos > 0;
         }
 
-        List<ChatLine> drawnLines = getDrawnLines();
-        int scrollPos = getScrollPos();
-        boolean isScrolled = getIsScrolled();
-        if (drawnLines == null) return;
-
-        int totalLines = drawnLines.size();
+        // ── 布局 ──
+        int totalLines = myChatLines.size();
         boolean chatOpen = mc.currentScreen instanceof GuiChat;
         long now = Minecraft.getSystemTime();
         updateSpring(chatOpen, now, cfg);
@@ -183,17 +151,16 @@ public class ChromaChatManager {
         float scale = MathHelper.clamp_float(animAmount, 0.0f, 1.25f);
         if (scale < 0.01f) return;
 
-        // Layout
         ScaledResolution res = event.resolution;
         int baseX = 2;
         int baseY = 20;
         int chatWidth = cfg.chromaChatWidth;
         int lineH = 9;
-        int visibleCount = Math.min(totalLines - scrollPos, cfg.chromaChatLineCount);
+        int visibleCount = Math.min(totalLines - myScrollPos, cfg.chromaChatLineCount);
         int contentH = visibleCount * lineH;
         int bgH = contentH + 4;
 
-        // === P2: Mouse ===
+        // ── 鼠标位置 (P2) ──
         int mouseSx = Mouse.getX() * res.getScaledWidth() / mc.displayWidth;
         int mouseSy = res.getScaledHeight()
                 - Mouse.getY() * res.getScaledHeight() / mc.displayHeight - 1;
@@ -207,11 +174,10 @@ public class ChromaChatManager {
             int li = relY / lineH;
             if (li >= 0 && li < visibleCount) {
                 newHoveredIdx = li;
-                newHoveredAbs = scrollPos + li;
+                newHoveredAbs = myScrollPos + li;
             }
         }
 
-        // Debounce
         long hdt = now - hoverUpdateTime;
         if (newHoveredAbs != hoveredLineAbsIdx) {
             if (hdt > 80L) {
@@ -223,7 +189,6 @@ public class ChromaChatManager {
             hoverUpdateTime = now;
         }
 
-        // Click detection
         boolean mouseClicked = false;
         if (Mouse.isButtonDown(0)) {
             if (!mouseBtnDown) { mouseBtnDown = true; mousePressTime = now; }
@@ -234,17 +199,17 @@ public class ChromaChatManager {
             mouseBtnDown = false;
         }
 
-        // === P1: Track ===
-        trackNewMessages(drawnLines, cfg, now);
+        // ── 消息动画跟踪 ──
+        trackNewMessages(myChatLines, cfg, now);
 
-        // === P3: Group cache ===
+        // ── 分组缓存 ──
         boolean grouping = cfg.chromaChatMessageGrouping;
-        if (grouping && drawnLines != lastDrawnLinesRef) {
-            rebuildGroupCache(drawnLines);
-            lastDrawnLinesRef = drawnLines;
+        if (grouping && myChatLines != lastDrawnLinesRef) {
+            rebuildGroupCache(myChatLines);
+            lastDrawnLinesRef = myChatLines;
         }
 
-        // =============== Render ===============
+        // ═══════════════ Render ═══════════════
         GlStateManager.pushMatrix();
         float anchorY = baseY + bgH;
         GlStateManager.translate(0.0f, anchorY, 0.0f);
@@ -262,19 +227,19 @@ public class ChromaChatManager {
             int y = baseY + 2;
 
             if (grouping && groupCache != null) {
-                renderGrouped(cfg, scrollPos, visibleCount, baseX, chatWidth, lineH, y,
+                renderGrouped(cfg, myScrollPos, visibleCount, baseX, chatWidth, lineH, y,
                         updateCounter, chatOpen, opacity, now, mouseClicked);
             } else {
-                renderNormal(cfg, drawnLines, scrollPos, visibleCount, baseX, chatWidth, lineH, y,
+                renderNormal(cfg, myChatLines, myScrollPos, visibleCount, baseX, chatWidth, lineH, y,
                         updateCounter, chatOpen, opacity, now, mouseClicked);
             }
         }
 
         // -- Scroll indicator --
-        if (isScrolled) {
+        if (myIsScrolled) {
             int ix = baseX + chatWidth - 3;
             int ih = Math.max(4, bgH * visibleCount / Math.max(totalLines, 1));
-            int iy = baseY + bgH - bgH * scrollPos / Math.max(totalLines, 1);
+            int iy = baseY + bgH - bgH * myScrollPos / Math.max(totalLines, 1);
             Gui.drawRect(ix, iy, ix + 2, iy + ih, 0x99FFFFFF | (0x88 << 24));
         }
 
@@ -284,28 +249,28 @@ public class ChromaChatManager {
     // =================================================================
     //  Render: Normal mode
     // =================================================================
-    private void renderNormal(BetterPlayerHUDConfig cfg, List<ChatLine> lines, int scrollPos,
+    private void renderNormal(BetterPlayerHUDConfig cfg, List<MyChatLine> lines, int scrollPos,
                               int vis, int baseX, int chatWidth, int lineH, int y,
                               int updateCounter, boolean chatOpen, float opacity, long now,
                               boolean mouseClicked) {
         int drawEnd = Math.min(scrollPos + vis, lines.size());
         for (int i = scrollPos; i < drawEnd; i++) {
-            ChatLine cl = lines.get(i);
-            if (cl == null) { y -= lineH; continue; }
+            MyChatLine ml = lines.get(i);
+            if (ml == null) { y -= lineH; continue; }
 
-            int age = updateCounter - cl.getUpdatedCounter();
+            int age = updateCounter - ml.updateCounter;
             int alpha = calcAlpha(age, chatOpen, opacity);
             if (alpha <= 3) { y -= lineH; continue; }
 
-            y += getMsgOffset(cl.getUpdatedCounter(), cfg);
+            y += getMsgOffset(ml.updateCounter, cfg);
 
             // P2: Hover
             if (i == hoveredLineAbsIdx) {
                 drawHover(baseX + 1, y, baseX + chatWidth - 1, y + lineH, cfg);
-                if (mouseClicked) forwardClick(cl);
+                if (mouseClicked) forwardClick(ml);
             }
 
-            String text = cl.getChatComponent().getFormattedText();
+            String text = ml.message.getFormattedText();
             mc.fontRendererObj.drawString(text, baseX + 2, y, 0xFFFFFF | (alpha << 24));
             y -= lineH;
         }
@@ -325,22 +290,22 @@ public class ChromaChatManager {
             GroupInfo g = groupCache[gi];
             if (gi > scrollPos) y -= lineH * (g.count - 1);
 
-            ChatLine cl = g.line;
-            if (cl == null) { y -= lineH; drawn++; continue; }
+            MyChatLine ml = g.line;
+            if (ml == null) { y -= lineH; drawn++; continue; }
 
-            int age = updateCounter - cl.getUpdatedCounter();
+            int age = updateCounter - ml.updateCounter;
             int alpha = calcAlpha(age, chatOpen, opacity);
             if (alpha <= 3) { y -= lineH; drawn++; continue; }
 
-            y += getMsgOffset(cl.getUpdatedCounter(), cfg);
+            y += getMsgOffset(ml.updateCounter, cfg);
 
             // P2: Hover
             if (gi == hoveredLineAbsIdx) {
                 drawHover(baseX + 1, y, baseX + chatWidth - 1, y + lineH, cfg);
-                if (mouseClicked) forwardClick(cl);
+                if (mouseClicked) forwardClick(ml);
             }
 
-            String text = cl.getChatComponent().getFormattedText();
+            String text = ml.message.getFormattedText();
             mc.fontRendererObj.drawString(text, baseX + 2, y, 0xFFFFFF | (alpha << 24));
 
             // P3: Badge
@@ -359,8 +324,8 @@ public class ChromaChatManager {
     // =================================================================
     //  Click forward (P2)
     // =================================================================
-    private void forwardClick(ChatLine cl) {
-        IChatComponent comp = cl.getChatComponent();
+    private void forwardClick(MyChatLine ml) {
+        IChatComponent comp = ml.message;
         if (comp != null && comp.getChatStyle() != null
                 && comp.getChatStyle().getChatClickEvent() != null) {
             String val = comp.getChatStyle().getChatClickEvent().getValue();
@@ -413,19 +378,18 @@ public class ChromaChatManager {
     // =================================================================
     //  Message tracking (P1)
     // =================================================================
-    private void trackNewMessages(List<ChatLine> lines, BetterPlayerHUDConfig cfg, long now) {
+    private void trackNewMessages(List<MyChatLine> lines, BetterPlayerHUDConfig cfg, long now) {
         if (lines == null || !cfg.chromaChatMsgAnimEnable) return;
         int cur = lines.size();
         if (cur > prevLineCount) {
-            int diff = cur - prevLineCount;
-            for (int i = 0; i < diff && i < lines.size(); i++) {
-                ChatLine cl = lines.get(i);
+            for (int i = 0; i < cur - prevLineCount && i < lines.size(); i++) {
+                MyChatLine ml = lines.get(i);
                 boolean found = false;
                 for (int j = 0; j < TRACK_SIZE; j++) {
-                    if (trackCounters[j] == cl.getUpdatedCounter()) { found = true; break; }
+                    if (trackCounters[j] == ml.updateCounter) { found = true; break; }
                 }
                 if (!found) {
-                    trackCounters[trackHead] = cl.getUpdatedCounter();
+                    trackCounters[trackHead] = ml.updateCounter;
                     trackTimesMs[trackHead] = now;
                     trackHead = (trackHead + 1) % TRACK_SIZE;
                 }
@@ -452,24 +416,24 @@ public class ChromaChatManager {
     // =================================================================
     //  Message grouping (P3)
     // =================================================================
-    private void rebuildGroupCache(List<ChatLine> lines) {
+    private void rebuildGroupCache(List<MyChatLine> lines) {
         if (lines == null || lines.isEmpty()) { groupCache = null; return; }
         GroupInfo[] tmp = new GroupInfo[lines.size()];
         int out = 0;
         String prevText = null;
-        ChatLine groupLine = null;
+        MyChatLine groupLine = null;
         int count = 0;
 
-        for (ChatLine cl : lines) {
-            String text = cl.getChatComponent().getFormattedText();
+        for (MyChatLine ml : lines) {
+            String text = ml.message.getFormattedText();
             if (text.equals(prevText) && groupLine != null) {
                 count++;
                 tmp[out - 1] = new GroupInfo(groupLine, count);
             } else {
-                groupLine = cl;
+                groupLine = ml;
                 count = 1;
                 prevText = text;
-                tmp[out] = new GroupInfo(cl, 1);
+                tmp[out] = new GroupInfo(ml, 1);
                 out++;
             }
         }
@@ -488,7 +452,7 @@ public class ChromaChatManager {
     }
 
     // =================================================================
-    //  Rounded rect (batched)
+    //  Rounded rect (Tessellator batched)
     // =================================================================
     private void drawRoundedRect(int left, int top, int right, int bottom,
                                   int radius, int fillColor, int borderColor) {
@@ -553,8 +517,7 @@ public class ChromaChatManager {
         wr.pos(right - r, bottom - r, 0).color(fr, fg, fb, fa).endVertex();
         tess.draw();
 
-        // 4 corners: 9 segments each, 1 draw per corner
-        // TL
+        // 4 corners: TL
         wr.begin(7, DefaultVertexFormats.POSITION_COLOR);
         for (int a = 0; a < 90; a += 10) {
             double r1 = Math.toRadians(a), r2 = Math.toRadians(a + 10);
@@ -582,8 +545,8 @@ public class ChromaChatManager {
         wr.begin(7, DefaultVertexFormats.POSITION_COLOR);
         for (int a = 0; a < 90; a += 10) {
             double r1 = Math.toRadians(a), r2 = Math.toRadians(a + 10);
-            double x1 = right - r + r * Math.cos(r1), y1 = bottom - r + r * Math.sin(r1);
-            double x2 = right - r + r * Math.cos(r2), y2 = bottom - r + r * Math.sin(r2);
+            double x1 = right - r + r * Math.cos(r1 + 90), y1 = bottom - r + r * Math.sin(r1 + 90);
+            double x2 = right - r + r * Math.cos(r2 + 90), y2 = bottom - r + r * Math.sin(r2 + 90);
             wr.pos(right - r, bottom - r, 0).color(fr, fg, fb, fa).endVertex();
             wr.pos(x1, y1, 0).color(fr, fg, fb, fa).endVertex();
             wr.pos(x2, y2, 0).color(fr, fg, fb, fa).endVertex();
@@ -593,66 +556,16 @@ public class ChromaChatManager {
         // BL
         wr.begin(7, DefaultVertexFormats.POSITION_COLOR);
         for (int a = 0; a < 90; a += 10) {
-            double r1 = Math.toRadians(a), r2 = Math.toRadians(a + 10);
+            double r1 = Math.toRadians(a + 90), r2 = Math.toRadians(a + 100);
             double x1 = left + r - r * Math.cos(r1), y1 = bottom - r + r * Math.sin(r1);
             double x2 = left + r - r * Math.cos(r2), y2 = bottom - r + r * Math.sin(r2);
             wr.pos(left + r, bottom - r, 0).color(fr, fg, fb, fa).endVertex();
-            wr.pos(x2, y2, 0).color(fr, fg, fb, fa).endVertex();
             wr.pos(x1, y1, 0).color(fr, fg, fb, fa).endVertex();
+            wr.pos(x2, y2, 0).color(fr, fg, fb, fa).endVertex();
         }
         tess.draw();
 
         GlStateManager.enableTexture2D();
         GlStateManager.disableBlend();
-    }
-
-    /** 反射失败时的占位框 — 确认事件系统正常，只是数据通路不通 */
-    private void drawFallbackPlaceholder(RenderGameOverlayEvent.Chat event) {
-        ScaledResolution res = event.resolution;
-        int x = 2, y = 20;
-        int w = 320, h = 40;
-
-        // 半透明红框（Gui::drawRect 是 static 方法）
-        Gui.drawRect(x, y, x + w, y + h, 0x55FF0000);
-        // 白字
-        mc.fontRendererObj.drawString("[ChromaChat] Placeholder - Event OK",
-                x + 4, y + 4, 0xFFFFFFFF);
-        mc.fontRendererObj.drawString("[ChromaChat] Reflection FAILED - check logs",
-                x + 4, y + 14, 0xFFFF6666);
-        mc.fontRendererObj.drawString("[ChromaChat] Confirm field_146253_i exists in GuiNewChat",
-                x + 4, y + 24, 0xFFFFAAAA);
-    }
-
-    // =================================================================
-    //  Reflection helpers
-    // =================================================================
-    @SuppressWarnings("unchecked")
-    private List<ChatLine> getDrawnLines() {
-        try { return (List<ChatLine>) fieldDrawnChatLines.get(vanillaChat); }
-        catch (Exception e) { return null; }
-    }
-
-    private int getScrollPos() {
-        try { return fieldScrollPos.getInt(vanillaChat); }
-        catch (Exception e) { return 0; }
-    }
-
-    private boolean getIsScrolled() {
-        try { return fieldIsScrolled.getBoolean(vanillaChat); }
-        catch (Exception e) { return false; }
-    }
-
-    private static Field findField(Class<?> clazz, String mcpName, String srgName) {
-        try {
-            Field f = clazz.getDeclaredField(mcpName);
-            f.setAccessible(true);
-            return f;
-        } catch (NoSuchFieldException e) {
-            try {
-                Field f = clazz.getDeclaredField(srgName);
-                f.setAccessible(true);
-                return f;
-            } catch (NoSuchFieldException e2) { return null; }
-        }
     }
 }
