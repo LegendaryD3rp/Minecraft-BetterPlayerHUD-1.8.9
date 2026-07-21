@@ -85,6 +85,11 @@ public class ChromaChatBridge extends GuiNewChat {
     }
 
     @Override
+    public void scroll(int scrollAmount) {
+        wrapped.scroll(scrollAmount);
+    }
+
+    @Override
     public int getLineCount() {
         return wrapped.getLineCount();
     }
@@ -92,5 +97,10 @@ public class ChromaChatBridge extends GuiNewChat {
     @Override
     public void deleteChatLine(int id) {
         wrapped.deleteChatLine(id);
+    }
+
+    @Override
+    public void refreshChat() {
+        wrapped.refreshChat();
     }
 }
