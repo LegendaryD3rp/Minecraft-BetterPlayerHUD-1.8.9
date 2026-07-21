@@ -121,16 +121,6 @@ public class ChromaChatManager {
     private boolean mouseBtnDown = false;
     private long mousePressTime = 0L;
 
-    // === Message Grouping (P3) ===
-    private int lastDrawnLinesSize = -1;
-    private GroupInfo[] groupCache = null;
-
-    private static class GroupInfo {
-        final MyChatLine line;
-        final int count;
-        GroupInfo(MyChatLine line, int count) { this.line = line; this.count = count; }
-    }
-
     public ChromaChatManager() {
         INSTANCE = this;
     }
@@ -271,7 +261,7 @@ public class ChromaChatManager {
 
         int newHoveredIdx = -1, newHoveredAbs = -1;
         if (inChat && chatOpen) {
-            // Y 计算必须与 renderNormal/renderGrouped 完全一致：
+            // Y 计算必须与 renderNormal 完全一致：
             //   从 bg 底部向上排（最新在最下）
             int yCursor = baseY + bgH - 2;
             for (int i = myScrollPos; i < myScrollPos + visibleCount; i++) {
@@ -331,13 +321,6 @@ public class ChromaChatManager {
         // ── 消息动画跟踪 ──
         trackNewMessages(myChatLines, cfg, now);
 
-        // ── 分组缓存（列表引用不变，用 size 判断是否有新消息） ──
-        boolean grouping = cfg.chromaChatMessageGrouping;
-        if (grouping && (groupCache == null || myChatLines.size() != lastDrawnLinesSize)) {
-            rebuildGroupCache(myChatLines);
-            lastDrawnLinesSize = myChatLines.size();
-        }
-
         // ═══════════════ Render ═══════════════
         GlStateManager.pushMatrix();
 
@@ -353,15 +336,9 @@ public class ChromaChatManager {
             float opacity = mc.gameSettings.chatOpacity * 0.9F + 0.1F;
             int updateCounter = mc.ingameGUI.getUpdateCounter();
 
-            if (grouping && groupCache != null) {
-                renderGrouped(cfg, myScrollPos, visibleCount, baseX, chatWidth, lineH, baseY, bgH,
-                        updateCounter, chatOpen, opacity, now, mouseClicked,
-                        showTime, msgTextWidth, timeWidth);
-            } else {
-                renderNormal(cfg, myChatLines, myScrollPos, visibleCount, baseX, chatWidth, lineH, baseY, bgH,
-                        updateCounter, chatOpen, opacity, now, mouseClicked,
-                        showTime, msgTextWidth, timeWidth);
-            }
+            renderNormal(cfg, myChatLines, myScrollPos, visibleCount, baseX, chatWidth, lineH, baseY, bgH,
+                    updateCounter, chatOpen, opacity, now, mouseClicked,
+                    showTime, msgTextWidth, timeWidth);
         }
 
         // -- 滚动指示器（有更多消息时显示） --
@@ -492,72 +469,6 @@ public class ChromaChatManager {
     }
 
     // =================================================================
-    //  Render: Grouped mode (P3)
-    // =================================================================
-    private void renderGrouped(BetterPlayerHUDConfig cfg, int scrollPos,
-                               int vis, int baseX, int chatWidth, int lineH, int baseY, int bgH,
-                               int updateCounter, boolean chatOpen, float opacity, long now,
-                               boolean mouseClicked, boolean showTime, int textWidth, int timeWidth) {
-        int drawn = 0;
-        int msgIdx = 0; // 累计消息索引，用于把 scrollPos（消息级）映射到组级
-        int y = baseY + bgH - 2;
-        for (int gi = 0; gi < groupCache.length && drawn < vis; gi++) {
-            GroupInfo g = groupCache[gi];
-            int groupCount = (g != null && g.line != null) ? g.count : 1;
-
-            // 跳过 scrollPos 之前的所有消息（用累计消息数而非 gi 比较）
-            if (msgIdx + groupCount <= scrollPos) {
-                msgIdx += groupCount;
-                continue;
-            }
-
-            MyChatLine ml = g.line;
-            if (ml == null) { msgIdx += groupCount; continue; }
-
-            int age = updateCounter - ml.updateCounter;
-            int alpha = calcAlpha(age, chatOpen, opacity);
-            if (alpha <= 3) { drawn++; continue; }
-
-            y += getMsgOffset(ml.updateCounter, cfg);
-
-            String[] wl = ml.getWrappedLines(textWidth);
-            int entryH = wl.length * lineH;
-            int entryTop = y - entryH;
-            int entryBottom = entryTop + entryH;
-
-            // 悬停 + 点击（用消息范围判断，而非 gi == idx）
-            if (hoveredLineAbsIdx >= msgIdx && hoveredLineAbsIdx < msgIdx + groupCount) {
-                drawHover(baseX + 1, entryTop, baseX + chatWidth - 1, entryBottom, cfg);
-                if (mouseClicked) {
-                    forwardClick(ml.message);
-                }
-            }
-
-            for (int j = 0; j < wl.length; j++) {
-                int lineY = entryTop + j * lineH;
-                int tx = baseX + 2;
-                if (showTime && j == 0) {
-                    mc.fontRendererObj.drawString(ml.formattedTime, tx, lineY, (alpha << 24) | 0x888888);
-                    tx += timeWidth;
-                }
-                mc.fontRendererObj.drawString(wl[j], tx, lineY, 0xFFFFFF | (alpha << 24));
-            }
-
-            // 分组徽标 [Nx]（附在第一行末尾）
-            if (g.count > 1) {
-                String badge = "[" + g.count + "x]";
-                int bw = mc.fontRendererObj.getStringWidth(badge);
-                int bc = 0xAAFFFFFF | (Math.min(alpha + 40, 255) << 24);
-                mc.fontRendererObj.drawString(badge, baseX + chatWidth - bw - 2, entryTop, bc);
-            }
-
-            y = entryTop;
-            msgIdx += groupCount;
-            drawn++;
-        }
-    }
-
-    // =================================================================
     //  Click forward (P2) — 递归查找子组件的 ClickEvent
     // =================================================================
     private void forwardClick(IChatComponent comp) {
@@ -665,36 +576,6 @@ public class ChromaChatManager {
         float t = (float) elapsed / dur;
         float ease = 1.0f + 2.70158f * (float)Math.pow(t - 1.0, 3) + 1.70158f * (float)Math.pow(t - 1.0, 2);
         return (int)(6.0f * (1.0f - ease));
-    }
-
-    // =================================================================
-    //  Message grouping (P3)
-    // =================================================================
-    private void rebuildGroupCache(List<MyChatLine> lines) {
-        if (lines == null || lines.isEmpty()) { groupCache = null; return; }
-        GroupInfo[] tmp = new GroupInfo[lines.size()];
-        int out = 0;
-        String prevText = null;
-        MyChatLine groupLine = null;
-        int count = 0;
-
-        for (MyChatLine ml : lines) {
-            String text = ml.message.getFormattedText();
-            if (text.equals(prevText) && groupLine != null) {
-                count++;
-                tmp[out - 1] = new GroupInfo(groupLine, count);
-            } else {
-                groupLine = ml;
-                count = 1;
-                prevText = text;
-                tmp[out] = new GroupInfo(ml, 1);
-                out++;
-            }
-        }
-
-        GroupInfo[] result = new GroupInfo[out];
-        System.arraycopy(tmp, 0, result, 0, out);
-        groupCache = result;
     }
 
     // =================================================================

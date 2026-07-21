@@ -524,8 +524,6 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
                 "chromaChatHoverHighlight", "chromaChatHoverColor")));
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.chroma.animation", "bhud.chroma.animation", el(
                 "chromaChatAnimBounciness", "chromaChatMsgAnimEnable", "chromaChatMsgAnimDuration")));
-        list.add(new DummyConfigElement.DummyCategoryElement("bhud.chroma.grouping", "bhud.chroma.grouping", el(
-                "chromaChatMessageGrouping")));
         return list;
     }
 }
