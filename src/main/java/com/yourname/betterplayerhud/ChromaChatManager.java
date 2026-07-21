@@ -50,6 +50,7 @@ public class ChromaChatManager {
     private int myScrollPos = 0;
     private boolean myIsScrolled = false;
     private boolean scrollBtnDown = false;
+    private boolean scrollDragging = false;
     private int nextLineId = 1;
     // 滚轮预读（绕过 GuiChat 消耗）
     private int pendingScroll = 0;
@@ -380,19 +381,25 @@ public class ChromaChatManager {
                 Gui.drawRect(ix, trackY, ix + sw, trackY + stableTrackH, 0x33FFFFFF | (0x44 << 24));
                 // 滑块
                 Gui.drawRect(ix, iy, ix + sw, iy + ih, 0xAAFFFFFF | (0x88 << 24));
-                // 点击跳转
+                // 滚动条交互：拖拽 + 点击跳转
                 if (Mouse.isButtonDown(0)) {
+                    boolean onTrack = mouseSx >= ix && mouseSx <= ix + sw
+                                   && mouseSy >= trackY && mouseSy <= trackY + stableTrackH;
                     if (!scrollBtnDown) {
                         scrollBtnDown = true;
-                        if (mouseSx >= ix && mouseSx <= ix + sw
-                            && mouseSy >= trackY && mouseSy <= trackY + stableTrackH) {
-                            int clickRatio = (int)((float)(mouseSy - trackY - ih / 2) / stableTrackH * totalScrollable);
-                            myScrollPos = MathHelper.clamp_int(clickRatio, 0, totalScrollable);
-                            myIsScrolled = myScrollPos > 0;
+                        if (onTrack) {
+                            scrollDragging = true;
                         }
+                    }
+                    if (scrollDragging) {
+                        // 拖拽中：跟随鼠标 Y（不管鼠标是否还在轨道范围内）
+                        int clickRatio = (int)((float)(mouseSy - trackY - ih / 2) / stableTrackH * totalScrollable);
+                        myScrollPos = MathHelper.clamp_int(clickRatio, 0, totalScrollable);
+                        myIsScrolled = myScrollPos > 0;
                     }
                 } else {
                     scrollBtnDown = false;
+                    scrollDragging = false;
                 }
             }
         }
