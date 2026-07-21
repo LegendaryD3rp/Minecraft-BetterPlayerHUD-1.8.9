@@ -491,16 +491,20 @@ public class ChromaChatManager {
                                int updateCounter, boolean chatOpen, float opacity, long now,
                                boolean mouseClicked, boolean showTime, int textWidth, int timeWidth) {
         int drawn = 0;
+        int msgIdx = 0; // 累计消息索引，用于把 scrollPos（消息级）映射到组级
         int y = baseY + bgH - 2;
         for (int gi = 0; gi < groupCache.length && drawn < vis; gi++) {
-            if (gi < scrollPos) {
-                drawn++;
+            GroupInfo g = groupCache[gi];
+            int groupCount = (g != null && g.line != null) ? g.count : 1;
+
+            // 跳过 scrollPos 之前的所有消息（用累计消息数而非 gi 比较）
+            if (msgIdx + groupCount <= scrollPos) {
+                msgIdx += groupCount;
                 continue;
             }
 
-            GroupInfo g = groupCache[gi];
             MyChatLine ml = g.line;
-            if (ml == null) { drawn++; continue; }
+            if (ml == null) { msgIdx += groupCount; continue; }
 
             int age = updateCounter - ml.updateCounter;
             int alpha = calcAlpha(age, chatOpen, opacity);
@@ -513,8 +517,8 @@ public class ChromaChatManager {
             int entryTop = y - entryH;
             int entryBottom = entryTop + entryH;
 
-            // 悬停 + 点击
-            if (gi == hoveredLineAbsIdx) {
+            // 悬停 + 点击（用消息范围判断，而非 gi == idx）
+            if (hoveredLineAbsIdx >= msgIdx && hoveredLineAbsIdx < msgIdx + groupCount) {
                 drawHover(baseX + 1, entryTop, baseX + chatWidth - 1, entryBottom, cfg);
                 if (mouseClicked) {
                     forwardClick(ml.message);
@@ -540,6 +544,7 @@ public class ChromaChatManager {
             }
 
             y = entryTop;
+            msgIdx += groupCount;
             drawn++;
         }
     }
