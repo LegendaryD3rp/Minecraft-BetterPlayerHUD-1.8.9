@@ -108,12 +108,9 @@ public class ChromaChatManager {
     private float animVelocity = 0.0f;
     private long lastAnimTime = 0L;
 
-    // === Message Animation Tracking (P1) ===
-    private static final int TRACK_SIZE = 100;
-    private final int[] trackCounters = new int[TRACK_SIZE];
-    private final long[] trackTimesMs = new long[TRACK_SIZE];
-    private int trackHead = 0;
+    // === Message Animation Tracking (P1) — HashMap O(1) 替代 O(100) 数组遍历 ===
     private int prevLineCount = 0;
+    private final java.util.HashMap<Integer, Long> msgAnimMap = new java.util.HashMap<Integer, Long>();
 
     // === Hover Interaction (P2) ===
     private int hoveredLineIdx = -1;
@@ -134,7 +131,6 @@ public class ChromaChatManager {
 
     public ChromaChatManager() {
         INSTANCE = this;
-        for (int i = 0; i < TRACK_SIZE; i++) trackCounters[i] = -1;
     }
 
     public void onConfigChanged() {}
@@ -197,23 +193,16 @@ public class ChromaChatManager {
         BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
         if (cfg == null || !cfg.enableChromaChat) return;
 
-        // [DEBUG] must be seen in log
+        // [DEBUG] 每 300 帧打印一次
         debugFrameCounter++;
-        boolean doDebug = (debugFrameCounter % 300 == 0);
 
         event.setCanceled(true);
 
         // ── 早返：没消息 或 关闭且全过期 ──
-        if (myChatLines.isEmpty()) {
-            if (doDebug) System.out.println("[ChromaChat] render: lines=0 (empty) chatOpen=" + (mc.currentScreen instanceof GuiChat));
-            return;
-        }
+        if (myChatLines.isEmpty()) return;
         if (!(mc.currentScreen instanceof GuiChat)) {
             MyChatLine newest = myChatLines.get(0);
-            if (newest != null && (mc.ingameGUI.getUpdateCounter() - newest.updateCounter) >= 200) {
-                if (doDebug) System.out.println("[ChromaChat] render: skip (expired)");
-                return;
-            }
+            if (newest != null && (mc.ingameGUI.getUpdateCounter() - newest.updateCounter) >= 200) return;
         }
 
         ScaledResolution res = event.resolution;
@@ -252,12 +241,9 @@ public class ChromaChatManager {
         }
         int bgH = contentH + 4;
 
-        if (doDebug) {
+        if (debugFrameCounter % 300 == 0) {
             System.out.println("[ChromaChat] render: lines=" + myChatLines.size()
-                + " vis=" + visibleCount + " visLines=" + visibleTextLines
-                + " baseX=" + baseX + " baseY=" + baseY + " bgH=" + bgH
-                + " chatOpen=" + (mc.currentScreen instanceof GuiChat)
-                + " scroll=" + myScrollPos);
+                + " vis=" + visibleCount + " baseY=" + baseY + " bgH=" + bgH);
         }
 
         // ── 弹性动画（类 ComboHandler：每帧更新 animAmount） ──
@@ -401,6 +387,39 @@ public class ChromaChatManager {
             Gui.drawRect(ix, iy, ix + 2, iy + ih, 0x99FFFFFF | (0x88 << 24));
         }
 
+        // ── 悬停事件提示（ChatHoverEvent） ──
+        if (chatOpen && hoveredLineAbsIdx >= 0 && hoveredLineAbsIdx < myChatLines.size()) {
+            MyChatLine ml = myChatLines.get(hoveredLineAbsIdx);
+            if (ml != null && ml.message.getChatStyle() != null) {
+                net.minecraft.event.HoverEvent he = ml.message.getChatStyle().getChatHoverEvent();
+                if (he != null) {
+                    net.minecraft.util.IChatComponent val = he.getValue();
+                    if (val != null) {
+                        String tip = val.getFormattedText();
+                        if (tip != null && !tip.isEmpty()) {
+                            String[] tlines = tip.split("\n");
+                            net.minecraft.client.gui.FontRenderer fr = mc.fontRendererObj;
+                            int tw = 0;
+                            for (String s : tlines) tw = Math.max(tw, fr.getStringWidth(s));
+                            int tx = mouseSx + 12;
+                            int ty = mouseSy - tlines.length * 10 - 8;
+                            if (tx + tw > res.getScaledWidth()) tx = res.getScaledWidth() - tw - 4;
+                            if (ty < 0) ty = 0;
+                            int ph = tlines.length * 10 + 4;
+                            Gui.drawRect(tx - 2, ty - 2, tx + tw + 2, ty + ph + 2, 0xC0000000);
+                            Gui.drawRect(tx - 3, ty - 3, tx - 2, ty + ph + 3, 0x505000FF);
+                            Gui.drawRect(tx + tw + 2, ty - 3, tx + tw + 3, ty + ph + 3, 0x505000FF);
+                            Gui.drawRect(tx - 3, ty - 3, tx + tw + 3, ty - 2, 0x505000FF);
+                            Gui.drawRect(tx - 3, ty + ph + 2, tx + tw + 3, ty + ph + 3, 0x505000FF);
+                            for (int li = 0; li < tlines.length; li++) {
+                                fr.drawString(tlines[li], tx, ty + li * 10, 0xFFFFFFFF);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         GlStateManager.popMatrix();
 
         // ── 上报位置给 F7 编辑模式 ──
@@ -417,9 +436,6 @@ public class ChromaChatManager {
         int drawEnd = Math.min(scrollPos + vis, lines.size());
         // 从背景框底部开始，向上排布（最新在最下）
         int y = baseY + bgH - 2;
-        if (debugFrameCounter % 300 == 0) {
-            System.out.println("[ChromaChat] renderNormal: drawEnd=" + drawEnd + " y_start=" + y);
-        }
         for (int i = scrollPos; i < drawEnd; i++) {
             MyChatLine ml = lines.get(i);
             if (ml == null) continue;
@@ -434,10 +450,6 @@ public class ChromaChatManager {
             int entryH = wl.length * lineH;
             int entryTop = y - entryH;           // 本消息块顶部Y
             int entryBottom = entryTop + entryH; // 底部Y（= 调整前的y）
-
-            if (debugFrameCounter % 300 == 0) {
-                System.out.println("[ChromaChat]   msg[" + i + "] top=" + entryTop + " bot=" + entryBottom + " h=" + entryH + " text=\"" + wl[0].substring(0, Math.min(wl[0].length(), 30)) + "...\"");
-            }
 
             // 悬停 + 点击
             if (i == hoveredLineAbsIdx) {
@@ -601,46 +613,36 @@ public class ChromaChatManager {
     private void trackNewMessages(List<MyChatLine> lines, BetterPlayerHUDConfig cfg, long now) {
         if (lines == null || !cfg.chromaChatMsgAnimEnable) return;
         int cur = lines.size();
-        if (cur > prevLineCount && !lines.isEmpty()) {
-            int newCount = Math.min(cur - prevLineCount, cur);
-            for (int i = 0; i < newCount; i++) {
-                MyChatLine ml = lines.get(i);
-                if (ml == null) continue;
-                boolean found = false;
-                for (int j = 0; j < TRACK_SIZE; j++) {
-                    if (trackCounters[j] == ml.updateCounter) { found = true; break; }
-                }
-                if (!found) {
-                    trackCounters[trackHead] = ml.updateCounter;
-                    trackTimesMs[trackHead] = now;
-                    trackHead = (trackHead + 1) % TRACK_SIZE;
-                }
+        int prev = prevLineCount;
+        prevLineCount = cur;
+        if (cur <= prev || lines.isEmpty()) return;
+
+        int newCount = Math.min(cur - prev, cur);
+        for (int i = 0; i < newCount; i++) {
+            MyChatLine ml = lines.get(i);
+            if (ml == null) continue;
+            if (!msgAnimMap.containsKey(ml.updateCounter)) {
+                msgAnimMap.put(ml.updateCounter, now);
             }
         }
-        prevLineCount = cur;
     }
 
     private int getMsgOffset(int ctr, BetterPlayerHUDConfig cfg) {
         if (!cfg.chromaChatMsgAnimEnable) return 0;
-        long now = Minecraft.getSystemTime();
-        for (int i = 0; i < TRACK_SIZE; i++) {
-            if (trackCounters[i] == ctr) {
-                long elapsed = now - trackTimesMs[i];
-                float dur = cfg.chromaChatMsgAnimDuration;
-                if (elapsed < dur) {
-                    // ComboHandler 风格弹簧: t 归一化后 easeOutBack/spring
-                    float t = (float) elapsed / dur;
-                    // easeOutBack: overshoot 到 1.2 然后回弹到 1.0
-                    // 映射到 6px→0px 的偏移: offset = 6 * (1.0 - easeOutBack(t))
-                    float ease = 1.0f + 2.70158f * (float)Math.pow(t - 1.0, 3) + 1.70158f * (float)Math.pow(t - 1.0, 2);
-                    // ease 从 ~1.2 → 1.0, 取反后从 -0.2 → 0, 缩放后从 ~-1.2px → 0px
-                    // 视觉上消息先轻微下沉再弹回原位
-                    return (int)(6.0f * (1.0f - ease));
-                }
-                return 0;
-            }
+        Long start = msgAnimMap.get(ctr);
+        if (start == null) return 0;
+
+        long elapsed = Minecraft.getSystemTime() - start;
+        float dur = cfg.chromaChatMsgAnimDuration;
+        if (elapsed >= dur) {
+            msgAnimMap.remove(ctr);
+            return 0;
         }
-        return 0;
+
+        // easeOutBack: overshoot 到 1.2 然后回弹到 1.0, 映射到 6px→0px
+        float t = (float) elapsed / dur;
+        float ease = 1.0f + 2.70158f * (float)Math.pow(t - 1.0, 3) + 1.70158f * (float)Math.pow(t - 1.0, 2);
+        return (int)(6.0f * (1.0f - ease));
     }
 
     // =================================================================
