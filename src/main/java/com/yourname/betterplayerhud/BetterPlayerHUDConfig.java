@@ -333,6 +333,7 @@ public class BetterPlayerHUDConfig {
     public int chromaChatHoverColor = 0x44FFFFFF;      // 高亮颜色 ARGB
     // ── 消息分组（Phase 3） ──
     public boolean chromaChatMessageGrouping = true;   // 重复消息折叠
+    public boolean chromaChatShowTimestamps = true;    // 显示时间戳
 
     // ================================================================
     //  颜色工具方法
@@ -1074,6 +1075,8 @@ public class BetterPlayerHUDConfig {
             p.comment = "悬停高亮颜色 ARGB"; chromaChatHoverColor = p.getInt();
             p = config.get(C, "chromaChatMessageGrouping", true);
             p.comment = "重复消息折叠"; chromaChatMessageGrouping = p.getBoolean();
+            p = config.get(C, "chromaChatShowTimestamps", true);
+            p.comment = "在消息前显示 [HH:MM] 时间戳"; chromaChatShowTimestamps = p.getBoolean();
         }
 
     }
@@ -1346,6 +1349,7 @@ public class BetterPlayerHUDConfig {
         config.get(C, "chromaChatHoverHighlight", true).set(chromaChatHoverHighlight);
         config.get(C, "chromaChatHoverColor", 0x44FFFFFF).set(chromaChatHoverColor);
         config.get(C, "chromaChatMessageGrouping", true).set(chromaChatMessageGrouping);
+        config.get(C, "chromaChatShowTimestamps", true).set(chromaChatShowTimestamps);
 
         // 持久化到磁盘
         config.save();

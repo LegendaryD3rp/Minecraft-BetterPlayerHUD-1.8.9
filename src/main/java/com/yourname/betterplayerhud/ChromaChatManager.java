@@ -51,11 +51,30 @@ public class ChromaChatManager {
         final IChatComponent message;
         final int updateCounter;
         final int chatLineID;
-        MyChatLine(IChatComponent msg, int ctr, int id) {
+        final long receivedTimeMs;
+        final String formattedTime;      // 缓存的 "[HH:MM] " 时间戳
+
+        MyChatLine(IChatComponent msg, int ctr, int id, long timeMs) {
             this.message = msg;
             this.updateCounter = ctr;
             this.chatLineID = id;
+            this.receivedTimeMs = timeMs;
+            this.formattedTime = formatChatTimestamp(timeMs);
         }
+    }
+
+    /** 把毫秒时间格式化为 "[HH:MM] " */
+    private static String formatChatTimestamp(long ms) {
+        long totalMinutes = ms / 60000L;
+        int hours = (int) ((totalMinutes / 60L) % 24L);
+        int minutes = (int) (totalMinutes % 60L);
+        StringBuilder sb = new StringBuilder(7);
+        sb.append('[');
+        if (hours < 10) sb.append('0');
+        sb.append(hours).append(':');
+        if (minutes < 10) sb.append('0');
+        sb.append(minutes).append("] ");
+        return sb.toString();
     }
 
     // === Spring Animation (P1) ===
@@ -104,7 +123,8 @@ public class ChromaChatManager {
         event.setCanceled(true);
 
         int ctr = mc.ingameGUI.getUpdateCounter();
-        myChatLines.add(0, new MyChatLine(event.message, ctr, nextLineId++));
+        long nowMs = Minecraft.getSystemTime();
+        myChatLines.add(0, new MyChatLine(event.message, ctr, nextLineId++, nowMs));
 
         while (myChatLines.size() > MAX_LINES) {
             myChatLines.remove(myChatLines.size() - 1);
@@ -253,6 +273,8 @@ public class ChromaChatManager {
                               int vis, int baseX, int chatWidth, int lineH, int y,
                               int updateCounter, boolean chatOpen, float opacity, long now,
                               boolean mouseClicked) {
+        boolean showTime = cfg.chromaChatShowTimestamps;
+        int timeColor = 0x55FFFFFF; // 灰色时间戳
         int drawEnd = Math.min(scrollPos + vis, lines.size());
         for (int i = scrollPos; i < drawEnd; i++) {
             MyChatLine ml = lines.get(i);
@@ -272,8 +294,14 @@ public class ChromaChatManager {
                 }
             }
 
+            int textX = baseX + 2;
+            if (showTime) {
+                mc.fontRendererObj.drawString(ml.formattedTime, textX, y, timeColor | (alpha << 24));
+                textX += mc.fontRendererObj.getStringWidth(ml.formattedTime);
+            }
+
             String text = ml.message.getFormattedText();
-            mc.fontRendererObj.drawString(text, baseX + 2, y, 0xFFFFFF | (alpha << 24));
+            mc.fontRendererObj.drawString(text, textX, y, 0xFFFFFF | (alpha << 24));
             y -= lineH;
         }
     }
@@ -285,10 +313,12 @@ public class ChromaChatManager {
                                int vis, int baseX, int chatWidth, int lineH, int y,
                                int updateCounter, boolean chatOpen, float opacity, long now,
                                boolean mouseClicked) {
+        boolean showTime = cfg.chromaChatShowTimestamps;
+        int timeColor = 0x55FFFFFF;
         int drawn = 0;
         for (int gi = 0; gi < groupCache.length && drawn < vis; gi++) {
             if (gi < scrollPos) {
-                drawn++; // 跳过也要计数，保持滚动偏移正确
+                drawn++;
                 continue;
             }
 
@@ -310,8 +340,14 @@ public class ChromaChatManager {
                 }
             }
 
+            int textX = baseX + 2;
+            if (showTime) {
+                mc.fontRendererObj.drawString(ml.formattedTime, textX, y, timeColor | (alpha << 24));
+                textX += mc.fontRendererObj.getStringWidth(ml.formattedTime);
+            }
+
             String text = ml.message.getFormattedText();
-            mc.fontRendererObj.drawString(text, baseX + 2, y, 0xFFFFFF | (alpha << 24));
+            mc.fontRendererObj.drawString(text, textX, y, 0xFFFFFF | (alpha << 24));
 
             // 分组徽标 [Nx]
             if (g.count > 1) {

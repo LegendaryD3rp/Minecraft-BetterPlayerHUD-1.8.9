@@ -518,7 +518,7 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
     private static List<IConfigElement> getChromaChatConfigElements() {
         List<IConfigElement> list = new ArrayList<>();
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.chroma.basic", "bhud.chroma.basic", el(
-                "enableChromaChat", "chromaChatWidth", "chromaChatLineCount")));
+                "enableChromaChat", "chromaChatShowTimestamps", "chromaChatWidth", "chromaChatLineCount")));
         list.add(new DummyConfigElement.DummyCategoryElement("bhud.chroma.appearance", "bhud.chroma.appearance", el(
                 "chromaChatBorderRadius", "chromaChatBackgroundColor", "chromaChatBorderColor",
                 "chromaChatHoverHighlight", "chromaChatHoverColor")));
