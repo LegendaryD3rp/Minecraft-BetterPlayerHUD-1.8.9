@@ -56,6 +56,9 @@ public class ChromaChatManager {
         final int chatLineID;
         final long receivedTimeMs;
         final String formattedTime;      // 缓存的 "[HH:MM] " 时间戳
+        // 换行缓存（lazy）
+        private String[] cachedLines = null;
+        private int lastWrapWidth = -1;
 
         MyChatLine(IChatComponent msg, int ctr, int id, long timeMs) {
             this.message = msg;
@@ -63,6 +66,30 @@ public class ChromaChatManager {
             this.chatLineID = id;
             this.receivedTimeMs = timeMs;
             this.formattedTime = formatChatTimestamp(timeMs);
+        }
+
+        /** 获取换行后的文本行（缓存） */
+        String[] getWrappedLines(int wrapWidth) {
+            if (wrapWidth <= 0) {
+                return new String[]{message.getFormattedText()};
+            }
+            if (wrapWidth != lastWrapWidth || cachedLines == null) {
+                java.util.List<String> list = mc.fontRendererObj.listFormattedStringToWidth(
+                    message.getFormattedText(), wrapWidth);
+                cachedLines = list.toArray(new String[list.size()]);
+                lastWrapWidth = wrapWidth;
+            }
+            return cachedLines;
+        }
+
+        /** 本消息占用的文本行数 */
+        int getLineCount(int wrapWidth) {
+            return getWrappedLines(wrapWidth).length;
+        }
+
+        /** 本消息占用的像素高度 */
+        int getHeight(int wrapWidth, int lineH) {
+            return getLineCount(wrapWidth) * (lineH > 0 ? lineH : 1);
         }
     }
 
@@ -166,19 +193,9 @@ public class ChromaChatManager {
 
         event.setCanceled(true);
 
-        // ── 布局参数 ──
-        int totalLines = myChatLines.size();
-        boolean chatOpen = mc.currentScreen instanceof GuiChat;
-        long now = Minecraft.getSystemTime();
-
-        // ── 弹簧动画（仅用于开闭的滑入效果，不再影响可见性） ──
-        updateSpring(chatOpen, now, cfg);
-
-        // 真的没任何消息时跳过渲染（但保留弹簧计算）
-        if (totalLines == 0 && !chatOpen) return;
-
-        // [性能] 关闭状态下所有消息已过 200 ticks (~10秒)，alpha=0，跳过渲染
-        if (!chatOpen && totalLines > 0) {
+        // ── 早返：没消息 或 关闭且全过期 ──
+        if (myChatLines.isEmpty()) return;
+        if (!(mc.currentScreen instanceof GuiChat)) {
             MyChatLine newest = myChatLines.get(0);
             if (newest != null && (mc.ingameGUI.getUpdateCounter() - newest.updateCounter) >= 200) return;
         }
@@ -187,26 +204,49 @@ public class ChromaChatManager {
         int baseX = cfg.chromaChatXOffset;
         int baseY = cfg.chromaChatYOffset;
         int chatWidth = cfg.chromaChatWidth;
-        int lineH = 9;
-        int visibleCount = Math.min(totalLines - myScrollPos, cfg.chromaChatLineCount);
 
-        // 打开聊天框时至少显示一点空区域
-        int minH = chatOpen ? 20 : 0;
-        int contentH = Math.max(minH, visibleCount * lineH);
+        // ── 布局参数（含自动换行） ──
+        int totalLines = myChatLines.size();
+        boolean chatOpen = mc.currentScreen instanceof GuiChat;
+        long now = Minecraft.getSystemTime();
+        int lineH = 9;  // FONT_HEIGHT + 2 约等于 9
+
+        // 文本宽度 = 聊天框宽度 - 左右边距
+        int textWidth = cfg.chromaChatWidth - 2;
+        boolean showTime = cfg.chromaChatShowTimestamps;
+        int timeWidth = showTime ? mc.fontRendererObj.getStringWidth("[00:00] ") : 0;
+        int msgTextWidth = textWidth - timeWidth;  // 除去时间戳后的纯文本宽度
+
+        // 从 scrollPos 开始，累计换行行数直到填满 chromaChatLineCount
+        int visibleCount = 0;       // 可见消息数
+        int visibleTextLines = 0;   // 可见文本行数（含换行）
+        int contentH = 0;           // 实际内容像素高度
+        {
+            int accumLines = 0;
+            int maxVis = cfg.chromaChatLineCount;
+            for (int i = myScrollPos; i < totalLines && accumLines < maxVis; i++) {
+                MyChatLine ml = myChatLines.get(i);
+                int n = (ml != null) ? ml.getLineCount(msgTextWidth) : 1;
+                accumLines += n;
+                visibleCount++;
+            }
+            visibleTextLines = Math.min(accumLines, maxVis);
+            int minH = chatOpen ? 20 : 0;
+            contentH = Math.max(minH, visibleTextLines * lineH);
+        }
         int bgH = contentH + 4;
 
-        // ── 滚动检测（pendingScroll 在 ClientTick.Phase.START 预读 ──
-        //    防止 Mouse.getDWheel 被 GuiChat 消耗）
+        // ── 滚动检测 ──
         int wheel = pendingScroll;
         pendingScroll = 0;
         if (wheel != 0) {
             int dir = (wheel > 0) ? -1 : 1;
-            int maxScroll = Math.max(0, totalLines - cfg.chromaChatLineCount);
-            myScrollPos = MathHelper.clamp_int(myScrollPos + dir * 7, 0, maxScroll);
+            int maxScroll = Math.max(0, totalLines - 1);
+            myScrollPos = MathHelper.clamp_int(myScrollPos + dir * 3, 0, maxScroll);
             myIsScrolled = myScrollPos > 0;
         }
 
-        // ── 鼠标状态 (P2) ──
+        // ── 鼠标状态（多行消息的Y命中检测） ──
         int mouseSx = Mouse.getX() * res.getScaledWidth() / Math.max(mc.displayWidth, 1);
         int mouseSy = res.getScaledHeight()
                 - Mouse.getY() * res.getScaledHeight() / Math.max(mc.displayHeight, 1) - 1;
@@ -216,10 +256,19 @@ public class ChromaChatManager {
 
         int newHoveredIdx = -1, newHoveredAbs = -1;
         if (inChat) {
-            int li = (mouseSy - (baseY + 2)) / lineH;
-            if (li >= 0 && li < visibleCount) {
-                newHoveredIdx = li;
-                newHoveredAbs = myScrollPos + li;
+            // 从最旧（最高Y）向最新（最低Y）逐条找鼠标所在的消息
+            int yCursor = baseY + 2;
+            for (int i = myScrollPos; i < myScrollPos + visibleCount; i++) {
+                if (i >= totalLines) break;
+                MyChatLine ml = myChatLines.get(i);
+                int n = (ml != null) ? ml.getLineCount(msgTextWidth) : 1;
+                int entryH = n * lineH;
+                if (mouseSy >= yCursor && mouseSy < yCursor + entryH) {
+                    newHoveredIdx = i - myScrollPos;
+                    newHoveredAbs = i;
+                    break;
+                }
+                yCursor += entryH;
             }
         }
 
@@ -271,20 +320,36 @@ public class ChromaChatManager {
 
             if (grouping && groupCache != null) {
                 renderGrouped(cfg, myScrollPos, visibleCount, baseX, chatWidth, lineH, y,
-                        updateCounter, chatOpen, opacity, now, mouseClicked);
+                        updateCounter, chatOpen, opacity, now, mouseClicked,
+                        showTime, msgTextWidth, timeWidth);
             } else {
                 renderNormal(cfg, myChatLines, myScrollPos, visibleCount, baseX, chatWidth, lineH, y,
-                        updateCounter, chatOpen, opacity, now, mouseClicked);
+                        updateCounter, chatOpen, opacity, now, mouseClicked,
+                        showTime, msgTextWidth, timeWidth);
             }
         }
 
-        // -- 滚动指示器 --
-        if (myIsScrolled) {
+        // -- 滚动指示器（基于文本行数比例） --
+        if (myIsScrolled && totalLines > 0) {
+            // 计算总文本行数（用于滚动比例条）
+            int totalTextLines = 0;
+            int maxLines = Math.min(totalLines, 200);  // 防长列表性能损
+            for (int i = 0; i < maxLines; i++) {
+                MyChatLine ml = myChatLines.get(i);
+                totalTextLines += (ml != null) ? ml.getLineCount(msgTextWidth) : 1;
+            }
+            int visibleTL = Math.max(visibleTextLines, 1);
+            int totalTL = Math.max(totalTextLines, 1);
+            int scrollTL = 0;
+            int scrollMax = Math.min(myScrollPos, maxLines);
+            for (int i = 0; i < scrollMax; i++) {
+                MyChatLine ml = myChatLines.get(i);
+                scrollTL += (ml != null) ? ml.getLineCount(msgTextWidth) : 1;
+            }
+
             int ix = baseX + chatWidth - 3;
-            int totalH = Math.max(totalLines, 1);
-            int visibleH = Math.max(visibleCount, 1);
-            int ih = Math.max(4, bgH * visibleH / totalH);
-            int iy = baseY + bgH - bgH * myScrollPos / totalH;
+            int ih = Math.max(4, bgH * visibleTL / totalTL);
+            int iy = baseY + bgH - (int)((long)bgH * scrollTL / totalTL);
             Gui.drawRect(ix, iy, ix + 2, iy + ih, 0x99FFFFFF | (0x88 << 24));
         }
 
@@ -300,8 +365,7 @@ public class ChromaChatManager {
     private void renderNormal(BetterPlayerHUDConfig cfg, List<MyChatLine> lines, int scrollPos,
                               int vis, int baseX, int chatWidth, int lineH, int y,
                               int updateCounter, boolean chatOpen, float opacity, long now,
-                              boolean mouseClicked) {
-        boolean showTime = cfg.chromaChatShowTimestamps;
+                              boolean mouseClicked, boolean showTime, int textWidth, int timeWidth) {
         int drawEnd = Math.min(scrollPos + vis, lines.size());
         for (int i = scrollPos; i < drawEnd; i++) {
             MyChatLine ml = lines.get(i);
@@ -313,23 +377,30 @@ public class ChromaChatManager {
 
             y += getMsgOffset(ml.updateCounter, cfg);
 
+            String[] wl = ml.getWrappedLines(textWidth);
+            int entryH = wl.length * lineH;
+            int entryTop = y - entryH + lineH;  // 本消息块的顶部Y（drawString第一条线的Y）
+
             // 悬停 + 点击
             if (i == hoveredLineAbsIdx) {
-                drawHover(baseX + 1, y, baseX + chatWidth - 1, y + lineH, cfg);
+                drawHover(baseX + 1, entryTop, baseX + chatWidth - 1, entryTop + entryH, cfg);
                 if (mouseClicked) {
                     forwardClick(ml.message);
                 }
             }
 
-            int textX = baseX + 2;
-            if (showTime) {
-                mc.fontRendererObj.drawString(ml.formattedTime, textX, y, (alpha << 24) | 0x888888);
-                textX += mc.fontRendererObj.getStringWidth(ml.formattedTime);
+            // 逐行绘制（从上往下）
+            for (int j = 0; j < wl.length; j++) {
+                int lineY = entryTop + j * lineH;
+                int tx = baseX + 2;
+                if (showTime && j == 0) {
+                    mc.fontRendererObj.drawString(ml.formattedTime, tx, lineY, (alpha << 24) | 0x888888);
+                    tx += timeWidth;
+                }
+                mc.fontRendererObj.drawString(wl[j], tx, lineY, 0xFFFFFF | (alpha << 24));
             }
 
-            String text = ml.message.getFormattedText();
-            mc.fontRendererObj.drawString(text, textX, y, 0xFFFFFF | (alpha << 24));
-            y -= lineH;
+            y -= entryH;
         }
     }
 
@@ -339,8 +410,7 @@ public class ChromaChatManager {
     private void renderGrouped(BetterPlayerHUDConfig cfg, int scrollPos,
                                int vis, int baseX, int chatWidth, int lineH, int y,
                                int updateCounter, boolean chatOpen, float opacity, long now,
-                               boolean mouseClicked) {
-        boolean showTime = cfg.chromaChatShowTimestamps;
+                               boolean mouseClicked, boolean showTime, int textWidth, int timeWidth) {
         int drawn = 0;
         for (int gi = 0; gi < groupCache.length && drawn < vis; gi++) {
             if (gi < scrollPos) {
@@ -358,32 +428,37 @@ public class ChromaChatManager {
 
             y += getMsgOffset(ml.updateCounter, cfg);
 
+            String[] wl = ml.getWrappedLines(textWidth);
+            int entryH = wl.length * lineH;
+            int entryTop = y - entryH + lineH;
+
             // 悬停 + 点击
             if (gi == hoveredLineAbsIdx) {
-                drawHover(baseX + 1, y, baseX + chatWidth - 1, y + lineH, cfg);
+                drawHover(baseX + 1, entryTop, baseX + chatWidth - 1, entryTop + entryH, cfg);
                 if (mouseClicked) {
                     forwardClick(ml.message);
                 }
             }
 
-            int textX = baseX + 2;
-            if (showTime) {
-                mc.fontRendererObj.drawString(ml.formattedTime, textX, y, (alpha << 24) | 0x888888);
-                textX += mc.fontRendererObj.getStringWidth(ml.formattedTime);
+            for (int j = 0; j < wl.length; j++) {
+                int lineY = entryTop + j * lineH;
+                int tx = baseX + 2;
+                if (showTime && j == 0) {
+                    mc.fontRendererObj.drawString(ml.formattedTime, tx, lineY, (alpha << 24) | 0x888888);
+                    tx += timeWidth;
+                }
+                mc.fontRendererObj.drawString(wl[j], tx, lineY, 0xFFFFFF | (alpha << 24));
             }
 
-            String text = ml.message.getFormattedText();
-            mc.fontRendererObj.drawString(text, textX, y, 0xFFFFFF | (alpha << 24));
-
-            // 分组徽标 [Nx]
+            // 分组徽标 [Nx]（附在第一行末尾）
             if (g.count > 1) {
                 String badge = "[" + g.count + "x]";
                 int bw = mc.fontRendererObj.getStringWidth(badge);
                 int bc = 0xAAFFFFFF | (Math.min(alpha + 40, 255) << 24);
-                mc.fontRendererObj.drawString(badge, baseX + chatWidth - bw - 2, y, bc);
+                mc.fontRendererObj.drawString(badge, baseX + chatWidth - bw - 2, entryTop, bc);
             }
 
-            y -= lineH;
+            y -= entryH;
             drawn++;
         }
     }
