@@ -95,20 +95,9 @@ public class ChromaChatManager {
 
     /** 把毫秒时间格式化为 "[HH:MM] " */
     private static String formatChatTimestamp(long ms) {
-        // ms = System.currentTimeMillis() → epoch毫秒，需换算到本地时区
-        long tzOffset = java.util.TimeZone.getDefault().getOffset(ms);
-        long localMs = (ms + tzOffset) % 86400000L;
-        if (localMs < 0) localMs += 86400000L;  // 负时区（如 UTC-5）修正
-        long totalMinutes = localMs / 60000L;
-        int hours = (int) (totalMinutes / 60L);
-        int minutes = (int) (totalMinutes % 60L);
-        StringBuilder sb = new StringBuilder(7);
-        sb.append('[');
-        if (hours < 10) sb.append('0');
-        sb.append(hours).append(':');
-        if (minutes < 10) sb.append('0');
-        sb.append(minutes).append("] ");
-        return sb.toString();
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("[HH:mm] ");
+        sdf.setTimeZone(java.util.TimeZone.getDefault());
+        return sdf.format(new java.util.Date(ms));
     }
 
     // === Spring Animation (P1) ===
@@ -353,7 +342,8 @@ public class ChromaChatManager {
 
             int ix = baseX + chatWidth - 3;
             int ih = Math.max(4, bgH * visibleTL / totalTL);
-            int iy = baseY + bgH - (int)((long)bgH * scrollTL / totalTL);
+            // 条顶部Y: scrollTL=0(未滚动)→baseY(顶端), scrollTL=totalTL(最旧)→baseY+bgH-ih(底端)
+            int iy = baseY + (int)((long)(bgH - ih) * scrollTL / totalTL);
             Gui.drawRect(ix, iy, ix + 2, iy + ih, 0x99FFFFFF | (0x88 << 24));
         }
 
