@@ -365,7 +365,8 @@ public class ChromaChatManager {
 
         // -- 滚动指示器（有更多消息时显示） --
         if (totalLines > visibleCount && visibleCount > 0 && chatOpen) {
-            int ix = baseX + chatWidth - 3;
+            int sw = 6; // 滑块宽度（可点中）
+            int ix = baseX + chatWidth - sw - 2;
             int totalScrollable = totalLines - Math.min(8, totalLines);
             float ratio = totalScrollable > 0 ? (float) myScrollPos / totalScrollable : 0f;
             // 稳定轨道高度：固定 120px，不超过 bgH
@@ -376,14 +377,14 @@ public class ChromaChatManager {
                 int iy = trackY + (int)((stableTrackH - ih) * ratio);
                 iy = MathHelper.clamp_int(iy, trackY, trackY + stableTrackH - ih);
                 // 轨道背景
-                Gui.drawRect(ix, trackY, ix + 2, trackY + stableTrackH, 0x33FFFFFF | (0x44 << 24));
+                Gui.drawRect(ix, trackY, ix + sw, trackY + stableTrackH, 0x33FFFFFF | (0x44 << 24));
                 // 滑块
-                Gui.drawRect(ix, iy, ix + 2, iy + ih, 0xAAFFFFFF | (0x88 << 24));
+                Gui.drawRect(ix, iy, ix + sw, iy + ih, 0xAAFFFFFF | (0x88 << 24));
                 // 点击跳转
                 if (Mouse.isButtonDown(0)) {
                     if (!scrollBtnDown) {
                         scrollBtnDown = true;
-                        if (mouseSx >= ix && mouseSx <= ix + 2
+                        if (mouseSx >= ix && mouseSx <= ix + sw
                             && mouseSy >= trackY && mouseSy <= trackY + stableTrackH) {
                             int clickRatio = (int)((float)(mouseSy - trackY - ih / 2) / stableTrackH * totalScrollable);
                             myScrollPos = MathHelper.clamp_int(clickRatio, 0, totalScrollable);
