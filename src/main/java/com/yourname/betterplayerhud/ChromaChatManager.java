@@ -152,8 +152,8 @@ public class ChromaChatManager {
         if (scale < 0.01f) return;
 
         ScaledResolution res = event.resolution;
-        int baseX = 2;
-        int baseY = 20;
+        int baseX = cfg.chromaChatXOffset;
+        int baseY = cfg.chromaChatYOffset;
         int chatWidth = cfg.chromaChatWidth;
         int lineH = 9;
         int visibleCount = Math.min(totalLines - myScrollPos, cfg.chromaChatLineCount);
