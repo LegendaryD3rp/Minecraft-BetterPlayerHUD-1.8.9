@@ -272,21 +272,20 @@ public class ChromaChatManager {
         int newHoveredIdx = -1, newHoveredAbs = -1;
         if (inChat) {
             // Y 计算必须与 renderNormal/renderGrouped 完全一致：
-            //   entryTop = yCursor - entryH + lineH
-            //   yCursor 自 baseY+2 向下递减 (最新在最下)
-            int yCursor = baseY + 2;
+            //   从 bg 底部向上排（最新在最下）
+            int yCursor = baseY + bgH - 2;
             for (int i = myScrollPos; i < myScrollPos + visibleCount; i++) {
                 if (i >= totalLines) break;
                 MyChatLine ml = myChatLines.get(i);
                 int n = (ml != null) ? ml.getLineCount(msgTextWidth) : 1;
                 int entryH = n * lineH;
-                int entryTop = yCursor - entryH + lineH;
+                int entryTop = yCursor - entryH;
                 if (mouseSy >= entryTop && mouseSy < entryTop + entryH) {
                     newHoveredIdx = i - myScrollPos;
                     newHoveredAbs = i;
                     break;
                 }
-                yCursor -= entryH;
+                yCursor = entryTop;
             }
         }
 
@@ -334,14 +333,13 @@ public class ChromaChatManager {
         if (visibleCount > 0) {
             float opacity = mc.gameSettings.chatOpacity * 0.9F + 0.1F;
             int updateCounter = mc.ingameGUI.getUpdateCounter();
-            int y = baseY + 2;
 
             if (grouping && groupCache != null) {
-                renderGrouped(cfg, myScrollPos, visibleCount, baseX, chatWidth, lineH, y,
+                renderGrouped(cfg, myScrollPos, visibleCount, baseX, chatWidth, lineH, baseY, bgH,
                         updateCounter, chatOpen, opacity, now, mouseClicked,
                         showTime, msgTextWidth, timeWidth);
             } else {
-                renderNormal(cfg, myChatLines, myScrollPos, visibleCount, baseX, chatWidth, lineH, y,
+                renderNormal(cfg, myChatLines, myScrollPos, visibleCount, baseX, chatWidth, lineH, baseY, bgH,
                         updateCounter, chatOpen, opacity, now, mouseClicked,
                         showTime, msgTextWidth, timeWidth);
             }
@@ -367,8 +365,8 @@ public class ChromaChatManager {
 
             int ix = baseX + chatWidth - 3;
             int ih = Math.max(4, bgH * visibleTL / totalTL);
-            // 条顶部Y: scrollTL=0(未滚动)→baseY(顶端), scrollTL=totalTL(最旧)→baseY+bgH-ih(底端)
-            int iy = baseY + (int)((long)(bgH - ih) * scrollTL / totalTL);
+            // 条顶部Y: scrollTL=0(未滚动)→底端, scrollTL=totalTL(最旧)→顶端
+            int iy = baseY + bgH - ih - (int)((long)(bgH - ih) * scrollTL / totalTL);
             Gui.drawRect(ix, iy, ix + 2, iy + ih, 0x99FFFFFF | (0x88 << 24));
         }
 
@@ -382,27 +380,30 @@ public class ChromaChatManager {
     //  Render: Normal mode
     // =================================================================
     private void renderNormal(BetterPlayerHUDConfig cfg, List<MyChatLine> lines, int scrollPos,
-                              int vis, int baseX, int chatWidth, int lineH, int y,
+                              int vis, int baseX, int chatWidth, int lineH, int baseY, int bgH,
                               int updateCounter, boolean chatOpen, float opacity, long now,
                               boolean mouseClicked, boolean showTime, int textWidth, int timeWidth) {
         int drawEnd = Math.min(scrollPos + vis, lines.size());
+        // 从背景框底部开始，向上排布（最新在最下）
+        int y = baseY + bgH - 2;
         for (int i = scrollPos; i < drawEnd; i++) {
             MyChatLine ml = lines.get(i);
-            if (ml == null) { y -= lineH; continue; }
+            if (ml == null) continue;
 
             int age = updateCounter - ml.updateCounter;
             int alpha = calcAlpha(age, chatOpen, opacity);
-            if (alpha <= 3) { y -= lineH; continue; }
+            if (alpha <= 3) continue;
 
             y += getMsgOffset(ml.updateCounter, cfg);
 
             String[] wl = ml.getWrappedLines(textWidth);
             int entryH = wl.length * lineH;
-            int entryTop = y - entryH + lineH;  // 本消息块的顶部Y（drawString第一条线的Y）
+            int entryTop = y - entryH;           // 本消息块顶部Y
+            int entryBottom = entryTop + entryH; // 底部Y（= 调整前的y）
 
             // 悬停 + 点击
             if (i == hoveredLineAbsIdx) {
-                drawHover(baseX + 1, entryTop, baseX + chatWidth - 1, entryTop + entryH, cfg);
+                drawHover(baseX + 1, entryTop, baseX + chatWidth - 1, entryBottom, cfg);
                 if (mouseClicked) {
                     forwardClick(ml.message);
                 }
@@ -419,7 +420,7 @@ public class ChromaChatManager {
                 mc.fontRendererObj.drawString(wl[j], tx, lineY, 0xFFFFFF | (alpha << 24));
             }
 
-            y -= entryH;
+            y = entryTop; // 上移，给下一条消息（更旧的）腾位置
         }
     }
 
@@ -427,10 +428,11 @@ public class ChromaChatManager {
     //  Render: Grouped mode (P3)
     // =================================================================
     private void renderGrouped(BetterPlayerHUDConfig cfg, int scrollPos,
-                               int vis, int baseX, int chatWidth, int lineH, int y,
+                               int vis, int baseX, int chatWidth, int lineH, int baseY, int bgH,
                                int updateCounter, boolean chatOpen, float opacity, long now,
                                boolean mouseClicked, boolean showTime, int textWidth, int timeWidth) {
         int drawn = 0;
+        int y = baseY + bgH - 2;
         for (int gi = 0; gi < groupCache.length && drawn < vis; gi++) {
             if (gi < scrollPos) {
                 drawn++;
@@ -439,21 +441,22 @@ public class ChromaChatManager {
 
             GroupInfo g = groupCache[gi];
             MyChatLine ml = g.line;
-            if (ml == null) { y -= lineH; drawn++; continue; }
+            if (ml == null) { drawn++; continue; }
 
             int age = updateCounter - ml.updateCounter;
             int alpha = calcAlpha(age, chatOpen, opacity);
-            if (alpha <= 3) { y -= lineH; drawn++; continue; }
+            if (alpha <= 3) { drawn++; continue; }
 
             y += getMsgOffset(ml.updateCounter, cfg);
 
             String[] wl = ml.getWrappedLines(textWidth);
             int entryH = wl.length * lineH;
-            int entryTop = y - entryH + lineH;
+            int entryTop = y - entryH;
+            int entryBottom = entryTop + entryH;
 
             // 悬停 + 点击
             if (gi == hoveredLineAbsIdx) {
-                drawHover(baseX + 1, entryTop, baseX + chatWidth - 1, entryTop + entryH, cfg);
+                drawHover(baseX + 1, entryTop, baseX + chatWidth - 1, entryBottom, cfg);
                 if (mouseClicked) {
                     forwardClick(ml.message);
                 }
@@ -477,7 +480,7 @@ public class ChromaChatManager {
                 mc.fontRendererObj.drawString(badge, baseX + chatWidth - bw - 2, entryTop, bc);
             }
 
-            y -= entryH;
+            y = entryTop;
             drawn++;
         }
     }
