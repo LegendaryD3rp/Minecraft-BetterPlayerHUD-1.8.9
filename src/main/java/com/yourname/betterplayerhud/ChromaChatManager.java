@@ -199,20 +199,21 @@ public class ChromaChatManager {
 
         // [DEBUG] must be seen in log
         debugFrameCounter++;
-        if (debugFrameCounter % 300 == 0) {
-            System.out.println("[ChromaChat] render: lines=" + myChatLines.size()
-                + " chatOpen=" + (mc.currentScreen instanceof GuiChat)
-                + " anim=" + animAmount
-                + " scroll=" + myScrollPos);
-        }
+        boolean doDebug = (debugFrameCounter % 300 == 0);
 
         event.setCanceled(true);
 
         // ── 早返：没消息 或 关闭且全过期 ──
-        if (myChatLines.isEmpty()) return;
+        if (myChatLines.isEmpty()) {
+            if (doDebug) System.out.println("[ChromaChat] render: lines=0 (empty) chatOpen=" + (mc.currentScreen instanceof GuiChat));
+            return;
+        }
         if (!(mc.currentScreen instanceof GuiChat)) {
             MyChatLine newest = myChatLines.get(0);
-            if (newest != null && (mc.ingameGUI.getUpdateCounter() - newest.updateCounter) >= 200) return;
+            if (newest != null && (mc.ingameGUI.getUpdateCounter() - newest.updateCounter) >= 200) {
+                if (doDebug) System.out.println("[ChromaChat] render: skip (expired)");
+                return;
+            }
         }
 
         ScaledResolution res = event.resolution;
@@ -250,6 +251,14 @@ public class ChromaChatManager {
             contentH = Math.max(minH, visibleTextLines * lineH);
         }
         int bgH = contentH + 4;
+
+        if (doDebug) {
+            System.out.println("[ChromaChat] render: lines=" + myChatLines.size()
+                + " vis=" + visibleCount + " visLines=" + visibleTextLines
+                + " baseX=" + baseX + " baseY=" + baseY + " bgH=" + bgH
+                + " chatOpen=" + (mc.currentScreen instanceof GuiChat)
+                + " scroll=" + myScrollPos);
+        }
 
         // ── 滚动检测 ──
         int wheel = pendingScroll;
@@ -386,6 +395,9 @@ public class ChromaChatManager {
         int drawEnd = Math.min(scrollPos + vis, lines.size());
         // 从背景框底部开始，向上排布（最新在最下）
         int y = baseY + bgH - 2;
+        if (debugFrameCounter % 300 == 0) {
+            System.out.println("[ChromaChat] renderNormal: drawEnd=" + drawEnd + " y_start=" + y);
+        }
         for (int i = scrollPos; i < drawEnd; i++) {
             MyChatLine ml = lines.get(i);
             if (ml == null) continue;
@@ -400,6 +412,10 @@ public class ChromaChatManager {
             int entryH = wl.length * lineH;
             int entryTop = y - entryH;           // 本消息块顶部Y
             int entryBottom = entryTop + entryH; // 底部Y（= 调整前的y）
+
+            if (debugFrameCounter % 300 == 0) {
+                System.out.println("[ChromaChat]   msg[" + i + "] top=" + entryTop + " bot=" + entryBottom + " h=" + entryH + " text=\"" + wl[0].substring(0, Math.min(wl[0].length(), 30)) + "...\"");
+            }
 
             // 悬停 + 点击
             if (i == hoveredLineAbsIdx) {
