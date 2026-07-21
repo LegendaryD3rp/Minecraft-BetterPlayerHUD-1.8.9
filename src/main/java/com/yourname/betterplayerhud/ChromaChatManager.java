@@ -1,5 +1,6 @@
 package com.yourname.betterplayerhud;
 
+import net.minecraftforge.fml.common.gameevent.TickEvent;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiChat;
@@ -46,6 +47,8 @@ public class ChromaChatManager {
     private int myScrollPos = 0;
     private boolean myIsScrolled = false;
     private int nextLineId = 1;
+    // 滚轮预读（绕过 GuiChat 消耗）
+    private int pendingScroll = 0;
 
     private static class MyChatLine {
         final IChatComponent message;
@@ -192,8 +195,10 @@ public class ChromaChatManager {
         int contentH = Math.max(minH, visibleCount * lineH);
         int bgH = contentH + 4;
 
-        // ── 滚动检测 ──
-        int wheel = Mouse.getDWheel();
+        // ── 滚动检测（pendingScroll 在 ClientTick.Phase.START 预读 ──
+        //    防止 Mouse.getDWheel 被 GuiChat 消耗）
+        int wheel = pendingScroll;
+        pendingScroll = 0;
         if (wheel != 0) {
             int dir = (wheel > 0) ? -1 : 1;
             int maxScroll = Math.max(0, totalLines - cfg.chromaChatLineCount);
@@ -252,10 +257,7 @@ public class ChromaChatManager {
         }
 
         // ═══════════════ Render ═══════════════
-        // 弹簧动画仅用作 Y 轴滑入效果，不再缩放聊天框
         GlStateManager.pushMatrix();
-        float slideY = (1.0f - MathHelper.clamp_float(animAmount, 0.0f, 1.0f)) * 15.0f;
-        GlStateManager.translate(0.0f, slideY, 0.0f);
 
         // -- 背景 --
         drawRoundedRect(baseX, baseY, baseX + chatWidth, baseY + bgH,
@@ -404,6 +406,17 @@ public class ChromaChatManager {
         // 递归查子节点（大部分 clickable 在 sibling 上）
         for (IChatComponent child : comp.getSiblings()) {
             forwardClick(child);
+        }
+    }
+
+    // =================================================================
+    //  Client tick — 提前抢读滚轮值（GuiChat 会消耗 Mouse.getDWheel）
+    // =================================================================
+    @SubscribeEvent
+    public void onClientTick(TickEvent.ClientTickEvent event) {
+        if (event.phase == TickEvent.Phase.START) {
+            int w = Mouse.getDWheel();
+            if (w != 0) pendingScroll = w;
         }
     }
 
