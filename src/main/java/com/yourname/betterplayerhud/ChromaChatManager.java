@@ -65,8 +65,11 @@ public class ChromaChatManager {
 
     /** 把毫秒时间格式化为 "[HH:MM] " */
     private static String formatChatTimestamp(long ms) {
-        long totalMinutes = ms / 60000L;
-        int hours = (int) ((totalMinutes / 60L) % 24L);
+        // ms = System.currentTimeMillis() → epoch毫秒，需换算到本地时区
+        long tzOffset = java.util.TimeZone.getDefault().getOffset(ms);
+        long localMs = (ms + tzOffset) % 86400000L;
+        long totalMinutes = localMs / 60000L;
+        int hours = (int) (totalMinutes / 60L);
         int minutes = (int) (totalMinutes % 60L);
         StringBuilder sb = new StringBuilder(7);
         sb.append('[');
@@ -129,7 +132,7 @@ public class ChromaChatManager {
         event.setCanceled(true);
 
         int ctr = mc.ingameGUI.getUpdateCounter();
-        long nowMs = Minecraft.getSystemTime();
+        long nowMs = System.currentTimeMillis();  // 真实墙上时钟
         myChatLines.add(0, new MyChatLine(event.message, ctr, nextLineId++, nowMs));
 
         while (myChatLines.size() > MAX_LINES) {
@@ -170,6 +173,12 @@ public class ChromaChatManager {
 
         // 真的没任何消息时跳过渲染（但保留弹簧计算）
         if (totalLines == 0 && !chatOpen) return;
+
+        // [性能] 关闭状态下所有消息已过 200 ticks (~10秒)，alpha=0，跳过渲染
+        if (!chatOpen && totalLines > 0) {
+            MyChatLine newest = myChatLines.get(0);
+            if (newest != null && (mc.ingameGUI.getUpdateCounter() - newest.updateCounter) >= 200) return;
+        }
 
         ScaledResolution res = event.resolution;
         int baseX = cfg.chromaChatXOffset;
@@ -291,7 +300,6 @@ public class ChromaChatManager {
                               int updateCounter, boolean chatOpen, float opacity, long now,
                               boolean mouseClicked) {
         boolean showTime = cfg.chromaChatShowTimestamps;
-        int timeColor = 0x55FFFFFF; // 灰色时间戳
         int drawEnd = Math.min(scrollPos + vis, lines.size());
         for (int i = scrollPos; i < drawEnd; i++) {
             MyChatLine ml = lines.get(i);
@@ -313,7 +321,7 @@ public class ChromaChatManager {
 
             int textX = baseX + 2;
             if (showTime) {
-                mc.fontRendererObj.drawString(ml.formattedTime, textX, y, timeColor | (alpha << 24));
+                mc.fontRendererObj.drawString(ml.formattedTime, textX, y, (alpha << 24) | 0x888888);
                 textX += mc.fontRendererObj.getStringWidth(ml.formattedTime);
             }
 
@@ -331,7 +339,6 @@ public class ChromaChatManager {
                                int updateCounter, boolean chatOpen, float opacity, long now,
                                boolean mouseClicked) {
         boolean showTime = cfg.chromaChatShowTimestamps;
-        int timeColor = 0x55FFFFFF;
         int drawn = 0;
         for (int gi = 0; gi < groupCache.length && drawn < vis; gi++) {
             if (gi < scrollPos) {
@@ -359,7 +366,7 @@ public class ChromaChatManager {
 
             int textX = baseX + 2;
             if (showTime) {
-                mc.fontRendererObj.drawString(ml.formattedTime, textX, y, timeColor | (alpha << 24));
+                mc.fontRendererObj.drawString(ml.formattedTime, textX, y, (alpha << 24) | 0x888888);
                 textX += mc.fontRendererObj.getStringWidth(ml.formattedTime);
             }
 
