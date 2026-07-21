@@ -123,7 +123,7 @@ public class ChromaChatManager {
     private long mousePressTime = 0L;
 
     // === Message Grouping (P3) ===
-    private List<MyChatLine> lastDrawnLinesRef = null;
+    private int lastDrawnLinesSize = -1;
     private GroupInfo[] groupCache = null;
 
     private static class GroupInfo {
@@ -324,11 +324,11 @@ public class ChromaChatManager {
         // ── 消息动画跟踪 ──
         trackNewMessages(myChatLines, cfg, now);
 
-        // ── 分组缓存 ──
+        // ── 分组缓存（列表引用不变，用 size 判断是否有新消息） ──
         boolean grouping = cfg.chromaChatMessageGrouping;
-        if (grouping && myChatLines != lastDrawnLinesRef) {
+        if (grouping && (groupCache == null || myChatLines.size() != lastDrawnLinesSize)) {
             rebuildGroupCache(myChatLines);
-            lastDrawnLinesRef = myChatLines;
+            lastDrawnLinesSize = myChatLines.size();
         }
 
         // ═══════════════ Render ═══════════════
