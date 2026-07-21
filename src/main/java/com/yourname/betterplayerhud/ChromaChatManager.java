@@ -112,6 +112,9 @@ public class ChromaChatManager {
 
     public void onConfigChanged() {}
 
+    // ── 调试计数（每 300 帧 ≈ 5秒 打印一次） ──
+    private int debugFrameCounter = 0;
+
     // =================================================================
     //  ClientChatReceivedEvent — 消息源头拦截
     // =================================================================
@@ -119,6 +122,9 @@ public class ChromaChatManager {
     public void onChatReceived(ClientChatReceivedEvent event) {
         BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
         if (cfg == null || !cfg.enableChromaChat) return;
+
+        // [DEBUG] 收到了消息
+        System.out.println("[ChromaChat] intercepted: " + event.message.getUnformattedText());
 
         event.setCanceled(true);
 
@@ -143,6 +149,15 @@ public class ChromaChatManager {
         BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
         if (cfg == null || !cfg.enableChromaChat) return;
 
+        // [DEBUG] must be seen in log
+        debugFrameCounter++;
+        if (debugFrameCounter % 300 == 0) {
+            System.out.println("[ChromaChat] render: lines=" + myChatLines.size()
+                + " chatOpen=" + (mc.currentScreen instanceof GuiChat)
+                + " anim=" + animAmount
+                + " scroll=" + myScrollPos);
+        }
+
         event.setCanceled(true);
 
         // ── 布局参数 ──
@@ -150,11 +165,11 @@ public class ChromaChatManager {
         boolean chatOpen = mc.currentScreen instanceof GuiChat;
         long now = Minecraft.getSystemTime();
 
-        // ── 动画 ──
+        // ── 弹簧动画（仅用于开闭的滑入效果，不再影响可见性） ──
         updateSpring(chatOpen, now, cfg);
-        if (!chatOpen && animAmount < 0.01f && totalLines == 0) return;
-        float scale = MathHelper.clamp_float(animAmount, 0.0f, 1.25f);
-        if (scale < 0.01f) return;
+
+        // 真的没任何消息时跳过渲染（但保留弹簧计算）
+        if (totalLines == 0 && !chatOpen) return;
 
         ScaledResolution res = event.resolution;
         int baseX = cfg.chromaChatXOffset;
@@ -178,9 +193,9 @@ public class ChromaChatManager {
         }
 
         // ── 鼠标状态 (P2) ──
-        int mouseSx = Mouse.getX() * res.getScaledWidth() / mc.displayWidth;
+        int mouseSx = Mouse.getX() * res.getScaledWidth() / Math.max(mc.displayWidth, 1);
         int mouseSy = res.getScaledHeight()
-                - Mouse.getY() * res.getScaledHeight() / mc.displayHeight - 1;
+                - Mouse.getY() * res.getScaledHeight() / Math.max(mc.displayHeight, 1) - 1;
 
         boolean inChat = mouseSx >= baseX && mouseSx <= baseX + chatWidth
                       && mouseSy >= baseY && mouseSy <= baseY + bgH;
@@ -228,11 +243,10 @@ public class ChromaChatManager {
         }
 
         // ═══════════════ Render ═══════════════
+        // 弹簧动画仅用作 Y 轴滑入效果，不再缩放聊天框
         GlStateManager.pushMatrix();
-        float anchorY = baseY + bgH;
-        GlStateManager.translate(0.0f, anchorY, 0.0f);
-        GlStateManager.scale(scale, scale, 1.0f);
-        GlStateManager.translate(0.0f, -anchorY, 0.0f);
+        float slideY = (1.0f - MathHelper.clamp_float(animAmount, 0.0f, 1.0f)) * 15.0f;
+        GlStateManager.translate(0.0f, slideY, 0.0f);
 
         // -- 背景 --
         drawRoundedRect(baseX, baseY, baseX + chatWidth, baseY + bgH,
@@ -264,6 +278,9 @@ public class ChromaChatManager {
         }
 
         GlStateManager.popMatrix();
+
+        // ── 上报位置给 F7 编辑模式 ──
+        HUDEditManager.report("蜃楼聊天框", baseX, baseY, chatWidth, bgH);
     }
 
     // =================================================================
