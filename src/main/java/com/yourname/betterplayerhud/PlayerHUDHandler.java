@@ -18,7 +18,6 @@ public class PlayerHUDHandler {
     private Minecraft mc = Minecraft.getMinecraft();
     private long lastBlinkTime = 0;
     private boolean blinkState = false;
-    private ResourceLocation cachedSkin = null;
 
     @SubscribeEvent
     public void onRenderGameOverlay(RenderGameOverlayEvent.Post event) {
@@ -144,17 +143,15 @@ public class PlayerHUDHandler {
     }
 
     /**
-     * 渲染玩家头像（带皮肤缓存，避免每帧 getLocationSkin()）
+     * 渲染玩家头像
      */
     private void renderPlayerHead(int x, int y, int size) {
         try {
-            if (cachedSkin == null) {
-                cachedSkin = mc.thePlayer.getLocationSkin();
-            }
-            if (cachedSkin == null) return;
+            ResourceLocation skin = mc.thePlayer.getLocationSkin();
+            if (skin == null) return;
 
-            // 绑定缓存皮肤纹理
-            mc.getTextureManager().bindTexture(cachedSkin);
+            // 绑定皮肤纹理
+            mc.getTextureManager().bindTexture(skin);
 
             // 设置OpenGL状态（使用 GlStateManager，避免 raw GL 绕过缓存）
             GlStateManager.enableBlend();
