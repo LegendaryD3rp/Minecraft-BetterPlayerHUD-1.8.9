@@ -39,11 +39,14 @@ public class ChromaChatManager {
     private static final long CLICK_THRESHOLD_MS = 200L;
     private static final Minecraft mc = Minecraft.getMinecraft();
 
+    /** 单例引用，供 ChromaChatBridge 调用 */
+    static ChromaChatManager INSTANCE = null;
+
     // =================================================================
     //  Own message list (完全独立于 BetterChat / 原版 GuiNewChat)
     // =================================================================
     private static final int MAX_LINES = 100;
-    private final List<MyChatLine> myChatLines = new ArrayList<MyChatLine>();
+    final List<MyChatLine> myChatLines = new ArrayList<MyChatLine>();
     private int myScrollPos = 0;
     private boolean myIsScrolled = false;
     private int nextLineId = 1;
@@ -130,6 +133,7 @@ public class ChromaChatManager {
     }
 
     public ChromaChatManager() {
+        INSTANCE = this;
         for (int i = 0; i < TRACK_SIZE; i++) trackCounters[i] = -1;
     }
 
@@ -162,6 +166,27 @@ public class ChromaChatManager {
         // 新消息 → 回滚到最新
         myScrollPos = 0;
         myIsScrolled = false;
+    }
+
+    // =================================================================
+    //  onLocalMessage — 供 ChromaChatBridge 调用（本地指令消息入口）
+    // =================================================================
+    static void onLocalMessage(IChatComponent component) {
+        ChromaChatManager cc = INSTANCE;
+        if (cc == null) return;
+        BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
+        if (cfg == null || !cfg.enableChromaChat) return;
+
+        int ctr = mc.ingameGUI.getUpdateCounter();
+        long nowMs = System.currentTimeMillis();
+        cc.myChatLines.add(0, new MyChatLine(component, ctr, cc.nextLineId++, nowMs));
+
+        while (cc.myChatLines.size() > MAX_LINES) {
+            cc.myChatLines.remove(cc.myChatLines.size() - 1);
+        }
+
+        cc.myScrollPos = 0;
+        cc.myIsScrolled = false;
     }
 
     // =================================================================

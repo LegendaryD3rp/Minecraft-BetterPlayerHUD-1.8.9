@@ -280,6 +280,55 @@ public class BetterPlayerHUD {
             config.chromaChatWidth = 320;
             config.chromaChatLineCount = 8;
         });
+
+        // ── 安装聊天桥接层：补全本地指令消息的捕获 ──
+        // 延迟到首 tick 安装，确保 VE（如已安装）已完成 BetterChat 替换
+        MinecraftForge.EVENT_BUS.register(new Object() {
+            private boolean bridgeInstalled = false;
+
+            @SubscribeEvent
+            public void onTick(TickEvent.ClientTickEvent event) {
+                if (bridgeInstalled) return;
+                if (event.phase != TickEvent.Phase.END) return;
+                bridgeInstalled = true;
+                installChatBridge();
+            }
+        });
+        // 连服务器时 VE 会再次替换聊天框，我们也跟着重装
+        MinecraftForge.EVENT_BUS.register(new Object() {
+            @SubscribeEvent
+            public void onConnect(net.minecraftforge.fml.common.network.FMLNetworkEvent.ClientConnectedToServerEvent event) {
+                installChatBridge();
+            }
+        });
+    }
+
+    /** 安装 ChromaChatBridge 到 mc.ingameGUI.persistantChatGUI */
+    private static void installChatBridge() {
+        try {
+            net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getMinecraft();
+            if (mc == null || mc.ingameGUI == null) return;
+            net.minecraft.client.gui.GuiNewChat current = mc.ingameGUI.getChatGUI();
+            // 如果已经是桥接层，检查包裹对象是否变了（VE 连服务器时可能已替换）
+            if (current instanceof ChromaChatBridge) {
+                ChromaChatBridge bridge = (ChromaChatBridge) current;
+                net.minecraft.client.gui.GuiNewChat stillWrapped = bridge.getWrapped();
+                if (!(stillWrapped instanceof ChromaChatBridge)) return; // 包裹对象未变
+                // 包裹对象也是桥？异常状态，需要重建
+            }
+            ChromaChatBridge bridge = new ChromaChatBridge(current);
+            // 通过反射设置 persistantChatGUI（编译后是 SRG 名 field_73841_b）
+            java.lang.reflect.Field field;
+            try {
+                field = net.minecraft.client.gui.GuiIngame.class.getDeclaredField("persistantChatGUI");
+            } catch (NoSuchFieldException e1) {
+                field = net.minecraft.client.gui.GuiIngame.class.getDeclaredField("field_73841_b");
+            }
+            field.setAccessible(true);
+            field.set(mc.ingameGUI, bridge);
+        } catch (Exception e) {
+            // 静默失败，不影响主功能
+        }
     }
 
     /**
