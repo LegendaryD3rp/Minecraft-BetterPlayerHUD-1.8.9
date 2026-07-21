@@ -98,6 +98,7 @@ public class ChromaChatManager {
         // ms = System.currentTimeMillis() → epoch毫秒，需换算到本地时区
         long tzOffset = java.util.TimeZone.getDefault().getOffset(ms);
         long localMs = (ms + tzOffset) % 86400000L;
+        if (localMs < 0) localMs += 86400000L;  // 负时区（如 UTC-5）修正
         long totalMinutes = localMs / 60000L;
         int hours = (int) (totalMinutes / 60L);
         int minutes = (int) (totalMinutes % 60L);
@@ -256,19 +257,22 @@ public class ChromaChatManager {
 
         int newHoveredIdx = -1, newHoveredAbs = -1;
         if (inChat) {
-            // 从最旧（最高Y）向最新（最低Y）逐条找鼠标所在的消息
+            // Y 计算必须与 renderNormal/renderGrouped 完全一致：
+            //   entryTop = yCursor - entryH + lineH
+            //   yCursor 自 baseY+2 向下递减 (最新在最下)
             int yCursor = baseY + 2;
             for (int i = myScrollPos; i < myScrollPos + visibleCount; i++) {
                 if (i >= totalLines) break;
                 MyChatLine ml = myChatLines.get(i);
                 int n = (ml != null) ? ml.getLineCount(msgTextWidth) : 1;
                 int entryH = n * lineH;
-                if (mouseSy >= yCursor && mouseSy < yCursor + entryH) {
+                int entryTop = yCursor - entryH + lineH;
+                if (mouseSy >= entryTop && mouseSy < entryTop + entryH) {
                     newHoveredIdx = i - myScrollPos;
                     newHoveredAbs = i;
                     break;
                 }
-                yCursor += entryH;
+                yCursor -= entryH;
             }
         }
 
