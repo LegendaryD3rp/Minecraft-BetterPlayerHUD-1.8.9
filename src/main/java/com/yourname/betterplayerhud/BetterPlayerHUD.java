@@ -295,8 +295,9 @@ public class BetterPlayerHUD {
             }
         });
         // 连服务器时 VE 会再次替换聊天框，我们也跟着重装
+        // 用 LOW 优先级确保在 VE 的 NORMAL 优先级 handler 之后执行
         MinecraftForge.EVENT_BUS.register(new Object() {
-            @SubscribeEvent
+            @SubscribeEvent(priority = net.minecraftforge.fml.common.eventhandler.EventPriority.LOW)
             public void onConnect(net.minecraftforge.fml.common.network.FMLNetworkEvent.ClientConnectedToServerEvent event) {
                 installChatBridge();
             }
@@ -309,12 +310,16 @@ public class BetterPlayerHUD {
             net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getMinecraft();
             if (mc == null || mc.ingameGUI == null) return;
             net.minecraft.client.gui.GuiNewChat current = mc.ingameGUI.getChatGUI();
-            // 如果已经是桥接层，检查包裹对象是否变了（VE 连服务器时可能已替换）
+            // 如果已经是桥接层且包裹对象未变，跳过（防止在同一个实例上反复嵌套桥）
             if (current instanceof ChromaChatBridge) {
                 ChromaChatBridge bridge = (ChromaChatBridge) current;
                 net.minecraft.client.gui.GuiNewChat stillWrapped = bridge.getWrapped();
-                if (!(stillWrapped instanceof ChromaChatBridge)) return; // 包裹对象未变
-                // 包裹对象也是桥？异常状态，需要重建
+                if (stillWrapped instanceof ChromaChatBridge) {
+                    // 包裹对象也是桥？异常多层嵌套，需要重建
+                } else {
+                    // 包裹对象是正常实例（BetterChat/原版），说明桥已就位
+                    return;
+                }
             }
             ChromaChatBridge bridge = new ChromaChatBridge(current);
             // 通过反射设置 persistantChatGUI（编译后是 SRG 名 field_73841_b）
