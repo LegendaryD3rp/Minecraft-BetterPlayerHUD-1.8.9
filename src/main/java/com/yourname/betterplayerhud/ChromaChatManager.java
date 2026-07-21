@@ -260,6 +260,9 @@ public class ChromaChatManager {
                 + " scroll=" + myScrollPos);
         }
 
+        // ── 弹性动画（类 ComboHandler：每帧更新 animAmount） ──
+        updateSpring(chatOpen, now, cfg);
+
         // ── 滚动检测 ──
         int wheel = pendingScroll;
         pendingScroll = 0;
@@ -279,7 +282,7 @@ public class ChromaChatManager {
                       && mouseSy >= baseY && mouseSy <= baseY + bgH;
 
         int newHoveredIdx = -1, newHoveredAbs = -1;
-        if (inChat) {
+        if (inChat && chatOpen) {
             // Y 计算必须与 renderNormal/renderGrouped 完全一致：
             //   从 bg 底部向上排（最新在最下）
             int yCursor = baseY + bgH - 2;
@@ -321,6 +324,22 @@ public class ChromaChatManager {
             mouseBtnDown = false;
         }
 
+        // ── Ctrl+C 复制选中消息 ──
+        boolean ctrlDown = org.lwjgl.input.Keyboard.isKeyDown(org.lwjgl.input.Keyboard.KEY_LCONTROL)
+                        || org.lwjgl.input.Keyboard.isKeyDown(org.lwjgl.input.Keyboard.KEY_RCONTROL);
+        if (ctrlDown && org.lwjgl.input.Keyboard.isKeyDown(org.lwjgl.input.Keyboard.KEY_C)) {
+            if (chatOpen && hoveredLineAbsIdx >= 0 && hoveredLineAbsIdx < myChatLines.size()) {
+                MyChatLine ml = myChatLines.get(hoveredLineAbsIdx);
+                if (ml != null) {
+                    String txt = ml.message.getUnformattedText();
+                    if (txt != null && !txt.isEmpty()) {
+                        java.awt.datatransfer.StringSelection sel = new java.awt.datatransfer.StringSelection(txt);
+                        java.awt.Toolkit.getDefaultToolkit().getSystemClipboard().setContents(sel, null);
+                    }
+                }
+            }
+        }
+
         // ── 消息动画跟踪 ──
         trackNewMessages(myChatLines, cfg, now);
 
@@ -334,9 +353,12 @@ public class ChromaChatManager {
         // ═══════════════ Render ═══════════════
         GlStateManager.pushMatrix();
 
-        // -- 背景 --
+        // -- 背景（animAmount 控制淡入淡出） --
+        float bgAlpha = 0.15f + 0.85f * animAmount; // 关闭时保留 15% 底色
+        int bgColor = fadeAlpha(cfg.chromaChatBackgroundColor, bgAlpha);
+        int borderColor = fadeAlpha(cfg.chromaChatBorderColor, bgAlpha);
         drawRoundedRect(baseX, baseY, baseX + chatWidth, baseY + bgH,
-                cfg.chromaChatBorderRadius, cfg.chromaChatBackgroundColor, cfg.chromaChatBorderColor);
+                cfg.chromaChatBorderRadius, bgColor, borderColor);
 
         // -- 消息 --
         if (visibleCount > 0) {
@@ -604,8 +626,16 @@ public class ChromaChatManager {
         for (int i = 0; i < TRACK_SIZE; i++) {
             if (trackCounters[i] == ctr) {
                 long elapsed = now - trackTimesMs[i];
-                if (elapsed < cfg.chromaChatMsgAnimDuration) {
-                    return (int) (6.0f * (1.0f - (float) elapsed / cfg.chromaChatMsgAnimDuration));
+                float dur = cfg.chromaChatMsgAnimDuration;
+                if (elapsed < dur) {
+                    // ComboHandler 风格弹簧: t 归一化后 easeOutBack/spring
+                    float t = (float) elapsed / dur;
+                    // easeOutBack: overshoot 到 1.2 然后回弹到 1.0
+                    // 映射到 6px→0px 的偏移: offset = 6 * (1.0 - easeOutBack(t))
+                    float ease = 1.0f + 2.70158f * (float)Math.pow(t - 1.0, 3) + 1.70158f * (float)Math.pow(t - 1.0, 2);
+                    // ease 从 ~1.2 → 1.0, 取反后从 -0.2 → 0, 缩放后从 ~-1.2px → 0px
+                    // 视觉上消息先轻微下沉再弹回原位
+                    return (int)(6.0f * (1.0f - ease));
                 }
                 return 0;
             }
@@ -654,6 +684,15 @@ public class ChromaChatManager {
     // =================================================================
     //  Rounded rect (Tessellator batched)
     // =================================================================
+    // ── 将颜色的 Alpha 通道乘以 factor ──
+    private static int fadeAlpha(int color, float factor) {
+        int a = (color >>> 24) & 0xFF;
+        a = (int)(a * factor);
+        if (a < 0) a = 0;
+        if (a > 255) a = 255;
+        return (a << 24) | (color & 0xFFFFFF);
+    }
+
     private void drawRoundedRect(int left, int top, int right, int bottom,
                                   int radius, int fillColor, int borderColor) {
         if (radius <= 0) {
