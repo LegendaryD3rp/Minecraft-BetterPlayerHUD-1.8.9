@@ -59,7 +59,6 @@ public class ChromaChatManager {
     private int nextLineId = 1;
     // 滚轮预读（绕过 GuiChat 消耗）
     private int pendingScroll = 0;
-
     // ── 发送者名称提取正则 ──
     private static final Pattern SENDER_PATTERN = Pattern.compile("^<(.+?)>");
 
@@ -192,9 +191,6 @@ public class ChromaChatManager {
 
     public void onConfigChanged() {}
 
-    // ── 调试计数（每 300 帧 ≈ 5秒 打印一次） ──
-    private int debugFrameCounter = 0;
-
     // =================================================================
     //  ClientChatReceivedEvent — 消息源头拦截
     // =================================================================
@@ -206,7 +202,7 @@ public class ChromaChatManager {
         event.setCanceled(true);
 
         int ctr = mc.ingameGUI.getUpdateCounter();
-        long nowMs = System.currentTimeMillis();
+        long nowMs = Minecraft.getSystemTime();
 
         // 物理去重：与最新消息（index 0）比对发送者 + 文本
         if (cfg.chromaChatDedup && !myChatLines.isEmpty()) {
@@ -221,7 +217,7 @@ public class ChromaChatManager {
                     latest.incrementGroup();
                     latest.lastDedupTick = ctr;
                     if (cfg.chromaChatDedupAnim) {
-                        dedupPulseMap.put(latest.chatLineID, nowMs);
+                        dedupPulseMap.put(latest.chatLineID, Minecraft.getSystemTime());
                     }
                     return;
                 }
@@ -249,7 +245,7 @@ public class ChromaChatManager {
         if (cfg == null || !cfg.enableChromaChat) return;
 
         int ctr = mc.ingameGUI.getUpdateCounter();
-        long nowMs = System.currentTimeMillis();
+        long nowMs = Minecraft.getSystemTime();
 
         // 物理去重（与最新消息比对）
         if (cfg.chromaChatDedup && !cc.myChatLines.isEmpty()) {
@@ -288,9 +284,6 @@ public class ChromaChatManager {
     public void onChatRender(RenderGameOverlayEvent.Chat event) {
         BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
         if (cfg == null || !cfg.enableChromaChat) return;
-
-        // [DEBUG] 每 300 帧打印一次
-        debugFrameCounter++;
 
         event.setCanceled(true);
 
@@ -336,11 +329,6 @@ public class ChromaChatManager {
             contentH = Math.max(minH, visibleTextLines * lineH);
         }
         int bgH = contentH + 4;
-
-        if (debugFrameCounter % 300 == 0) {
-            System.out.println("[ChromaChat] render: lines=" + myChatLines.size()
-                + " vis=" + visibleCount + " baseY=" + baseY + " bgH=" + bgH);
-        }
 
         // ── 弹性动画（类 ComboHandler：每帧更新 animAmount） ──
         updateSpring(chatOpen, now, cfg);
