@@ -309,7 +309,8 @@ public class ChromaChatManager {
         int textWidth = cfg.chromaChatWidth - 2;
         boolean showTime = cfg.chromaChatShowTimestamps;
         int timeWidth = showTime ? mc.fontRendererObj.getStringWidth("[00:00] ") : 0;
-        int msgTextWidth = textWidth - timeWidth;  // 除去时间戳后的纯文本宽度
+        int avatarOffset = cfg.chromaChatAvatar ? cfg.chromaChatAvatarSize + 2 : 0;
+        int msgTextWidth = textWidth - timeWidth - avatarOffset;  // 除去时间戳和头像后的纯文本宽度
 
         // 从 scrollPos 开始，累计换行行数直到填满 chromaChatLineCount
         int visibleCount = 0;       // 可见消息数
@@ -337,7 +338,7 @@ public class ChromaChatManager {
         int wheel = pendingScroll;
         pendingScroll = 0;
         if (wheel != 0) {
-            int dir = (wheel > 0) ? -1 : 1;
+            int dir = (wheel > 0) ? 1 : -1;  // +1 = 向上滚=看更旧消息=增大scrollPos
             int maxScroll = Math.max(0, totalLines - Math.min(8, totalLines));
             myScrollPos = MathHelper.clamp_int(myScrollPos + dir * 3, 0, maxScroll);
             myIsScrolled = myScrollPos > 0;
@@ -569,10 +570,7 @@ public class ChromaChatManager {
                     tx += timeWidth;
                 }
 
-                // ── 消息文字（减掉头像占位后的剩余宽度） ──
-                int msgWidth = textWidth - avatarOffset;
-                if (msgWidth < 20) msgWidth = 20;
-                // 注意：wl[j] 已用原始 textWidth 换行，这里只作为显示位置偏移
+                // ── 消息文字（textWidth 已在外层扣除头像和时间戳占位） ──
                 mc.fontRendererObj.drawString(wl[j], tx, lineY, 0xFFFFFF | (alpha << 24));
 
                 // ── 去重徽标 [Nx]（仅第一行） ──
