@@ -218,7 +218,8 @@ public class ChromaChatManager {
         event.setCanceled(true);
 
         int ctr = mc.ingameGUI.getUpdateCounter();
-        long nowMs = Minecraft.getSystemTime();
+        long nowMs = System.currentTimeMillis();  // 真实世界时间（用于时间戳）
+        long nowSysMs = Minecraft.getSystemTime(); // 游戏时间（用于动画脉冲）
 
         // 物理去重：与最新消息（index 0）比对发送者 + 文本
         if (cfg.chromaChatDedup && !myChatLines.isEmpty()) {
@@ -261,7 +262,8 @@ public class ChromaChatManager {
         if (cfg == null || !cfg.enableChromaChat) return;
 
         int ctr = mc.ingameGUI.getUpdateCounter();
-        long nowMs = Minecraft.getSystemTime();
+        long nowMs = System.currentTimeMillis();  // 真实世界时间（用于时间戳）
+        long nowSysMs = Minecraft.getSystemTime(); // 游戏时间（用于动画脉冲）
 
         // 物理去重（与最新消息比对）
         if (cfg.chromaChatDedup && !cc.myChatLines.isEmpty()) {
@@ -276,7 +278,7 @@ public class ChromaChatManager {
                     latest.incrementGroup();
                     latest.lastDedupTick = ctr;
                     if (cfg.chromaChatDedupAnim) {
-                        cc.dedupPulseMap.put(latest.chatLineID, nowMs);
+                        cc.dedupPulseMap.put(latest.chatLineID, nowSysMs);
                     }
                     return;
                 }
