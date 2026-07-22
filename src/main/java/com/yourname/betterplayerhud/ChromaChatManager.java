@@ -1,10 +1,12 @@
 package com.yourname.betterplayerhud;
 
+import com.mojang.authlib.GameProfile;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiChat;
 import net.minecraft.client.gui.ScaledResolution;
+import net.minecraft.client.network.NetworkPlayerInfo;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.WorldRenderer;
@@ -159,8 +161,22 @@ public class ChromaChatManager {
         if (name == null) return null;
         ResourceLocation cached = avatarCache.get(name);
         if (cached != null) return cached;
-        // 使用 AbstractClientPlayer.getLocationSkin(name) 生成 ResourceLocation
-        // 这是 Minecraft 标准皮肤路径，TextureManager 首次 bind 时自动异步下载
+        // 1) 优先从 tab list 获取已加载的真实皮肤纹理（同血量条/GuiPlayerTabOverlay）
+        if (mc.getNetHandler() != null) {
+            for (NetworkPlayerInfo info : mc.getNetHandler().getPlayerInfoMap()) {
+                GameProfile gp = info.getGameProfile();
+                if (gp != null && name.equals(gp.getName())) {
+                    ResourceLocation skin = info.getLocationSkin();
+                    if (skin != null) {
+                        if (avatarCache.size() >= 50) avatarCache.clear();
+                        avatarCache.put(name, skin);
+                        return skin;
+                    }
+                }
+            }
+        }
+        // 2) Fallback：异步触发 SkinManager 下载，返回占位路径
+        //    TextureManager 首次 bind 时自动从 Mojang 服务器下载皮肤
         ResourceLocation loc = net.minecraft.client.entity.AbstractClientPlayer.getLocationSkin(name);
         if (avatarCache.size() >= 50) avatarCache.clear();
         avatarCache.put(name, loc);
@@ -551,27 +567,31 @@ public class ChromaChatManager {
             }
 
             // 逐行绘制（从上往下）
+            // 文本统一起始位置：头像 + 时间戳之后，确保多行消息左对齐
+            int textTx = baseX + 2;
+            if (showAvatar && ml.senderName != null) textTx += avatarOffset;
+            if (showTime) textTx += timeWidth;
+
             for (int j = 0; j < wl.length; j++) {
                 int lineY = entryTop + j * lineH;
-                int tx = baseX + 2;
 
-                // ── 头像（仅第一行） ──
+                // ── 头像（仅第一行，同血量条/tab list：u=8,v=8 面部 + u=40,v=8 帽子） ──
                 if (showAvatar && j == 0 && ml.senderName != null) {
                     ResourceLocation skin = getAvatar(ml.senderName);
                     if (skin != null) {
                         mc.getTextureManager().bindTexture(skin);
-                        Gui.drawModalRectWithCustomSizedTexture(tx, lineY, 8, 8, avatarSize, avatarSize, 64, 64);
+                        Gui.drawModalRectWithCustomSizedTexture(baseX + 2, lineY, 8, 8, avatarSize, avatarSize, 64, 64);
+                        // 第二层皮肤（hat overlay），同 GuiPlayerTabOverlay 逻辑
+                        Gui.drawModalRectWithCustomSizedTexture(baseX + 2, lineY, 40, 8, avatarSize, avatarSize, 64, 64);
                     }
-                    tx += avatarOffset;
                 }
 
                 if (showTime && j == 0) {
-                    mc.fontRendererObj.drawString(ml.formattedTime, tx, lineY, (alpha << 24) | 0x888888);
-                    tx += timeWidth;
+                    mc.fontRendererObj.drawString(ml.formattedTime, baseX + 2 + (showAvatar && ml.senderName != null ? avatarOffset : 0), lineY, (alpha << 24) | 0x888888);
                 }
 
-                // ── 消息文字（textWidth 已在外层扣除头像和时间戳占位） ──
-                mc.fontRendererObj.drawString(wl[j], tx, lineY, 0xFFFFFF | (alpha << 24));
+                // ── 消息文字 ──
+                mc.fontRendererObj.drawString(wl[j], textTx, lineY, 0xFFFFFF | (alpha << 24));
 
                 // ── 去重徽标 [Nx]（仅第一行） ──
                 if (j == 0 && ml.groupCount > 1) {
