@@ -161,26 +161,37 @@ public class ChromaChatManager {
         if (name == null) return null;
         ResourceLocation cached = avatarCache.get(name);
         if (cached != null) return cached;
-        // 1) 优先从 tab list 获取已加载的真实皮肤纹理（同血量条/GuiPlayerTabOverlay）
+        // 从 tab list 获取已加载的真实皮肤纹理
+        // 注意：NetworkPlayerInfo.getLocationSkin() 在异步下载完成前返回默认皮肤，
+        //       所以不能缓存默认皮肤——等异步下载完成后再次调用才会拿到真纹理
         if (mc.getNetHandler() != null) {
             for (NetworkPlayerInfo info : mc.getNetHandler().getPlayerInfoMap()) {
                 GameProfile gp = info.getGameProfile();
-                if (gp != null && name.equals(gp.getName())) {
+                if (gp != null && name.equalsIgnoreCase(gp.getName())) {
                     ResourceLocation skin = info.getLocationSkin();
-                    if (skin != null) {
+                    if (skin != null && !isDefaultSkin(skin)) {
                         if (avatarCache.size() >= 50) avatarCache.clear();
                         avatarCache.put(name, skin);
                         return skin;
                     }
+                    // 只有默认皮肤——不缓存，下次再试（等异步下载完成）
+                    return skin; // 返回默认皮肤但不缓存
                 }
             }
         }
-        // 2) Fallback：异步触发 SkinManager 下载，返回占位路径
-        //    TextureManager 首次 bind 时自动从 Mojang 服务器下载皮肤
+        // 不在 tab list 里——用抽象路径，TextureManager 首次 bind 时异步下载
         ResourceLocation loc = net.minecraft.client.entity.AbstractClientPlayer.getLocationSkin(name);
         if (avatarCache.size() >= 50) avatarCache.clear();
         avatarCache.put(name, loc);
         return loc;
+    }
+
+    /** 判断是否是默认皮肤（Steve/Alex） */
+    private static final ResourceLocation STEVE_SKIN = new ResourceLocation("textures/entity/steve.png");
+    private static final ResourceLocation ALEX_SKIN  = new ResourceLocation("textures/entity/alex.png");
+
+    private static boolean isDefaultSkin(ResourceLocation loc) {
+        return STEVE_SKIN.equals(loc) || ALEX_SKIN.equals(loc);
     }
 
     // === Spring Animation (P1) ===
@@ -356,7 +367,7 @@ public class ChromaChatManager {
         int wheel = pendingScroll;
         pendingScroll = 0;
         if (wheel != 0) {
-            int dir = (wheel > 0) ? 1 : -1;  // +1 = 向上滚=看更旧消息=增大scrollPos
+            int dir = (wheel > 0) ? 1 : -1;  // 向上滚=看更旧消息=增大scrollPos
             int maxScroll = Math.max(0, totalLines - Math.min(8, totalLines));
             myScrollPos = MathHelper.clamp_int(myScrollPos + dir * 3, 0, maxScroll);
             myIsScrolled = myScrollPos > 0;
