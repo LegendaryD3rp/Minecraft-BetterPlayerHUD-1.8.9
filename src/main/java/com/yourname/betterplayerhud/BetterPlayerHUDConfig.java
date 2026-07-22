@@ -333,6 +333,14 @@ public class BetterPlayerHUDConfig {
     public int chromaChatHoverColor = 0x44FFFFFF;      // 高亮颜色 ARGB
     // ── 时间戳 ──
     public boolean chromaChatShowTimestamps = true;    // 显示时间戳
+    // ── 物理去重折叠 ──
+    public boolean chromaChatDedup = true;              // 相同发送者同内容折叠
+    public int chromaChatDedupBadgeColor = 0x88FFFF55; // 折叠徽标 [Nx] 颜色
+    public boolean chromaChatDedupAnim = true;          // 折叠计数脉冲动画
+    // ── 玩家头像 ──
+    public boolean chromaChatAvatar = true;             // 显示发送者头像
+    public int chromaChatAvatarSize = 10;                // 头像大小 (px)
+    public boolean chromaChatAvatarRounded = true;       // 头像圆角展开
 
     // ================================================================
     //  颜色工具方法
@@ -1074,6 +1082,18 @@ public class BetterPlayerHUDConfig {
             p.comment = "悬停高亮颜色 ARGB"; chromaChatHoverColor = p.getInt();
             p = config.get(C, "chromaChatShowTimestamps", true);
             p.comment = "在消息前显示 [HH:MM] 时间戳"; chromaChatShowTimestamps = p.getBoolean();
+            p = config.get(C, "chromaChatDedup", true);
+            p.comment = "相同发送者同内容消息折叠"; chromaChatDedup = p.getBoolean();
+            p = config.get(C, "chromaChatDedupBadgeColor", 0x88FFFF55);
+            p.comment = "折叠徽标 [Nx] 颜色 ARGB"; chromaChatDedupBadgeColor = p.getInt();
+            p = config.get(C, "chromaChatDedupAnim", true);
+            p.comment = "折叠计数变化时脉冲动画"; chromaChatDedupAnim = p.getBoolean();
+            p = config.get(C, "chromaChatAvatar", true);
+            p.comment = "显示发送者头像"; chromaChatAvatar = p.getBoolean();
+            p = config.get(C, "chromaChatAvatarSize", 10);
+            p.comment = "头像大小 (px)"; p.setMinValue(4).setMaxValue(16); chromaChatAvatarSize = p.getInt();
+            p = config.get(C, "chromaChatAvatarRounded", true);
+            p.comment = "头像圆角裁剪"; chromaChatAvatarRounded = p.getBoolean();
         }
 
     }
@@ -1346,6 +1366,12 @@ public class BetterPlayerHUDConfig {
         config.get(C, "chromaChatHoverHighlight", true).set(chromaChatHoverHighlight);
         config.get(C, "chromaChatHoverColor", 0x44FFFFFF).set(chromaChatHoverColor);
         config.get(C, "chromaChatShowTimestamps", true).set(chromaChatShowTimestamps);
+        config.get(C, "chromaChatDedup", true).set(chromaChatDedup);
+        config.get(C, "chromaChatDedupBadgeColor", 0x88FFFF55).set(chromaChatDedupBadgeColor);
+        config.get(C, "chromaChatDedupAnim", true).set(chromaChatDedupAnim);
+        config.get(C, "chromaChatAvatar", true).set(chromaChatAvatar);
+        config.get(C, "chromaChatAvatarSize", 10).set(chromaChatAvatarSize);
+        config.get(C, "chromaChatAvatarRounded", true).set(chromaChatAvatarRounded);
 
         // 持久化到磁盘
         config.save();

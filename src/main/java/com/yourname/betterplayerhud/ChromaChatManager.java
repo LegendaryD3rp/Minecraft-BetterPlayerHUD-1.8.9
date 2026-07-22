@@ -9,9 +9,11 @@ import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.WorldRenderer;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
+import net.minecraft.event.ClickEvent;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.IChatComponent;
 import net.minecraft.util.MathHelper;
+import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
@@ -21,7 +23,10 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import org.lwjgl.input.Mouse;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * "蜃楼" ChromaChat — 现代聊天框
@@ -55,22 +60,43 @@ public class ChromaChatManager {
     // 滚轮预读（绕过 GuiChat 消耗）
     private int pendingScroll = 0;
 
+    // ── 发送者名称提取正则 ──
+    private static final Pattern SENDER_PATTERN = Pattern.compile("^<(.+?)>");
+
+    // ── 头像缓存 ──
+    private final HashMap<String, ResourceLocation> avatarCache = new HashMap<String, ResourceLocation>();
+
     private static class MyChatLine {
         final IChatComponent message;
         final int updateCounter;
         final int chatLineID;
         final long receivedTimeMs;
         final String formattedTime;      // 缓存的 "[HH:MM] " 时间戳
+        final String senderName;         // 发送者名（系统消息为 null）
+        int groupCount;                  // 物理去重计数（>1 = 被折叠的消息）
+        int lastDedupTick;               // 最近一次去重时的 updateCounter（防淡出）
         // 换行缓存（lazy）
         private String[] cachedLines = null;
         private int lastWrapWidth = -1;
 
         MyChatLine(IChatComponent msg, int ctr, int id, long timeMs) {
+            this(msg, ctr, id, timeMs, extractSenderName(msg));
+        }
+
+        MyChatLine(IChatComponent msg, int ctr, int id, long timeMs, String sender) {
             this.message = msg;
             this.updateCounter = ctr;
             this.chatLineID = id;
             this.receivedTimeMs = timeMs;
             this.formattedTime = formatChatTimestamp(timeMs);
+            this.senderName = sender;
+            this.groupCount = 1;
+            this.lastDedupTick = 0;
+        }
+
+        /** 增加去重计数（物理折叠时调用） */
+        void incrementGroup() {
+            groupCount++;
         }
 
         /** 获取换行后的文本行（缓存） */
@@ -105,6 +131,43 @@ public class ChromaChatManager {
         return sdf.format(new java.util.Date(ms));
     }
 
+    // =================================================================
+    //  发送者名称提取
+    // =================================================================
+    private static String extractSenderName(IChatComponent msg) {
+        if (msg == null) return null;
+        for (IChatComponent sibling : msg.getSiblings()) {
+            if (sibling.getChatStyle() != null && sibling.getChatStyle().getChatClickEvent() != null) {
+                ClickEvent.Action action = sibling.getChatStyle().getChatClickEvent().getAction();
+                if (action == ClickEvent.Action.SUGGEST_COMMAND) {
+                    String text = sibling.getUnformattedText();
+                    if (text != null && !text.isEmpty()) return text;
+                }
+            }
+        }
+        String text = msg.getUnformattedText();
+        if (text != null) {
+            Matcher m = SENDER_PATTERN.matcher(text);
+            if (m.find()) return m.group(1);
+        }
+        return null;
+    }
+
+    // =================================================================
+    //  玩家头像缓存
+    // =================================================================
+    private ResourceLocation getAvatar(String name) {
+        if (name == null) return null;
+        ResourceLocation cached = avatarCache.get(name);
+        if (cached != null) return cached;
+        // 使用 AbstractClientPlayer.getLocationSkin(name) 生成 ResourceLocation
+        // 这是 Minecraft 标准皮肤路径，TextureManager 首次 bind 时自动异步下载
+        ResourceLocation loc = net.minecraft.client.entity.AbstractClientPlayer.getLocationSkin(name);
+        if (avatarCache.size() >= 50) avatarCache.clear();
+        avatarCache.put(name, loc);
+        return loc;
+    }
+
     // === Spring Animation (P1) ===
     private float animAmount = 1.0f;
     private float animVelocity = 0.0f;
@@ -113,6 +176,8 @@ public class ChromaChatManager {
     // === Message Animation Tracking (P1) — HashMap O(1) 替代 O(100) 数组遍历 ===
     private int prevLineCount = 0;
     private final java.util.HashMap<Integer, Long> msgAnimMap = new java.util.HashMap<Integer, Long>();
+    // === 去重脉冲动画 ===
+    private final java.util.HashMap<Integer, Long> dedupPulseMap = new java.util.HashMap<Integer, Long>();
 
     // === Hover Interaction (P2) ===
     private int hoveredLineIdx = -1;
@@ -138,13 +203,31 @@ public class ChromaChatManager {
         BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
         if (cfg == null || !cfg.enableChromaChat) return;
 
-        // [DEBUG] 收到了消息
-        System.out.println("[ChromaChat] intercepted: " + event.message.getUnformattedText());
-
         event.setCanceled(true);
 
         int ctr = mc.ingameGUI.getUpdateCounter();
-        long nowMs = System.currentTimeMillis();  // 真实墙上时钟
+        long nowMs = System.currentTimeMillis();
+
+        // 物理去重：与最新消息（index 0）比对发送者 + 文本
+        if (cfg.chromaChatDedup && !myChatLines.isEmpty()) {
+            MyChatLine latest = myChatLines.get(0);
+            if (latest != null) {
+                String newSender = extractSenderName(event.message);
+                String newText = event.message.getUnformattedText();
+                String oldSender = latest.senderName;
+                String oldText = latest.message.getUnformattedText();
+                if (newText.equals(oldText) &&
+                    (newSender == null ? oldSender == null : newSender.equals(oldSender))) {
+                    latest.incrementGroup();
+                    latest.lastDedupTick = ctr;
+                    if (cfg.chromaChatDedupAnim) {
+                        dedupPulseMap.put(latest.chatLineID, nowMs);
+                    }
+                    return;
+                }
+            }
+        }
+
         myChatLines.add(0, new MyChatLine(event.message, ctr, nextLineId++, nowMs));
 
         while (myChatLines.size() > MAX_LINES) {
@@ -167,6 +250,27 @@ public class ChromaChatManager {
 
         int ctr = mc.ingameGUI.getUpdateCounter();
         long nowMs = System.currentTimeMillis();
+
+        // 物理去重（与最新消息比对）
+        if (cfg.chromaChatDedup && !cc.myChatLines.isEmpty()) {
+            MyChatLine latest = cc.myChatLines.get(0);
+            if (latest != null) {
+                String newSender = extractSenderName(component);
+                String newText = component.getUnformattedText();
+                String oldSender = latest.senderName;
+                String oldText = latest.message.getUnformattedText();
+                if (newText.equals(oldText) &&
+                    (newSender == null ? oldSender == null : newSender.equals(oldSender))) {
+                    latest.incrementGroup();
+                    latest.lastDedupTick = ctr;
+                    if (cfg.chromaChatDedupAnim) {
+                        cc.dedupPulseMap.put(latest.chatLineID, nowMs);
+                    }
+                    return;
+                }
+            }
+        }
+
         cc.myChatLines.add(0, new MyChatLine(component, ctr, cc.nextLineId++, nowMs));
 
         while (cc.myChatLines.size() > MAX_LINES) {
@@ -421,12 +525,16 @@ public class ChromaChatManager {
     }
 
     // =================================================================
-    //  Render: Normal mode
+    //  Render: Normal mode（含头像 + 去重徽标）
     // =================================================================
     private void renderNormal(BetterPlayerHUDConfig cfg, List<MyChatLine> lines, int scrollPos,
                               int vis, int baseX, int chatWidth, int lineH, int baseY, int bgH,
                               int updateCounter, boolean chatOpen, float opacity, long now,
                               boolean mouseClicked, boolean showTime, int textWidth, int timeWidth) {
+        boolean showAvatar = cfg.chromaChatAvatar;
+        int avatarSize = showAvatar ? cfg.chromaChatAvatarSize : 0;
+        int avatarOffset = showAvatar ? avatarSize + 2 : 0;
+
         int drawEnd = Math.min(scrollPos + vis, lines.size());
         // 从背景框底部开始，向上排布（最新在最下）
         int y = baseY + bgH - 2;
@@ -434,7 +542,7 @@ public class ChromaChatManager {
             MyChatLine ml = lines.get(i);
             if (ml == null) continue;
 
-            int age = updateCounter - ml.updateCounter;
+            int age = updateCounter - Math.max(ml.updateCounter, ml.lastDedupTick);
             int alpha = calcAlpha(age, chatOpen, opacity);
             if (alpha <= 3) continue;
 
@@ -457,11 +565,49 @@ public class ChromaChatManager {
             for (int j = 0; j < wl.length; j++) {
                 int lineY = entryTop + j * lineH;
                 int tx = baseX + 2;
+
+                // ── 头像（仅第一行） ──
+                if (showAvatar && j == 0 && ml.senderName != null) {
+                    ResourceLocation skin = getAvatar(ml.senderName);
+                    if (skin != null) {
+                        mc.getTextureManager().bindTexture(skin);
+                        Gui.drawModalRectWithCustomSizedTexture(tx, lineY, 8, 8, avatarSize, avatarSize, 64, 64);
+                    }
+                    tx += avatarOffset;
+                }
+
                 if (showTime && j == 0) {
                     mc.fontRendererObj.drawString(ml.formattedTime, tx, lineY, (alpha << 24) | 0x888888);
                     tx += timeWidth;
                 }
+
+                // ── 消息文字（减掉头像占位后的剩余宽度） ──
+                int msgWidth = textWidth - avatarOffset;
+                if (msgWidth < 20) msgWidth = 20;
+                // 注意：wl[j] 已用原始 textWidth 换行，这里只作为显示位置偏移
                 mc.fontRendererObj.drawString(wl[j], tx, lineY, 0xFFFFFF | (alpha << 24));
+
+                // ── 去重徽标 [Nx]（仅第一行） ──
+                if (j == 0 && ml.groupCount > 1) {
+                    String badge = "[" + ml.groupCount + "x]";
+                    int bw = mc.fontRendererObj.getStringWidth(badge);
+                    int bc = cfg.chromaChatDedupBadgeColor | (Math.min(alpha + 40, 255) << 24);
+                    // 去重脉冲：短暂高亮背景
+                    Long pulseStart = dedupPulseMap.get(ml.chatLineID);
+                    if (pulseStart != null) {
+                        long pulseElapsed = Minecraft.getSystemTime() - pulseStart;
+                        if (pulseElapsed < 400L) {
+                            float pulse = 1.0f - (float)pulseElapsed / 400.0f;
+                            int pulseAlpha = (int)(40 * pulse);
+                            if (pulseAlpha > 3) {
+                                Gui.drawRect(baseX + 1, entryTop, baseX + chatWidth - 1, entryBottom, pulseAlpha << 24);
+                            }
+                        } else {
+                            dedupPulseMap.remove(ml.chatLineID);
+                        }
+                    }
+                    mc.fontRendererObj.drawString(badge, baseX + chatWidth - bw - 2, lineY, bc);
+                }
             }
 
             y = entryTop; // 上移，给下一条消息（更旧的）腾位置
