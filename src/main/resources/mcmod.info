@@ -1,9 +1,9 @@
 [
   {
     "modid": "betterplayerhud",
-    "name": "BetterPlayerHUD",
-    "description": "A lightweight Minecraft 1.8.9 HUD enhancement mod for PvP.\n\nIncludes: block outline, key presses display, dark-action-bar compass + health bar, hit markers, entity hitbox overlay (aim-only), potion timer with milk countdown, crisis warning, combo display (disabled), crosshair entity color, equipment & held item info, item count, potion effects HUD, target health bar, armor display, and more.\n\nFully customizable via in-game config GUI. Supports F7 drag-to-reposition and Ctrl+scroll resize.",
-    "version": "1.2.0",
+    "name": "BetterPlayerHUD 1.5.0 BETA",
+    "description": "BETA build — 时间戳排序调试版本。基于 723acc6（头像淡出曲线优化），数据改为按 receivedTimeMs 升序排列。",
+    "version": "1.5.0",
     "mcversion": "1.8.9",
     "author": "LegendaryD3rp",
     "url": "https://github.com/LegendaryD3rp/Minecraft-BetterPlayerHUD-1.8.9",

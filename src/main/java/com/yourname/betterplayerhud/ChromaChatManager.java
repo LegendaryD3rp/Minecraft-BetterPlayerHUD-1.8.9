@@ -163,9 +163,9 @@ public class ChromaChatManager {
         }
     }
 
-    /** 把毫秒时间格式化为 "[HH:MM] " */
+    /** 把毫秒时间格式化为 "[MM-dd HH:mm] " */
     private static String formatChatTimestamp(long ms) {
-        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("[HH:mm] ");
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("[MM-dd HH:mm] ");
         sdf.setTimeZone(java.util.TimeZone.getDefault());
         return sdf.format(new java.util.Date(ms));
     }
@@ -276,13 +276,27 @@ public class ChromaChatManager {
         // 首次连接（lastServerAddr==null）或连到不同服务器 → 清空
         if (lastServerAddr != null && !lastServerAddr.equals(newAddr)) {
             myChatLines.clear();
-            myScrollPos = 0;
+            myScrollPos = -1;
             myIsScrolled = false;
             nextLineId = 0;
             dedupPulseMap.clear();
             msgAnimMap.clear();
         }
         lastServerAddr = newAddr;
+    }
+
+    /** 二分查找插入位置（按 receivedTimeMs 升序），使列表始终 index 0 = 最早，N-1 = 最新 */
+    private static int findInsertPos(List<MyChatLine> lines, long timeMs) {
+        int lo = 0, hi = lines.size(); // hi 为 open 区间上限
+        while (lo < hi) {
+            int mid = (lo + hi) >>> 1;
+            if (lines.get(mid).receivedTimeMs < timeMs) {
+                lo = mid + 1;
+            } else {
+                hi = mid;
+            }
+        }
+        return lo;
     }
 
     // ── 调试计数（每 300 帧 ≈ 5秒 打印一次） ──
@@ -311,7 +325,7 @@ public class ChromaChatManager {
 
         // ── 物理去重折叠 ──
         if (cfg.chromaChatDedup && !myChatLines.isEmpty()) {
-            MyChatLine latest = myChatLines.get(0);
+            MyChatLine latest = myChatLines.get(myChatLines.size() - 1);
             if (latest.canFoldWith(event.message.getUnformattedText())) {
                 latest.incrementGroup();
                 latest.updateCounter = ctr;       // 刷新淡出定时器
@@ -320,14 +334,19 @@ public class ChromaChatManager {
             }
         }
 
-        myChatLines.add(0, new MyChatLine(event.message, ctr, nextLineId++, nowMs));
+        int pos = findInsertPos(myChatLines, nowMs);
+        myChatLines.add(pos, new MyChatLine(event.message, ctr, nextLineId++, nowMs));
+
+        System.out.println("[ChromaChat] INSERTED at pos=" + pos + " size=" + myChatLines.size()
+            + " time=" + new java.text.SimpleDateFormat("MM-dd HH:mm:ss.SSS").format(new java.util.Date(nowMs))
+            + " text=" + event.message.getUnformattedText().replaceAll("§.", ""));
 
         while (myChatLines.size() > MAX_LINES) {
             myChatLines.remove(myChatLines.size() - 1);
         }
 
-        // 新消息 → 回滚到最新
-        myScrollPos = 0;
+        // 新消息 → auto-scroll 到最新
+        myScrollPos = -1;
         myIsScrolled = false;
     }
 
@@ -346,7 +365,7 @@ public class ChromaChatManager {
 
         // ── 物理去重折叠 ──
         if (cfg.chromaChatDedup && !cc.myChatLines.isEmpty()) {
-            MyChatLine latest = cc.myChatLines.get(0);
+            MyChatLine latest = cc.myChatLines.get(cc.myChatLines.size() - 1);
             if (latest.canFoldWith(component.getUnformattedText())) {
                 latest.incrementGroup();
                 latest.updateCounter = ctr;
@@ -355,13 +374,14 @@ public class ChromaChatManager {
             }
         }
 
-        cc.myChatLines.add(0, new MyChatLine(component, ctr, cc.nextLineId++, nowMs));
+        int pos = findInsertPos(cc.myChatLines, nowMs);
+        cc.myChatLines.add(pos, new MyChatLine(component, ctr, cc.nextLineId++, nowMs));
 
         while (cc.myChatLines.size() > MAX_LINES) {
             cc.myChatLines.remove(cc.myChatLines.size() - 1);
         }
 
-        cc.myScrollPos = 0;
+        cc.myScrollPos = -1;
         cc.myIsScrolled = false;
     }
 
@@ -381,7 +401,7 @@ public class ChromaChatManager {
         // ── 早返：没消息 或 关闭且全过期 ──
         if (myChatLines.isEmpty()) return;
         if (!(mc.currentScreen instanceof GuiChat)) {
-            MyChatLine newest = myChatLines.get(0);
+            MyChatLine newest = myChatLines.get(myChatLines.size() - 1);
             if (newest != null && (mc.ingameGUI.getUpdateCounter() - newest.updateCounter) >= 200) return;
         }
 
@@ -399,7 +419,7 @@ public class ChromaChatManager {
         // 文本宽度 = 聊天框宽度 - 左右边距
         int textWidth = cfg.chromaChatWidth - 2;
         boolean showTime = cfg.chromaChatShowTimestamps;
-        int timeWidth = showTime ? mc.fontRendererObj.getStringWidth("[00:00] ") : 0;
+        int timeWidth = showTime ? mc.fontRendererObj.getStringWidth("[00-00 00:00] ") : 0;
         boolean showAvatar = cfg.chromaChatAvatar;
         int avatarSize = showAvatar ? cfg.chromaChatAvatarSize : 0;
         int avatarOffset = showAvatar ? avatarSize + 2 : 0;
@@ -412,7 +432,8 @@ public class ChromaChatManager {
         {
             int accumLines = 0;
             int maxVis = cfg.chromaChatLineCount;
-            for (int i = myScrollPos; i < totalLines && accumLines < maxVis; i++) {
+            int loopStart = (myScrollPos < 0) ? Math.max(0, totalLines - maxVis) : myScrollPos;
+            for (int i = loopStart; i < totalLines && accumLines < maxVis; i++) {
                 MyChatLine ml = myChatLines.get(i);
                 int n = (ml != null) ? ml.getLineCount(msgTextWidth) : 1;
                 accumLines += n;
@@ -428,18 +449,37 @@ public class ChromaChatManager {
             System.out.println("[ChromaChat] render: lines=" + myChatLines.size()
                 + " vis=" + visibleCount + " baseY=" + baseY + " bgH=" + bgH);
         }
+        // [DEBUG] 每60帧打印详细渲染状态（约每秒一次）
+        if (debugFrameCounter % 60 == 0 && !myChatLines.isEmpty()) {
+            MyChatLine first = myChatLines.get(0);
+            MyChatLine last  = myChatLines.get(myChatLines.size() - 1);
+            System.out.println("[ChromaChat] STATE: total=" + totalLines
+                + " scrollPos=" + myScrollPos + " maxScrollPos=" + Math.max(0, totalLines - visibleCount)
+                + " visibleCount=" + visibleCount + " bgBox=(" + baseX + "," + baseY + ")->(" + (baseX+chatWidth) + "," + (baseY+bgH) + ")"
+                + " first(最旧)=" + (first != null ? first.formattedTime : "null")
+                + " last(最新)=" + (last != null ? last.formattedTime : "null"));
+        }
 
         // ── 弹性动画（类 ComboHandler：每帧更新 animAmount） ──
         updateSpring(chatOpen, now, cfg);
+
+        // ── auto-scroll：默认显示最新消息（列表末尾） ──
+        //    index 0 = 最早，index N-1 = 最新
+        int maxScrollPos = Math.max(0, totalLines - visibleCount);
+        if (myScrollPos < 0 || myScrollPos > maxScrollPos) {
+            myScrollPos = maxScrollPos;
+            myIsScrolled = false;
+        }
 
         // ── 滚动检测 ──
         int wheel = pendingScroll;
         pendingScroll = 0;
         if (wheel != 0) {
             int dir = (wheel > 0) ? -1 : 1;
-            int maxScroll = Math.max(0, totalLines - Math.min(8, totalLines));
-            myScrollPos = MathHelper.clamp_int(myScrollPos + dir * 3, 0, maxScroll);
-            myIsScrolled = myScrollPos > 0;
+            // 往上滚（wheel>0）：看更旧的消息 → scrollPos 减小（靠近 0=最早）
+            // 往下滚（wheel<0）：看更新的消息 → scrollPos 增大（靠近末尾=最新）
+            myScrollPos = MathHelper.clamp_int(myScrollPos + dir * 3, 0, maxScrollPos);
+            myIsScrolled = myScrollPos < maxScrollPos;
         }
 
         // ── 鼠标状态（多行消息的Y命中检测） ──
@@ -453,10 +493,12 @@ public class ChromaChatManager {
         int newHoveredIdx = -1, newHoveredAbs = -1;
         if (inChat && chatOpen) {
             // Y 计算必须与 renderNormal 完全一致：
-            //   从 bg 底部向上排（最新在最下）
+            //   从 bg 底部向上排（最新在最下），逆序遍历（最新在前）
             int yCursor = baseY + bgH - 2;
-            for (int i = myScrollPos; i < myScrollPos + visibleCount; i++) {
-                if (i >= totalLines) break;
+            int visEnd = myScrollPos + visibleCount;
+            for (int i = visEnd - 1; i >= myScrollPos; i--) {
+                if (i >= totalLines) continue;
+                if (i < 0) break;
                 MyChatLine ml = myChatLines.get(i);
                 int n = (ml != null) ? ml.getLineCount(msgTextWidth) : 1;
                 int entryH = n * lineH;
@@ -536,7 +578,7 @@ public class ChromaChatManager {
         if (totalLines > visibleCount && visibleCount > 0 && chatOpen) {
             int sw = 6; // 滑块宽度（可点中）
             int ix = baseX + chatWidth - sw - 2;
-            int totalScrollable = totalLines - Math.min(8, totalLines);
+            int totalScrollable = totalLines - visibleCount;
             float ratio = totalScrollable > 0 ? (float) myScrollPos / totalScrollable : 0f;
             // 稳定轨道高度：固定 120px，不超过 bgH
             int stableTrackH = Math.min(120, bgH - 8);
@@ -563,7 +605,7 @@ public class ChromaChatManager {
                         // 拖拽中：跟随鼠标 Y（不管鼠标是否还在轨道范围内）
                         int clickRatio = (int)((float)(mouseSy - trackY - ih / 2) / stableTrackH * totalScrollable);
                         myScrollPos = MathHelper.clamp_int(clickRatio, 0, totalScrollable);
-                        myIsScrolled = myScrollPos > 0;
+                        myIsScrolled = myScrollPos < maxScrollPos;
                     }
                 } else {
                     scrollBtnDown = false;
@@ -621,15 +663,17 @@ public class ChromaChatManager {
                               boolean showAvatar, int avatarSize, int avatarOffset) {
         int drawEnd = Math.min(scrollPos + vis, lines.size());
         // 从背景框底部开始，向上排布（最新在最下）
+        // 注意：myChatLines 已按时间升序排列（index 0 = 最早），
+        // 因此从 drawEnd-1 逆序到 scrollPos 正序显示：最新在最下，最旧在最上
         int y = baseY + bgH - 2;
         if (drawEnd > scrollPos && (debugFrameCounter % 60) == 0) {
             MyChatLine first = lines.get(scrollPos);
             MyChatLine last  = lines.get(drawEnd - 1);
             System.err.println("[ChromaChat] order: scrollPos=" + scrollPos + " drawEnd=" + drawEnd
-                + " top(old)=" + (last != null ? last.message.getUnformattedText() : "null")
-                + " | bottom(new)=" + (first != null ? first.message.getUnformattedText() : "null"));
+                + " top(old)=" + (first != null ? first.message.getUnformattedText() : "null")
+                + " | bottom(new)=" + (last != null ? last.message.getUnformattedText() : "null"));
         }
-        for (int i = scrollPos; i < drawEnd; i++) {
+        for (int i = drawEnd - 1; i >= scrollPos; i--) {
             MyChatLine ml = lines.get(i);
             if (ml == null) continue;
 
@@ -643,6 +687,17 @@ public class ChromaChatManager {
             int entryH = wl.length * lineH;
             int entryTop = y - entryH;           // 本消息块顶部Y
             int entryBottom = entryTop + entryH; // 底部Y（= 调整前的y）
+
+            if (debugFrameCounter % 120 == 0) {
+                String cleanText = ml.message.getUnformattedText().replaceAll("§.", "");
+                if (cleanText.length() > 80) cleanText = cleanText.substring(0, 80) + "...";
+                System.out.println("[ChromaChat] RENDER i=" + i + " t=" + ml.formattedTime
+                    + " y=" + entryTop + "~" + entryBottom + " h=" + entryH
+                    + " text=" + cleanText);
+                for (int li = 0; li < wl.length; li++) {
+                    System.out.println("  L" + li + "='" + wl[li].replaceAll("§.", "") + "'");
+                }
+            }
 
             // 悬停 + 点击
             if (i == hoveredLineAbsIdx) {
@@ -797,8 +852,10 @@ public class ChromaChatManager {
         if (cur <= prev || lines.isEmpty()) return;
 
         int newCount = Math.min(cur - prev, cur);
+        // 新消息在列表末尾（按时间升序排列，最新在末尾）
         for (int i = 0; i < newCount; i++) {
-            MyChatLine ml = lines.get(i);
+            int idx = cur - 1 - i;
+            MyChatLine ml = lines.get(idx);
             if (ml == null) continue;
             if (!msgAnimMap.containsKey(ml.updateCounter)) {
                 msgAnimMap.put(ml.updateCounter, now);
