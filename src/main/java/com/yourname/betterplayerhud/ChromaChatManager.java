@@ -366,13 +366,17 @@ public class ChromaChatManager {
         // ── 弹性动画（类 ComboHandler：每帧更新 animAmount） ──
         updateSpring(chatOpen, now, cfg);
 
-        // ── 滚动检测 ──
+        // ── 滚动检测（使用 pendingScroll——TickEvent 中从 Mouse.getDWheel 预读） ──
         int wheel = pendingScroll;
         pendingScroll = 0;
         if (wheel != 0) {
-            int dir = (wheel > 0) ? 1 : -1;  // 向上滚=看更旧消息=增大scrollPos
+            // Wheel 仅在聊天框打开时才可能非零。MC 原版约定：
+            //   Mouse.getDWheel() > 0 = 向前滚 = 向上推
+            //   此处向上推 = 看更旧消息 = myScrollPos 增加
+            int prevPos = myScrollPos;
+            int dir = (wheel > 0) ? -1 : 1;  // 抵消自然滚动（物理向上→getDWheel负→dir=1→scrollPos↑看旧消息）
             int maxScroll = Math.max(0, totalLines - Math.min(8, totalLines));
-            myScrollPos = MathHelper.clamp_int(myScrollPos + dir * 3, 0, maxScroll);
+            myScrollPos = MathHelper.clamp_int(prevPos + dir * 3, 0, maxScroll);
             myIsScrolled = myScrollPos > 0;
         }
 
