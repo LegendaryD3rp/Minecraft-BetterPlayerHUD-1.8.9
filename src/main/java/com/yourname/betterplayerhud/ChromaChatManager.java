@@ -239,7 +239,8 @@ public class ChromaChatManager {
         // [DEBUG] 收到了消息
         System.out.println("[ChromaChat] intercepted: " + event.message.getUnformattedText());
 
-        event.setCanceled(true);
+        // 不 cancel 事件！其他模组的对话框监听（HitMarkerChatListener 等）需要收到消息。
+        // 双重渲染由 RenderGameOverlayEvent.Chat 的 cancel 防止。
 
         int ctr = mc.ingameGUI.getUpdateCounter();
         long nowMs = System.currentTimeMillis();  // 真实墙上时钟
