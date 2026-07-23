@@ -64,7 +64,10 @@ public class ChromaChatManager {
     // 滚轮预读（绕过 GuiChat 消耗）
     private int pendingScroll = 0;
     // ── 发送者名称提取正则 ──
-    private static final Pattern SENDER_PATTERN = Pattern.compile("^<(.+?)>");
+    private static final Pattern SENDER_PATTERN   = Pattern.compile("^<(.+?)>");
+    // 多人格式：[Rank] Name: 或 [Rank1] [Rank2] Name: 或 Name: 或 Name »
+    private static final Pattern RANK_NAME_PATTERN =
+        Pattern.compile("^(?:\\[[^\\]]*\\]\\s*)*([A-Za-z0-9_]{2,16})\\s*[:»]");
     // ── 头像缓存 ──
     private final HashMap<String, ResourceLocation> avatarCache = new HashMap<String, ResourceLocation>();
     // ── 去重脉冲动画 ──
@@ -97,11 +100,32 @@ public class ChromaChatManager {
             groupCount++;
         }
 
-        /** 从消息文本中提取发送者名（如 "<张三> 你好" → "张三"） */
+        /** 从消息文本中提取发送者名
+         *  支持格式：
+         *    <玩家名> 你好          → 玩家名
+         *    [MVP+] 玩家名: 你好   → 玩家名
+         *    [200+] [MVP++] 玩家名: 你好 → 玩家名
+         *    §9[MVP+] §b玩家名: 你好 → 玩家名（含颜色代码）
+         *    玩家名: 你好          → 玩家名
+         *    玩家名 » 你好         → 玩家名 */
         private static String extractSenderName(String text) {
             if (text == null || text.isEmpty()) return null;
-            Matcher m = SENDER_PATTERN.matcher(text);
+
+            // 1. <Name> format (vanilla, 纯文本)
+            if (text.charAt(0) == '<') {
+                Matcher m = SENDER_PATTERN.matcher(text);
+                if (m.find()) {
+                    String raw = m.group(1);
+                    // 去掉颜色代码
+                    return raw.replaceAll("§[0-9a-fk-or]", "");
+                }
+            }
+
+            // 2. 去掉颜色代码后，匹配 [Rank] Name: 格式
+            String clean = text.replaceAll("§[0-9a-fk-or]", "");
+            Matcher m = RANK_NAME_PATTERN.matcher(clean);
             if (m.find()) return m.group(1);
+
             return null;
         }
 
