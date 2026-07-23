@@ -71,6 +71,11 @@ public class ChromaChatManager {
     private final HashMap<String, ResourceLocation> avatarCache = new HashMap<String, ResourceLocation>();
     // ── 去重脉冲动画 ──
     private final java.util.HashMap<Integer, Long> dedupPulseMap = new java.util.HashMap<Integer, Long>();
+    // ── 告示牌合并缓冲 ──
+    private final java.util.ArrayList<String> signboardBuffer = new java.util.ArrayList<String>();
+    private long signboardBufferStartMs = 0;
+    private int signboardBufferCtr = 0;
+    private static final long SIGNBOARD_TIMEOUT_MS = 600;
 
     private static class MyChatLine {
         final IChatComponent message;
@@ -81,6 +86,8 @@ public class ChromaChatManager {
         // 物理去重
         int groupCount = 1;               // 去重折叠计数（>1 = 被折叠）
         int updateCounter;                // 最近一次更新时的 updateCounter（防淡出，去重时刷新）
+        // 告示牌合并
+        final String[] subLines;          // null = 普通消息，非 null = 告示牌多行块
         // 换行缓存（lazy）
         private String[] cachedLines = null;
         private int lastWrapWidth = -1;
@@ -92,6 +99,18 @@ public class ChromaChatManager {
             this.receivedTimeMs = timeMs;
             this.formattedTime = formatChatTimestamp(timeMs);
             this.senderName = extractSenderName(msg.getUnformattedText());
+            this.subLines = null;
+        }
+
+        /** 创建告示牌合并行 */
+        MyChatLine(IChatComponent msg, int ctr, int id, long timeMs, String[] subLines) {
+            this.message = msg;
+            this.updateCounter = ctr;
+            this.chatLineID = id;
+            this.receivedTimeMs = timeMs;
+            this.formattedTime = formatChatTimestamp(timeMs);
+            this.senderName = null; // 告示牌永远无头像
+            this.subLines = subLines;
         }
 
         /** 增加去重计数（物理折叠时调用） */
@@ -137,8 +156,9 @@ public class ChromaChatManager {
             return false;
         }
 
-        /** 获取换行后的文本行（缓存） */
+        /** 获取换行后的文本行（缓存）——告示牌行直接返回 subLines，不换行 */
         String[] getWrappedLines(int wrapWidth) {
+            if (subLines != null) return subLines;
             if (wrapWidth <= 0) {
                 return new String[]{message.getFormattedText()};
             }
@@ -153,6 +173,7 @@ public class ChromaChatManager {
 
         /** 本消息占用的文本行数 */
         int getLineCount(int wrapWidth) {
+            if (subLines != null) return subLines.length;
             return getWrappedLines(wrapWidth).length;
         }
 
@@ -314,37 +335,16 @@ public class ChromaChatManager {
         if (cfg == null || !cfg.enableChromaChat) return;
 
         // 跳过纯空白消息（切服时的垃圾消息）
-        if (event.message.getUnformattedText().trim().isEmpty()) return;
+        String raw = event.message.getUnformattedText();
+        if (raw.trim().isEmpty()) return;
 
         // 不 cancel 事件！其他模组的对话框监听（HitMarkerChatListener 等）需要收到消息。
         // 双重渲染由 RenderGameOverlayEvent.Chat 的 cancel 防止。
 
         int ctr = mc.ingameGUI.getUpdateCounter();
-        long nowMs = System.currentTimeMillis();  // 真实墙上时钟
-        long nowSysMs = Minecraft.getSystemTime(); // 仅用于动画脉冲
+        long nowMs = System.currentTimeMillis();
 
-        // ── 物理去重折叠 ──
-        if (cfg.chromaChatDedup && !myChatLines.isEmpty()) {
-            MyChatLine latest = myChatLines.get(myChatLines.size() - 1);
-            if (latest.canFoldWith(event.message.getUnformattedText())) {
-                latest.incrementGroup();
-                latest.updateCounter = ctr;       // 刷新淡出定时器
-                dedupPulseMap.put(ctr, nowSysMs);
-                return; // 不添加新消息，不踢 scrollPos
-            }
-        }
-
-        int pos = findInsertPos(myChatLines, nowMs);
-        myChatLines.add(pos, new MyChatLine(event.message, ctr, nextLineId++, nowMs));
-
-        int maxLines = cfg != null ? cfg.chromaChatMaxLines : 100;
-        while (myChatLines.size() > maxLines) {
-            myChatLines.remove(0);
-        }
-
-        // 新消息 → auto-scroll 到最新
-        myScrollPos = -1;
-        myIsScrolled = false;
+        routeIncoming(raw, event.message, ctr, nowMs);
     }
 
     // =================================================================
@@ -356,31 +356,147 @@ public class ChromaChatManager {
         BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
         if (cfg == null || !cfg.enableChromaChat) return;
 
+        String raw = component.getUnformattedText();
+        if (raw.trim().isEmpty()) return;
+
         int ctr = mc.ingameGUI.getUpdateCounter();
         long nowMs = System.currentTimeMillis();
-        long nowSysMs = Minecraft.getSystemTime();
+
+        cc.routeIncoming(raw, component, ctr, nowMs);
+    }
+
+    // =================================================================
+    //  告示牌公告板合并
+    // =================================================================
+
+    /**
+     * 判断一行文本是否是「告示牌」行（应合并入公告板）。
+     * 告示牌特征：装饰线、空行、居中文本、系统 XP 消息等。
+     */
+    private static boolean isSignboardLine(String text) {
+        if (text == null || text.isEmpty()) return false;
+        String trimmed = text.trim();
+        int len = trimmed.length();
+
+        // 1. 纯装饰线：8+ 个重复非字母数字字符（- = ? ~ _ * !）
+        if (len >= 8) {
+            char first = trimmed.charAt(0);
+            boolean allSame = true;
+            for (int i = 1; i < len && allSame; i++) {
+                if (trimmed.charAt(i) != first) allSame = false;
+            }
+            if (allSame && !Character.isLetterOrDigit(first)) return true;
+        }
+
+        // 2. 空白行
+        if (trimmed.isEmpty()) return true;
+
+        // 3. XP 消息行
+        if (trimmed.matches("^\\+?\\d+\\s+.*[Xx][Pp]\\s*\\(.*\\)\\s*$")) return true;
+
+        // 4. 好友请求对话框
+        if (trimmed.startsWith("Friend request from")
+            || trimmed.contains("[ACCEPT] - [DENY]")
+            || trimmed.contains("[ACCEPT] - [BLOCK]")) return true;
+
+        // 5. 居中文本：4+ 前导空格，且非玩家聊天（带 rank: 格式的排除）
+        int leadingSpaces = 0;
+        for (int i = 0; i < text.length(); i++) {
+            if (text.charAt(i) == ' ') leadingSpaces++;
+            else break;
+        }
+        if (leadingSpaces >= 4) {
+            // 排除 [Rank] Name: message（玩家聊天被错误缩进）
+            if (trimmed.matches("^\\[.*\\].*:.*")) return false;
+            return true;
+        }
+
+        return false;
+    }
+
+    /** 把缓冲的告示牌行 flush 为一条合并的 MyChatLine */
+    private void flushSignboardBuffer() {
+        if (signboardBuffer.isEmpty()) return;
+        BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
+        if (cfg == null || !cfg.enableChromaChat) {
+            signboardBuffer.clear();
+            return;
+        }
+
+        String[] lines = signboardBuffer.toArray(new String[0]);
+        // 在顶部加一个空行，与上条消息视觉隔开
+        String[] outLines = new String[lines.length + 1];
+        outLines[0] = "";
+        System.arraycopy(lines, 0, outLines, 1, lines.length);
+        // 合并文本作为 IChatComponent
+        StringBuilder sb = new StringBuilder();
+        for (String l : outLines) {
+            if (sb.length() > 0) sb.append("\n");
+            sb.append(l);
+        }
+        IChatComponent merged = new ChatComponentText(sb.toString());
+        MyChatLine sl = new MyChatLine(merged, signboardBufferCtr, nextLineId++, signboardBufferStartMs, outLines);
+
+        int pos = findInsertPos(myChatLines, signboardBufferStartMs);
+        myChatLines.add(pos, sl);
+
+        int maxLines = cfg.chromaChatMaxLines;
+        while (myChatLines.size() > maxLines) {
+            myChatLines.remove(0);
+        }
+
+        signboardBuffer.clear();
+    }
+
+    /** 将所有消息入口路由至此：检测告示牌并缓冲 */
+    private void routeIncoming(String rawText, IChatComponent component, int ctr, long nowMs) {
+        BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
+        if (cfg == null || !cfg.enableChromaChat) return;
+
+        boolean isBoard = cfg.chromaChatSignboardMerge && isSignboardLine(rawText);
+
+        if (isBoard) {
+            // ── 告示牌行：入缓冲 ──
+            if (signboardBuffer.isEmpty()) {
+                signboardBufferStartMs = nowMs;
+                signboardBufferCtr = ctr;
+            }
+            signboardBuffer.add(rawText);
+            return;
+        }
+
+        // ── 非告示牌行：先 flush 缓冲 ──
+        flushSignboardBuffer();
 
         // ── 物理去重折叠 ──
-        if (cfg.chromaChatDedup && !cc.myChatLines.isEmpty()) {
-            MyChatLine latest = cc.myChatLines.get(cc.myChatLines.size() - 1);
-            if (latest.canFoldWith(component.getUnformattedText())) {
+        if (cfg.chromaChatDedup && !myChatLines.isEmpty()) {
+            MyChatLine latest = myChatLines.get(myChatLines.size() - 1);
+            if (latest.canFoldWith(rawText)) {
                 latest.incrementGroup();
                 latest.updateCounter = ctr;
-                cc.dedupPulseMap.put(ctr, nowSysMs);
-                return; // 不添加新消息，不踢 scrollPos
+                dedupPulseMap.put(ctr, Minecraft.getSystemTime());
+                return;
             }
         }
 
-        int pos = findInsertPos(cc.myChatLines, nowMs);
-        cc.myChatLines.add(pos, new MyChatLine(component, ctr, cc.nextLineId++, nowMs));
+        int pos = findInsertPos(myChatLines, nowMs);
+        myChatLines.add(pos, new MyChatLine(component, ctr, nextLineId++, nowMs));
 
         int maxLines = cfg.chromaChatMaxLines;
-        while (cc.myChatLines.size() > maxLines) {
-            cc.myChatLines.remove(0);
+        while (myChatLines.size() > maxLines) {
+            myChatLines.remove(0);
         }
 
-        cc.myScrollPos = -1;
-        cc.myIsScrolled = false;
+        myScrollPos = -1;
+        myIsScrolled = false;
+    }
+
+    /** 在 ClientTick 中检查告示牌超时自动 flush */
+    private void tickSignboard() {
+        if (signboardBuffer.isEmpty()) return;
+        if (System.currentTimeMillis() - signboardBufferStartMs > SIGNBOARD_TIMEOUT_MS) {
+            flushSignboardBuffer();
+        }
     }
 
     // =================================================================
@@ -669,13 +785,20 @@ public class ChromaChatManager {
                 }
             }
 
+            // 告示牌：整块半透明背景 + 无头像 + 仅首行时间戳 + 灰色文字
+            boolean isBoard = ml.subLines != null;
+            if (isBoard) {
+                // 浅色半透明背景，指示这是一块系统公告板
+                Gui.drawRect(baseX + 1, entryTop, baseX + chatWidth - 1, entryBottom, 0x22000000 | (alpha << 24));
+            }
+
             // 逐行绘制（从上往下）
             for (int j = 0; j < wl.length; j++) {
                 int lineY = entryTop + j * lineH;
                 int tx = baseX + 2;
 
-                // ── 头像（仅第一行，同 PlayerHUDHandler.renderPlayerHead） ──
-                if (showAvatar && j == 0 && ml.senderName != null) {
+                // ── 头像（仅第一行，非告示牌） ──
+                if (!isBoard && showAvatar && j == 0 && ml.senderName != null) {
                     ResourceLocation skin = getAvatar(i);
                     if (skin != null) {
                         mc.getTextureManager().bindTexture(skin);
@@ -700,10 +823,11 @@ public class ChromaChatManager {
                     mc.fontRendererObj.drawString(ml.formattedTime, tx, lineY, tsColor);
                     tx += timeWidth;
                 }
-                mc.fontRendererObj.drawString(wl[j], tx, lineY, 0xFFFFFF | (alpha << 24));
+                int textColor = isBoard ? (0xAAAAAA | (alpha << 24)) : (0xFFFFFF | (alpha << 24));
+                mc.fontRendererObj.drawString(wl[j], tx, lineY, textColor);
 
-                // ── 去重徽标 [Nx]（显示在最后一行后） ──
-                if (ml.groupCount > 1 && j == wl.length - 1) {
+                // ── 去重徽标 [Nx]（告示牌不显示） ──
+                if (!isBoard && ml.groupCount > 1 && j == wl.length - 1) {
                     String badge = " [" + ml.groupCount + "x]";
                     int badgeColor = cfg.chromaChatDedupBadgeColor & 0x00FFFFFF;
                     // 脉冲动画：闪烁白色
@@ -756,9 +880,12 @@ public class ChromaChatManager {
     // =================================================================
     @SubscribeEvent
     public void onClientTick(TickEvent.ClientTickEvent event) {
-        if (event.phase == TickEvent.Phase.START && mc.currentScreen instanceof GuiChat) {
-            int w = Mouse.getDWheel();
-            if (w != 0) pendingScroll = w;
+        if (event.phase == TickEvent.Phase.START) {
+            tickSignboard(); // 检查告示牌超时 flush
+            if (mc.currentScreen instanceof GuiChat) {
+                int w = Mouse.getDWheel();
+                if (w != 0) pendingScroll = w;
+            }
         }
     }
 

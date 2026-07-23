@@ -81,6 +81,26 @@ bhud.hitmarker.kill=💀 击杀视觉效果
 bhud.hitmarker.border=⬜ 边框
 bhud.hitmarker.rotation=🔄 旋转
 
+# ── 方块破坏进度指示器子分类 ──
+bhud.blockbreak=方块破坏进度条
+bhud.blockbreak.basic=基本设置
+bhud.blockbreak.color=颜色
+bhud.blockbreak.display=显示选项
+
+# ── ChromaChat 子分类 ──
+bhud.chroma=「蜃楼」ChromaChat
+bhud.chroma.basic=基本设置
+bhud.chroma.bg=外观·背景
+bhud.chroma.border=外观·边框
+bhud.chroma.hover=外观·悬停高亮
+bhud.chroma.timestamp=外观·时间戳
+bhud.chroma.animation=动画
+bhud.chroma.dedup=消息折叠
+bhud.chroma.avatar=玩家头像
+bhud.chroma.board=告示牌合并
+chromaChatSignboardMerge=合并系统公告板
+chromaChatSignboardMerge.tooltip=自动合并装饰线/居中文本/XP等非玩家消息为完整公告板块，避免逐行带时间戳和头像展示
+
 # ================================================================
 # 配置属性显示名称
 # ================================================================

@@ -209,6 +209,7 @@ public class BetterPlayerHUD {
         MinecraftForge.EVENT_BUS.register(new DistanceHUDHandler());
         MinecraftForge.EVENT_BUS.register(new BlockOutlineHandler());
         MinecraftForge.EVENT_BUS.register(new TargetHealthHandler());
+        MinecraftForge.EVENT_BUS.register(new BlockBreakIndicator());
         KeysDisplayHandler.register();
 
         // 注册配置 GUI 变更监听器（确保设置页面显示最新值）

@@ -81,6 +81,26 @@ bhud.hitmarker.kill=💀 Kill Effects
 bhud.hitmarker.border=⬜ Border
 bhud.hitmarker.rotation=🔄 Rotation
 
+# ── Block Break Indicator sub-categories ──
+bhud.blockbreak=Block Break Progress
+bhud.blockbreak.basic=Basic
+bhud.blockbreak.color=Colors
+bhud.blockbreak.display=Display Options
+
+# ── ChromaChat sub-categories ──
+bhud.chroma=ChromaChat
+bhud.chroma.basic=Basic
+bhud.chroma.bg=Appearance · Background
+bhud.chroma.border=Appearance · Border
+bhud.chroma.hover=Appearance · Hover Highlight
+bhud.chroma.timestamp=Appearance · Timestamp
+bhud.chroma.animation=Animation
+bhud.chroma.dedup=Message Collapse
+bhud.chroma.avatar=Player Avatar
+bhud.chroma.board=Signboard Merge
+chromaChatSignboardMerge=Merge Signboard Messages
+chromaChatSignboardMerge.tooltip=Merge decoration lines, centered text, XP messages etc. into grouped signboard blocks, removing individual timestamps and avatars
+
 # ================================================================
 # Config Property Display Names
 # ================================================================

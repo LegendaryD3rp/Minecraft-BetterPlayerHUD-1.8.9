@@ -168,6 +168,10 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
         elements.add(new DummyConfigElement.DummyCategoryElement(
                 "bhud.combo", "bhud.combo", getComboConfigElements()));
 
+        // === 模块26：方块破坏进度指示器 ===
+        elements.add(new DummyConfigElement.DummyCategoryElement(
+                "bhud.blockbreak", "bhud.blockbreak", getBlockBreakConfigElements()));
+
         // === 模块27：ChromaChat ===
         elements.add(new DummyConfigElement.DummyCategoryElement(
                 "bhud.chroma", "bhud.chroma", getChromaChatConfigElements()));
@@ -455,6 +459,32 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
         return list;
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    //  模块26：方块破坏进度指示器 — 子分类
+    // ═══════════════════════════════════════════════════════════════
+    private static List<IConfigElement> getBlockBreakConfigElements() {
+        List<IConfigElement> list = new ArrayList<>();
+        // ── 基本设置 ──
+        list.add(new DummyConfigElement.DummyCategoryElement(
+                "bhud.blockbreak.basic", "bhud.blockbreak.basic", el(
+                "enableBlockBreakIndicator",
+                "blockBreakIndicatorX", "blockBreakIndicatorY",
+                "blockBreakIndicatorWidth", "blockBreakIndicatorHeight")));
+        // ── 颜色 ──
+        list.add(ColorPreviewHelper.createPreviewCategory("bhud.blockbreak.color", "bhud.blockbreak.color", el(),
+                new ColorPreviewHelper.ColorInfo[]{
+                    new ColorPreviewHelper.ColorInfo("blockBreakIndicatorColorStart", "起始颜色（0% 绿色）"),
+                    new ColorPreviewHelper.ColorInfo("blockBreakIndicatorColorEnd", "结束颜色（100% 红色）")
+                }, ""));
+        // ── 显示选项 ──
+        list.add(new DummyConfigElement.DummyCategoryElement(
+                "bhud.blockbreak.display", "bhud.blockbreak.display", el(
+                "blockBreakIndicatorShowPercent",
+                "blockBreakIndicatorShowTime",
+                "blockBreakIndicatorTimeSmoothing")));
+        return list;
+    }
+
     // ================================================================
     //  模块23：装备&手持物品 HUD
     // ================================================================
@@ -520,14 +550,18 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
         Configuration c = cfg();
         // ── 基本设置 ──
         list.add(new DummyConfigElement.DummyCategoryElement(
-                "bhud.chroma.basic", "§l基本设置", el(
+                "bhud.chroma.basic", "bhud.chroma.basic", el(
                 "enableChromaChat", "chromaChatShowTimestamps", "chromaChatTimestampFormat",
                 "chromaChatMaxLines", "chromaChatWidth", "chromaChatLineCount")));
+        // ── 告示牌合并 ──
+        list.add(new DummyConfigElement.DummyCategoryElement(
+                "bhud.chroma.board", "bhud.chroma.board", el(
+                "chromaChatSignboardMerge")));
         // ── 外观·背景 ──
         {
             List<IConfigElement> items = ColorPreviewHelper.createColorElementsARGB(c, cat(), "chromaChatBackground");
             list.add(ColorPreviewHelper.createPreviewCategory(
-                    "chroma.bg", "§l外观·背景", items,
+                    "chroma.bg", "bhud.chroma.bg", items,
                     new ColorPreviewHelper.ColorInfoARGB[]{new ColorPreviewHelper.ColorInfoARGB("chromaChatBackground", "背景色")}, ""));
         }
         // ── 外观·边框 ──
@@ -535,7 +569,7 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
             List<IConfigElement> items = ColorPreviewHelper.createColorElementsARGB(c, cat(), "chromaChatBorder");
             addEl(items, "chromaChatBorderRadius");
             list.add(ColorPreviewHelper.createPreviewCategory(
-                    "chroma.border", "§l外观·边框", items,
+                    "chroma.border", "bhud.chroma.border", items,
                     new ColorPreviewHelper.ColorInfoARGB[]{new ColorPreviewHelper.ColorInfoARGB("chromaChatBorder", "边框色")}, ""));
         }
         // ── 外观·悬停高亮 ──
@@ -543,19 +577,19 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
             List<IConfigElement> items = ColorPreviewHelper.createColorElementsARGB(c, cat(), "chromaChatHoverColor");
             addEl(items, "chromaChatHoverHighlight");
             list.add(ColorPreviewHelper.createPreviewCategory(
-                    "chroma.hover", "§l外观·悬停高亮", items,
+                    "chroma.hover", "bhud.chroma.hover", items,
                     new ColorPreviewHelper.ColorInfoARGB[]{new ColorPreviewHelper.ColorInfoARGB("chromaChatHoverColor", "悬停高亮色")}, ""));
         }
         // ── 外观·时间戳颜色 ──
         {
             List<IConfigElement> items = ColorPreviewHelper.createColorElements(c, cat(), "chromaChatTimestampColor");
             list.add(ColorPreviewHelper.createPreviewCategory(
-                    "chroma.timestamp", "§l外观·时间戳", items,
+                    "chroma.timestamp", "bhud.chroma.timestamp", items,
                     new ColorPreviewHelper.ColorInfo[]{new ColorPreviewHelper.ColorInfo("chromaChatTimestampColor", "时间戳颜色")}, ""));
         }
         // ── 动画 ──
         list.add(new DummyConfigElement.DummyCategoryElement(
-                "bhud.chroma.animation", "§l动画", el(
+                "bhud.chroma.animation", "bhud.chroma.animation", el(
                 "chromaChatAnimBounciness", "chromaChatMsgAnimEnable", "chromaChatMsgAnimDuration")));
         // ── 消息折叠 ──
         {
@@ -563,12 +597,12 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
             addEl(items, "chromaChatDedup");
             addEl(items, "chromaChatDedupAnim");
             list.add(ColorPreviewHelper.createPreviewCategory(
-                    "chroma.dedup", "§l消息折叠", items,
+                    "chroma.dedup", "bhud.chroma.dedup", items,
                     new ColorPreviewHelper.ColorInfoARGB[]{new ColorPreviewHelper.ColorInfoARGB("chromaChatDedupBadgeColor", "折叠徽标色")}, ""));
         }
         // ── 玩家头像 ──
         list.add(new DummyConfigElement.DummyCategoryElement(
-                "bhud.chroma.avatar", "§l玩家头像", el(
+                "bhud.chroma.avatar", "bhud.chroma.avatar", el(
                 "chromaChatAvatar", "chromaChatAvatarSize", "chromaChatAvatarRounded")));
         return list;
     }

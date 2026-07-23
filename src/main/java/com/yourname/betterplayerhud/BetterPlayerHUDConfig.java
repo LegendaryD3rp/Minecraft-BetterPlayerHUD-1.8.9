@@ -311,13 +311,27 @@ public class BetterPlayerHUDConfig {
     public float comboScale = 1.0f;
 
     // ================================================================
+    //  模块26：方块破坏进度指示器 （Block Break Indicator）
+    // ================================================================
+    public boolean enableBlockBreakIndicator = true;   // 总开关
+    public int blockBreakIndicatorX = 0;               // 水平偏移（相对十字准星中心）
+    public int blockBreakIndicatorY = 14;              // 垂直偏移（准星下方 px）
+    public int blockBreakIndicatorWidth = 40;          // 进度条宽度
+    public int blockBreakIndicatorHeight = 4;          // 进度条高度
+    public int blockBreakIndicatorColorStart = 0x00FF00; // 起始颜色（0% 时）
+    public int blockBreakIndicatorColorEnd = 0xFF0000;   // 结束颜色（100% 时）
+    public boolean blockBreakIndicatorShowPercent = true; // 显示百分比文字
+    public boolean blockBreakIndicatorShowTime = true;    // 显示剩余时间
+    public float blockBreakIndicatorTimeSmoothing = 0.3f; // 速率平滑因子（越低越稳）
+
+    // ================================================================
     //  模块27：「蜃楼」ChromaChat — 现代聊天框
     // ================================================================
     public boolean enableChromaChat = false;           // 总开关
     // ── 位置 & 尺寸 ──
     public int chromaChatXOffset = 0;                  // F7 编辑 X 偏移
     public int chromaChatYOffset = 0;                  // F7 编辑 Y 偏移
-    public int chromaChatWidth = 320;                  // 聊天框宽度(px)
+    public int chromaChatWidth = 420;                  // 聊天框宽度(px)，420≈Hypixel告示板兼容宽度
     public int chromaChatLineCount = 8;                // 可见行数
     public int chromaChatMaxLines = 100;               // 缓存总条数
     // ── 外观 ──
@@ -344,6 +358,8 @@ public class BetterPlayerHUDConfig {
     public boolean chromaChatAvatar = true;             // 显示发送者头像
     public int chromaChatAvatarSize = 10;                // 头像大小 (px)
     public boolean chromaChatAvatarRounded = true;       // 头像圆角展开
+    // ── 告示牌合并 ──
+    public boolean chromaChatSignboardMerge = true;      // 合并系统公告板行
 
     // ================================================================
     //  颜色工具方法
@@ -1073,6 +1089,27 @@ public class BetterPlayerHUDConfig {
             p = config.get(C, "comboScale", 1.0);
             p.comment = "缩放"; p.setMinValue(0.1).setMaxValue(5.0); comboScale = (float) p.getDouble();
         }
+        // --- 模块26：方块破坏进度指示器 ---
+        {
+            Property p = config.get(C, "enableBlockBreakIndicator", true);
+            p.comment = "显示方块破坏进度条"; enableBlockBreakIndicator = p.getBoolean();
+            p = config.get(C, "blockBreakIndicatorX", 0);
+            p.comment = "水平偏移"; p.setMinValue(-100).setMaxValue(100); blockBreakIndicatorX = p.getInt();
+            p = config.get(C, "blockBreakIndicatorY", 14);
+            p.comment = "垂直偏移（准星下方）"; p.setMinValue(0).setMaxValue(100); blockBreakIndicatorY = p.getInt();
+            p = config.get(C, "blockBreakIndicatorWidth", 40);
+            p.comment = "进度条宽度"; p.setMinValue(10).setMaxValue(200); blockBreakIndicatorWidth = p.getInt();
+            p = config.get(C, "blockBreakIndicatorHeight", 4);
+            p.comment = "进度条高度"; p.setMinValue(2).setMaxValue(20); blockBreakIndicatorHeight = p.getInt();
+            blockBreakIndicatorColorStart = loadColor(C, "blockBreakIndicatorColorStart", 0x00, 0xFF, 0x00);
+            blockBreakIndicatorColorEnd = loadColor(C, "blockBreakIndicatorColorEnd", 0xFF, 0x00, 0x00);
+            p = config.get(C, "blockBreakIndicatorShowPercent", true);
+            p.comment = "显示百分比"; blockBreakIndicatorShowPercent = p.getBoolean();
+            p = config.get(C, "blockBreakIndicatorShowTime", true);
+            p.comment = "显示剩余时间"; blockBreakIndicatorShowTime = p.getBoolean();
+            p = config.get(C, "blockBreakIndicatorTimeSmoothing", 0.3);
+            p.comment = "速率平滑因子(0~1, 越低越稳)"; p.setMinValue(0.01).setMaxValue(1.0); blockBreakIndicatorTimeSmoothing = (float) p.getDouble();
+        }
 
         // --- 模块27：ChromaChat ---
         {
@@ -1082,8 +1119,8 @@ public class BetterPlayerHUDConfig {
             p.comment = "位置偏移X（F7编辑模式设置）"; chromaChatXOffset = p.getInt();
             p = config.get(C, "chromaChatYOffset", 0);
             p.comment = "位置偏移Y（F7编辑模式设置）"; chromaChatYOffset = p.getInt();
-            p = config.get(C, "chromaChatWidth", 320);
-            p.comment = "聊天框宽度"; p.setMinValue(80).setMaxValue(800); chromaChatWidth = p.getInt();
+            p = config.get(C, "chromaChatWidth", 420);
+            p.comment = "聊天框宽度(420≈Hypixel告示板)"; p.setMinValue(80).setMaxValue(800); chromaChatWidth = p.getInt();
             p = config.get(C, "chromaChatLineCount", 8);
             p.comment = "可见行数"; p.setMinValue(1).setMaxValue(50); chromaChatLineCount = p.getInt();
             p = config.get(C, "chromaChatMaxLines", 100);
@@ -1117,6 +1154,9 @@ public class BetterPlayerHUDConfig {
             p.comment = "头像大小 (px)"; p.setMinValue(4).setMaxValue(16); chromaChatAvatarSize = p.getInt();
             p = config.get(C, "chromaChatAvatarRounded", true);
             p.comment = "头像圆角裁剪"; chromaChatAvatarRounded = p.getBoolean();
+            p = config.get(C, "chromaChatSignboardMerge", true);
+            p.comment = "合并系统公告板（装饰线/居中文本/XP等），避免逐行带时间戳和头像展示"; 
+            chromaChatSignboardMerge = p.getBoolean();
         }
 
     }
@@ -1374,11 +1414,23 @@ public class BetterPlayerHUDConfig {
         config.get(C, "comboYOffset", 0).set(comboYOffset);
         config.get(C, "comboScale", 1.0).set(comboScale);
 
+        // --- 模块26：方块破坏进度指示器 ---
+        config.get(C, "enableBlockBreakIndicator", true).set(enableBlockBreakIndicator);
+        config.get(C, "blockBreakIndicatorX", 0).set(blockBreakIndicatorX);
+        config.get(C, "blockBreakIndicatorY", 14).set(blockBreakIndicatorY);
+        config.get(C, "blockBreakIndicatorWidth", 40).set(blockBreakIndicatorWidth);
+        config.get(C, "blockBreakIndicatorHeight", 4).set(blockBreakIndicatorHeight);
+        saveColor(C, "blockBreakIndicatorColorStart", blockBreakIndicatorColorStart);
+        saveColor(C, "blockBreakIndicatorColorEnd", blockBreakIndicatorColorEnd);
+        config.get(C, "blockBreakIndicatorShowPercent", true).set(blockBreakIndicatorShowPercent);
+        config.get(C, "blockBreakIndicatorShowTime", true).set(blockBreakIndicatorShowTime);
+        config.get(C, "blockBreakIndicatorTimeSmoothing", 0.3).set(blockBreakIndicatorTimeSmoothing);
+
         // --- 模块27：ChromaChat ---
         config.get(C, "enableChromaChat", false).set(enableChromaChat);
         config.get(C, "chromaChatXOffset", 0).set(chromaChatXOffset);
         config.get(C, "chromaChatYOffset", 0).set(chromaChatYOffset);
-        config.get(C, "chromaChatWidth", 320).set(chromaChatWidth);
+        config.get(C, "chromaChatWidth", 420).set(chromaChatWidth);
         config.get(C, "chromaChatLineCount", 8).set(chromaChatLineCount);
         config.get(C, "chromaChatMaxLines", 100).set(chromaChatMaxLines);
         saveColorARGB(C, "chromaChatBackground", chromaChatBackgroundColor);
@@ -1398,6 +1450,7 @@ public class BetterPlayerHUDConfig {
         config.get(C, "chromaChatAvatar", true).set(chromaChatAvatar);
         config.get(C, "chromaChatAvatarSize", 10).set(chromaChatAvatarSize);
         config.get(C, "chromaChatAvatarRounded", true).set(chromaChatAvatarRounded);
+        config.get(C, "chromaChatSignboardMerge", true).set(chromaChatSignboardMerge);
 
         // 持久化到磁盘
         config.save();
