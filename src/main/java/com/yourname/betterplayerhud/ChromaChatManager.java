@@ -105,6 +105,15 @@ public class ChromaChatManager {
             return null;
         }
 
+        /** 判断新消息是否可折叠到本条（同发送者类型 + 同内容） */
+        boolean canFoldWith(String otherText) {
+            if (!message.getUnformattedText().equals(otherText)) return false;
+            String otherSender = extractSenderName(otherText);
+            if (senderName == null && otherSender == null) return true;   // 双方都是系统消息
+            if (senderName != null && senderName.equals(otherSender)) return true; // 同一发送者
+            return false;
+        }
+
         /** 获取换行后的文本行（缓存） */
         String[] getWrappedLines(int wrapWidth) {
             if (wrapWidth <= 0) {
@@ -249,8 +258,7 @@ public class ChromaChatManager {
         // ── 物理去重折叠 ──
         if (cfg.chromaChatDedup && !myChatLines.isEmpty()) {
             MyChatLine latest = myChatLines.get(0);
-            if (latest.senderName != null
-                    && latest.message.getUnformattedText().equals(event.message.getUnformattedText())) {
+            if (latest.canFoldWith(event.message.getUnformattedText())) {
                 latest.incrementGroup();
                 latest.updateCounter = ctr;       // 刷新淡出定时器
                 dedupPulseMap.put(ctr, nowSysMs);
@@ -285,8 +293,7 @@ public class ChromaChatManager {
         // ── 物理去重折叠 ──
         if (cfg.chromaChatDedup && !cc.myChatLines.isEmpty()) {
             MyChatLine latest = cc.myChatLines.get(0);
-            if (latest.senderName != null
-                    && latest.message.getUnformattedText().equals(component.getUnformattedText())) {
+            if (latest.canFoldWith(component.getUnformattedText())) {
                 latest.incrementGroup();
                 latest.updateCounter = ctr;
                 cc.dedupPulseMap.put(ctr, nowSysMs);
