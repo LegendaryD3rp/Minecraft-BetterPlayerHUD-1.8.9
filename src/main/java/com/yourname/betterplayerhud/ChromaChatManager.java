@@ -1,7 +1,7 @@
 package com.yourname.betterplayerhud;
 
-import net.minecraft.client.Minecraft;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiChat;
 import net.minecraft.client.gui.ScaledResolution;
@@ -21,7 +21,6 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import org.lwjgl.input.Mouse;
-import org.lwjgl.opengl.GL11;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -58,7 +57,7 @@ public class ChromaChatManager {
     private boolean scrollBtnDown = false;
     private boolean scrollDragging = false;
     private int nextLineId = 1;
-    // 滚轮预读（在 tick 阶段抢在 GuiChat.handleMouseInput 读取/消耗事件后，依然可读）
+    // 滚轮预读（绕过 GuiChat 消耗）
     private int pendingScroll = 0;
     // ── 发送者名称提取正则 ──
     private static final Pattern SENDER_PATTERN = Pattern.compile("^<(.+?)>");
@@ -154,31 +153,18 @@ public class ChromaChatManager {
     }
 
     // =================================================================
-    //  玩家头像获取
-    //  直接使用 AbstractClientPlayer.getLocationSkin(name) 生成标准皮肤路径。
-    //  TextureManager 在 bindTexture 时自动异步下载，下载完成前显示默认皮肤。
+    //  玩家头像缓存
     // =================================================================
     private ResourceLocation getAvatar(String name) {
         if (name == null) return null;
         ResourceLocation cached = avatarCache.get(name);
         if (cached != null) return cached;
+        // 使用 AbstractClientPlayer.getLocationSkin(name) 生成 ResourceLocation
+        // 这是 Minecraft 标准皮肤路径，TextureManager 首次 bind 时自动异步下载
         ResourceLocation loc = net.minecraft.client.entity.AbstractClientPlayer.getLocationSkin(name);
         if (avatarCache.size() >= 50) avatarCache.clear();
         avatarCache.put(name, loc);
         return loc;
-    }
-
-    /** 绘制纹理矩形（归一化 UV 坐标，同 PlayerHUDHandler.renderPlayerHead） */
-    private static void drawTextureRect(int x, int y, int w, int h,
-                                        float uMin, float vMin, float uMax, float vMax) {
-        Tessellator tess = Tessellator.getInstance();
-        WorldRenderer wr = tess.getWorldRenderer();
-        wr.begin(7, DefaultVertexFormats.POSITION_TEX);
-        wr.pos(x,       y + h, 0.0D).tex(uMin, vMax).endVertex();
-        wr.pos(x + w,   y + h, 0.0D).tex(uMax, vMax).endVertex();
-        wr.pos(x + w,   y,     0.0D).tex(uMax, vMin).endVertex();
-        wr.pos(x,       y,     0.0D).tex(uMin, vMin).endVertex();
-        tess.draw();
     }
 
     // === Spring Animation (P1) ===
@@ -216,8 +202,7 @@ public class ChromaChatManager {
         event.setCanceled(true);
 
         int ctr = mc.ingameGUI.getUpdateCounter();
-        long nowMs = System.currentTimeMillis();  // 真实世界时间（用于时间戳）
-        long nowSysMs = Minecraft.getSystemTime(); // 游戏时间（用于动画脉冲）
+        long nowMs = Minecraft.getSystemTime();
 
         // 物理去重：与最新消息（index 0）比对发送者 + 文本
         if (cfg.chromaChatDedup && !myChatLines.isEmpty()) {
@@ -260,8 +245,7 @@ public class ChromaChatManager {
         if (cfg == null || !cfg.enableChromaChat) return;
 
         int ctr = mc.ingameGUI.getUpdateCounter();
-        long nowMs = System.currentTimeMillis();  // 真实世界时间（用于时间戳）
-        long nowSysMs = Minecraft.getSystemTime(); // 游戏时间（用于动画脉冲）
+        long nowMs = Minecraft.getSystemTime();
 
         // 物理去重（与最新消息比对）
         if (cfg.chromaChatDedup && !cc.myChatLines.isEmpty()) {
@@ -276,7 +260,7 @@ public class ChromaChatManager {
                     latest.incrementGroup();
                     latest.lastDedupTick = ctr;
                     if (cfg.chromaChatDedupAnim) {
-                        cc.dedupPulseMap.put(latest.chatLineID, nowSysMs);
+                        cc.dedupPulseMap.put(latest.chatLineID, nowMs);
                     }
                     return;
                 }
@@ -351,24 +335,12 @@ public class ChromaChatManager {
         updateSpring(chatOpen, now, cfg);
 
         // ── 滚动检测 ──
-        // Mouse.getDWheel() 返回自上次 poll() 以来的累积滚轮增量。
-        // 不管 GuiChat 是否消耗了事件队列，getDWheel() 的值都会保留到下一轮 poll()。
-        // 所以直接在渲染时读取即可，不需要 TickEvent 预读。
-        int wheel = 0;
-        if (pendingScroll != 0) {
-            wheel = pendingScroll;
-            pendingScroll = 0;
-        } else {
-            // Fallback: 在非 GuiChat 模式下直接从 getDWheel 读
-            wheel = Mouse.getDWheel();
-        }
-        if (wheel != 0 && (mc.currentScreen instanceof GuiChat || myScrollPos > 0)) {
-            // 方向约定：wheel > 0 = 物理向上（滚轮远离用户=向上推）
-            //   Natural scrolling 反转该符号，此处硬编码不做适配
-            int dir = (wheel > 0) ? -1 : 1;  // 向上滚=看更旧消息=scrollPos↑
+        int wheel = pendingScroll;
+        pendingScroll = 0;
+        if (wheel != 0) {
+            int dir = (wheel > 0) ? -1 : 1;  // 反转：向上滚=看更旧消息=增大scrollPos
             int maxScroll = Math.max(0, totalLines - Math.min(8, totalLines));
-            int prev = myScrollPos;
-            myScrollPos = MathHelper.clamp_int(prev + dir * 3, 0, maxScroll);
+            myScrollPos = MathHelper.clamp_int(myScrollPos + dir * 3, 0, maxScroll);
             myIsScrolled = myScrollPos > 0;
         }
 
@@ -579,38 +551,27 @@ public class ChromaChatManager {
             }
 
             // 逐行绘制（从上往下）
-            // 文本统一起始位置：头像 + 时间戳之后，确保多行消息左对齐
-            int textTx = baseX + 2;
-            if (showAvatar && ml.senderName != null) textTx += avatarOffset;
-            if (showTime) textTx += timeWidth;
-
             for (int j = 0; j < wl.length; j++) {
                 int lineY = entryTop + j * lineH;
+                int tx = baseX + 2;
 
-                // ── 头像（仅第一行，同护甲条头像渲染：归一化 UV 固定采 8×8 面部区域） ──
+                // ── 头像（仅第一行） ──
                 if (showAvatar && j == 0 && ml.senderName != null) {
                     ResourceLocation skin = getAvatar(ml.senderName);
                     if (skin != null) {
                         mc.getTextureManager().bindTexture(skin);
-                        GlStateManager.enableBlend();
-                        GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-                        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
-                        // 面部（归一化 UV，固定取 8/64~16/64，不受 avatarSize 影响）
-                        drawTextureRect(baseX + 2, lineY, avatarSize, avatarSize,
-                            8.0F / 64.0F, 8.0F / 64.0F, 16.0F / 64.0F, 16.0F / 64.0F);
-                        // 帽子 overlay（归一化 UV：u=40/64~48/64, v=8/64~16/64）
-                        drawTextureRect(baseX + 2, lineY, avatarSize, avatarSize,
-                            40.0F / 64.0F, 8.0F / 64.0F, 48.0F / 64.0F, 16.0F / 64.0F);
-                        GlStateManager.disableBlend();
+                        Gui.drawModalRectWithCustomSizedTexture(tx, lineY, 8, 8, avatarSize, avatarSize, 64, 64);
                     }
+                    tx += avatarOffset;
                 }
 
                 if (showTime && j == 0) {
-                    mc.fontRendererObj.drawString(ml.formattedTime, baseX + 2 + (showAvatar && ml.senderName != null ? avatarOffset : 0), lineY, (alpha << 24) | 0x888888);
+                    mc.fontRendererObj.drawString(ml.formattedTime, tx, lineY, (alpha << 24) | 0x888888);
+                    tx += timeWidth;
                 }
 
-                // ── 消息文字 ──
-                mc.fontRendererObj.drawString(wl[j], textTx, lineY, 0xFFFFFF | (alpha << 24));
+                // ── 消息文字（textWidth 已在外层扣除头像和时间戳占位） ──
+                mc.fontRendererObj.drawString(wl[j], tx, lineY, 0xFFFFFF | (alpha << 24));
 
                 // ── 去重徽标 [Nx]（仅第一行） ──
                 if (j == 0 && ml.groupCount > 1) {
@@ -661,10 +622,7 @@ public class ChromaChatManager {
     }
 
     // =================================================================
-    //  Client tick — 提前抢读滚轮值
-    //  GuiChat.handleMouseInput() 会调用 Mouse.next() 遍历事件队列，但
-    //  Mouse.getDWheel()（累积值）不受 next() 影响，此处读取同样可靠。
-    //  TickEvent 时机早于渲染，确保滚轮值在 render 时已被捕获。
+    //  Client tick — 提前抢读滚轮值（GuiChat 会消耗 Mouse.getDWheel）
     // =================================================================
     @SubscribeEvent
     public void onClientTick(TickEvent.ClientTickEvent event) {
