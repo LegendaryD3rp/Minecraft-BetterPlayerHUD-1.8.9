@@ -19,7 +19,6 @@ import net.minecraftforge.client.event.ClientChatReceivedEvent;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.fml.common.network.FMLNetworkEvent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import org.lwjgl.input.Mouse;
@@ -233,19 +232,33 @@ public class ChromaChatManager {
         INSTANCE = this;
     }
 
+    // ── 跟踪当前服务器地址，用于切服判断 ──
+    private String lastServerAddr = null;
+
     public void onConfigChanged() {}
 
     // =================================================================
-    //  ClientDisconnectionFromServerEvent — 切服时清空聊天记录
+    //  ClientConnectedToServerEvent — 连到新服时判断是否切服
     // =================================================================
     @SubscribeEvent
-    public void onClientDisconnect(FMLNetworkEvent.ClientDisconnectionFromServerEvent event) {
-        myChatLines.clear();
-        myScrollPos = 0;
-        myIsScrolled = false;
-        nextLineId = 0;
-        dedupPulseMap.clear();
-        msgAnimMap.clear();
+    public void onClientConnect(net.minecraftforge.fml.common.network.FMLNetworkEvent.ClientConnectedToServerEvent event) {
+        // 获取服务器地址（host:port）
+        String newAddr = null;
+        java.net.SocketAddress sa = event.manager.getRemoteAddress();
+        if (sa instanceof java.net.InetSocketAddress) {
+            java.net.InetSocketAddress isa = (java.net.InetSocketAddress) sa;
+            newAddr = isa.getHostString() + ":" + isa.getPort();
+        }
+        // 首次连接（lastServerAddr==null）或连到不同服务器 → 清空
+        if (lastServerAddr != null && !lastServerAddr.equals(newAddr)) {
+            myChatLines.clear();
+            myScrollPos = 0;
+            myIsScrolled = false;
+            nextLineId = 0;
+            dedupPulseMap.clear();
+            msgAnimMap.clear();
+        }
+        lastServerAddr = newAddr;
     }
 
     // ── 调试计数（每 300 帧 ≈ 5秒 打印一次） ──
