@@ -299,9 +299,6 @@ public class ChromaChatManager {
         return lo;
     }
 
-    // ── 调试计数（每 300 帧 ≈ 5秒 打印一次） ──
-    private int debugFrameCounter = 0;
-
     // =================================================================
     //  ClientChatReceivedEvent — 消息源头拦截
     // =================================================================
@@ -309,9 +306,6 @@ public class ChromaChatManager {
     public void onChatReceived(ClientChatReceivedEvent event) {
         BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
         if (cfg == null || !cfg.enableChromaChat) return;
-
-        // [DEBUG] 收到了消息
-        System.out.println("[ChromaChat] intercepted: " + event.message.getUnformattedText());
 
         // 跳过纯空白消息（切服时的垃圾消息）
         if (event.message.getUnformattedText().trim().isEmpty()) return;
@@ -336,10 +330,6 @@ public class ChromaChatManager {
 
         int pos = findInsertPos(myChatLines, nowMs);
         myChatLines.add(pos, new MyChatLine(event.message, ctr, nextLineId++, nowMs));
-
-        System.out.println("[ChromaChat] INSERTED at pos=" + pos + " size=" + myChatLines.size()
-            + " time=" + new java.text.SimpleDateFormat("MM-dd HH:mm:ss.SSS").format(new java.util.Date(nowMs))
-            + " text=" + event.message.getUnformattedText().replaceAll("§.", ""));
 
         while (myChatLines.size() > MAX_LINES) {
             myChatLines.remove(myChatLines.size() - 1);
@@ -393,9 +383,6 @@ public class ChromaChatManager {
         BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
         if (cfg == null || !cfg.enableChromaChat) return;
 
-        // [DEBUG] 每 300 帧打印一次
-        debugFrameCounter++;
-
         event.setCanceled(true);
 
         // ── 早返：没消息 或 关闭且全过期 ──
@@ -444,21 +431,6 @@ public class ChromaChatManager {
             contentH = Math.max(minH, visibleTextLines * lineH);
         }
         int bgH = contentH + 4;
-
-        if (debugFrameCounter % 300 == 0) {
-            System.out.println("[ChromaChat] render: lines=" + myChatLines.size()
-                + " vis=" + visibleCount + " baseY=" + baseY + " bgH=" + bgH);
-        }
-        // [DEBUG] 每60帧打印详细渲染状态（约每秒一次）
-        if (debugFrameCounter % 60 == 0 && !myChatLines.isEmpty()) {
-            MyChatLine first = myChatLines.get(0);
-            MyChatLine last  = myChatLines.get(myChatLines.size() - 1);
-            System.out.println("[ChromaChat] STATE: total=" + totalLines
-                + " scrollPos=" + myScrollPos + " maxScrollPos=" + Math.max(0, totalLines - visibleCount)
-                + " visibleCount=" + visibleCount + " bgBox=(" + baseX + "," + baseY + ")->(" + (baseX+chatWidth) + "," + (baseY+bgH) + ")"
-                + " first(最旧)=" + (first != null ? first.formattedTime : "null")
-                + " last(最新)=" + (last != null ? last.formattedTime : "null"));
-        }
 
         // ── 弹性动画（类 ComboHandler：每帧更新 animAmount） ──
         updateSpring(chatOpen, now, cfg);
@@ -666,13 +638,6 @@ public class ChromaChatManager {
         // 注意：myChatLines 已按时间升序排列（index 0 = 最早），
         // 因此从 drawEnd-1 逆序到 scrollPos 正序显示：最新在最下，最旧在最上
         int y = baseY + bgH - 2;
-        if (drawEnd > scrollPos && (debugFrameCounter % 60) == 0) {
-            MyChatLine first = lines.get(scrollPos);
-            MyChatLine last  = lines.get(drawEnd - 1);
-            System.err.println("[ChromaChat] order: scrollPos=" + scrollPos + " drawEnd=" + drawEnd
-                + " top(old)=" + (first != null ? first.message.getUnformattedText() : "null")
-                + " | bottom(new)=" + (last != null ? last.message.getUnformattedText() : "null"));
-        }
         for (int i = drawEnd - 1; i >= scrollPos; i--) {
             MyChatLine ml = lines.get(i);
             if (ml == null) continue;
@@ -687,17 +652,6 @@ public class ChromaChatManager {
             int entryH = wl.length * lineH;
             int entryTop = y - entryH;           // 本消息块顶部Y
             int entryBottom = entryTop + entryH; // 底部Y（= 调整前的y）
-
-            if (debugFrameCounter % 120 == 0) {
-                String cleanText = ml.message.getUnformattedText().replaceAll("§.", "");
-                if (cleanText.length() > 80) cleanText = cleanText.substring(0, 80) + "...";
-                System.out.println("[ChromaChat] RENDER i=" + i + " t=" + ml.formattedTime
-                    + " y=" + entryTop + "~" + entryBottom + " h=" + entryH
-                    + " text=" + cleanText);
-                for (int li = 0; li < wl.length; li++) {
-                    System.out.println("  L" + li + "='" + wl[li].replaceAll("§.", "") + "'");
-                }
-            }
 
             // 悬停 + 点击
             if (i == hoveredLineAbsIdx) {
