@@ -10,6 +10,7 @@ import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.WorldRenderer;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
+import net.minecraft.client.resources.DefaultPlayerSkin;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.IChatComponent;
 import net.minecraft.util.MathHelper;
@@ -27,6 +28,7 @@ import com.mojang.authlib.GameProfile;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -144,8 +146,11 @@ public class ChromaChatManager {
             if (gp != null && ml.senderName.equalsIgnoreCase(gp.getName())) {
                 ResourceLocation skin = info.getLocationSkin();
                 if (skin != null) {
-                    if (avatarCache.size() >= 50) avatarCache.clear();
-                    avatarCache.put(ml.senderName, skin);
+                    // 默认皮肤（异步下载未完成）不缓存，等真实皮肤
+                    if (!DefaultPlayerSkin.getDefaultSkin(gp.getId()).equals(skin)) {
+                        if (avatarCache.size() >= 50) avatarCache.clear();
+                        avatarCache.put(ml.senderName, skin);
+                    }
                 }
                 return skin;
             }
@@ -497,6 +502,13 @@ public class ChromaChatManager {
         int drawEnd = Math.min(scrollPos + vis, lines.size());
         // 从背景框底部开始，向上排布（最新在最下）
         int y = baseY + bgH - 2;
+        if (drawEnd > scrollPos && (debugFrameCounter % 60) == 0) {
+            MyChatLine first = lines.get(scrollPos);
+            MyChatLine last  = lines.get(drawEnd - 1);
+            System.err.println("[ChromaChat] order: scrollPos=" + scrollPos + " drawEnd=" + drawEnd
+                + " top(old)=" + (last != null ? last.message.getUnformattedText() : "null")
+                + " | bottom(new)=" + (first != null ? first.message.getUnformattedText() : "null"));
+        }
         for (int i = scrollPos; i < drawEnd; i++) {
             MyChatLine ml = lines.get(i);
             if (ml == null) continue;
@@ -532,7 +544,7 @@ public class ChromaChatManager {
                         mc.getTextureManager().bindTexture(skin);
                         GlStateManager.enableBlend();
                         GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-                        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+                        GlStateManager.color(1.0F, 1.0F, 1.0F, alpha / 255.0F);
                         // 面部（8/64~16/64, 8/64~16/64）
                         drawTexturedModalRect(baseX + 2, lineY, avatarSize, avatarSize,
                             8.0F / 64.0F, 8.0F / 64.0F, 16.0F / 64.0F, 16.0F / 64.0F);
