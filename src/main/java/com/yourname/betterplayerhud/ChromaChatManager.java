@@ -1,12 +1,10 @@
 package com.yourname.betterplayerhud;
 
-import com.mojang.authlib.GameProfile;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiChat;
 import net.minecraft.client.gui.ScaledResolution;
-import net.minecraft.client.network.NetworkPlayerInfo;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.WorldRenderer;
@@ -67,9 +65,6 @@ public class ChromaChatManager {
 
     // ── 头像缓存 ──
     private final HashMap<String, ResourceLocation> avatarCache = new HashMap<String, ResourceLocation>();
-    // 头像默认皮肤路径（用于回退判断）
-    private static final ResourceLocation STEVE_SKIN = new ResourceLocation("textures/entity/steve.png");
-    private static final ResourceLocation ALEX_SKIN  = new ResourceLocation("textures/entity/alex.png");
 
     private static class MyChatLine {
         final IChatComponent message;
@@ -159,38 +154,18 @@ public class ChromaChatManager {
     }
 
     // =================================================================
-    //  玩家头像获取——与 PlayerHUDHandler.renderPlayerHead 同源策略
+    //  玩家头像获取
+    //  直接使用 AbstractClientPlayer.getLocationSkin(name) 生成标准皮肤路径。
+    //  TextureManager 在 bindTexture 时自动异步下载，下载完成前显示默认皮肤。
     // =================================================================
     private ResourceLocation getAvatar(String name) {
         if (name == null) return null;
-        // 缓存命中
         ResourceLocation cached = avatarCache.get(name);
         if (cached != null) return cached;
-        // 从 tab list 获取 skin ResourceLocation
-        if (mc.getNetHandler() != null) {
-            for (NetworkPlayerInfo info : mc.getNetHandler().getPlayerInfoMap()) {
-                GameProfile gp = info.getGameProfile();
-                if (gp != null && name.equalsIgnoreCase(gp.getName())) {
-                    ResourceLocation skin = info.getLocationSkin();
-                    if (skin != null) {
-                        // 直接缓存，不管默认还是真实——TextureManager 异步下载完成后
-                        // 自动更新纹理，ResourceLocation 路径不变
-                        if (avatarCache.size() >= 50) avatarCache.clear();
-                        avatarCache.put(name, skin);
-                        return skin;
-                    }
-                    return null;
-                }
-            }
-        }
-        // 不在 tab list → 用 AbstractClientPlayer.getLocationSkin 回退
-        // 这会在 TextureManager 中创建纹理入口，触发异步下载
-        ResourceLocation fallback = net.minecraft.client.entity.AbstractClientPlayer.getLocationSkin(name);
-        if (fallback != null) {
-            avatarCache.put(name, fallback);
-            return fallback;
-        }
-        return null;
+        ResourceLocation loc = net.minecraft.client.entity.AbstractClientPlayer.getLocationSkin(name);
+        if (avatarCache.size() >= 50) avatarCache.clear();
+        avatarCache.put(name, loc);
+        return loc;
     }
 
     /** 绘制纹理矩形（归一化 UV 坐标，同 PlayerHUDHandler.renderPlayerHead） */
