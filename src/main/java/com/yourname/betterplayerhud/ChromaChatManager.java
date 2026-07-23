@@ -130,9 +130,8 @@ public class ChromaChatManager {
 
     // =================================================================
     //  玩家头像获取
-    //  走 VanillaEnhancements 的逻辑：NetworkPlayerInfo.getLocationSkin()
-    //  不在 tab list 就不画，不做任何 fallback。
-    //  SkinManager 自行处理异步下载和默认皮肤。
+    //  主逻辑：NetworkPlayerInfo.getLocationSkin()（同 VE tab 逻辑）
+    //  如果 NetHandler 为空（单机/LAN）或 tab 里找不到，再用本地玩家皮肤
     // =================================================================
     private ResourceLocation getAvatar(int lineIdx) {
         if (lineIdx < 0 || lineIdx >= myChatLines.size()) return null;
@@ -140,21 +139,35 @@ public class ChromaChatManager {
         if (ml == null || ml.senderName == null) return null;
         ResourceLocation cached = avatarCache.get(ml.senderName);
         if (cached != null) return cached;
-        if (mc.getNetHandler() == null) return null;
-        for (NetworkPlayerInfo info : mc.getNetHandler().getPlayerInfoMap()) {
-            GameProfile gp = info.getGameProfile();
-            if (gp != null && ml.senderName.equalsIgnoreCase(gp.getName())) {
-                ResourceLocation skin = info.getLocationSkin();
-                if (skin != null) {
-                    // 默认皮肤（异步下载未完成）不缓存，等真实皮肤
-                    if (!DefaultPlayerSkin.getDefaultSkin(gp.getId()).equals(skin)) {
-                        if (avatarCache.size() >= 50) avatarCache.clear();
-                        avatarCache.put(ml.senderName, skin);
+
+        // ── 多人模式：从 tab list 取已下载的真实皮肤 ──
+        if (mc.getNetHandler() != null) {
+            for (NetworkPlayerInfo info : mc.getNetHandler().getPlayerInfoMap()) {
+                GameProfile gp = info.getGameProfile();
+                if (gp != null && ml.senderName.equalsIgnoreCase(gp.getName())) {
+                    ResourceLocation skin = info.getLocationSkin();
+                    if (skin != null) {
+                        // 默认皮肤（异步下载未完成）不缓存，等真实皮肤
+                        if (!DefaultPlayerSkin.getDefaultSkin(gp.getId()).equals(skin)) {
+                            if (avatarCache.size() >= 50) avatarCache.clear();
+                            avatarCache.put(ml.senderName, skin);
+                        }
                     }
+                    return skin;
                 }
-                return skin;
             }
         }
+
+        // ── 单机/LAN 或 tab 找不到：用本地玩家的皮肤 ──
+        if (mc.thePlayer != null && ml.senderName.equalsIgnoreCase(mc.thePlayer.getName())) {
+            ResourceLocation localSkin = mc.thePlayer.getLocationSkin();
+            if (localSkin != null) {
+                if (avatarCache.size() >= 50) avatarCache.clear();
+                avatarCache.put(ml.senderName, localSkin);
+            }
+            return localSkin;
+        }
+
         return null;
     }
 
