@@ -673,10 +673,8 @@ public class ChromaChatManager {
                         mc.getTextureManager().bindTexture(skin);
                         GlStateManager.enableBlend();
                         GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-                        // 头像淡出：保持不透明更久，最后快速消失
-                        // 当 alpha >= 128 (50%) 时完全不透明，之后立方加速淡出
-                        float avatarT = Math.min(1.0F, (alpha / 255.0F) * 2.0F);
-                        float avatarAlpha = avatarT * avatarT * avatarT;
+                        // 头像淡出：与文字同步，直接用 calcAlpha 的线性值
+                        float avatarAlpha = Math.min(1.0F, alpha / 255.0F);
                         GlStateManager.color(1.0F, 1.0F, 1.0F, avatarAlpha);
                         // 面部（8/64~16/64, 8/64~16/64）
                         drawTexturedModalRect(baseX + 2, lineY, avatarSize, avatarSize,
