@@ -513,20 +513,62 @@ public class BetterPlayerHUDConfigGUI extends GuiConfig {
     }
 
     // ================================================================
-    //  模块27：ChromaChat
+    //  模块27：ChromaChat / 蜃楼聊天框
     // ================================================================
     private static List<IConfigElement> getChromaChatConfigElements() {
         List<IConfigElement> list = new ArrayList<>();
-        list.add(new DummyConfigElement.DummyCategoryElement("bhud.chroma.basic", "bhud.chroma.basic", el(
-                "enableChromaChat", "chromaChatShowTimestamps", "chromaChatWidth", "chromaChatLineCount")));
-        list.add(new DummyConfigElement.DummyCategoryElement("bhud.chroma.appearance", "bhud.chroma.appearance", el(
-                "chromaChatBorderRadius", "chromaChatBackgroundColor", "chromaChatBorderColor",
-                "chromaChatHoverHighlight", "chromaChatHoverColor")));
-        list.add(new DummyConfigElement.DummyCategoryElement("bhud.chroma.animation", "bhud.chroma.animation", el(
+        Configuration c = cfg();
+        // ── 基本设置 ──
+        list.add(new DummyConfigElement.DummyCategoryElement(
+                "bhud.chroma.basic", "§l基本设置", el(
+                "enableChromaChat", "chromaChatShowTimestamps", "chromaChatTimestampFormat",
+                "chromaChatMaxLines", "chromaChatWidth", "chromaChatLineCount")));
+        // ── 外观·背景 ──
+        {
+            List<IConfigElement> items = ColorPreviewHelper.createColorElementsARGB(c, cat(), "chromaChatBackground");
+            list.add(ColorPreviewHelper.createPreviewCategory(
+                    "chroma.bg", "§l外观·背景", items,
+                    new ColorPreviewHelper.ColorInfoARGB[]{new ColorPreviewHelper.ColorInfoARGB("chromaChatBackground", "背景色")}, ""));
+        }
+        // ── 外观·边框 ──
+        {
+            List<IConfigElement> items = ColorPreviewHelper.createColorElementsARGB(c, cat(), "chromaChatBorder");
+            addEl(items, "chromaChatBorderRadius");
+            list.add(ColorPreviewHelper.createPreviewCategory(
+                    "chroma.border", "§l外观·边框", items,
+                    new ColorPreviewHelper.ColorInfoARGB[]{new ColorPreviewHelper.ColorInfoARGB("chromaChatBorder", "边框色")}, ""));
+        }
+        // ── 外观·悬停高亮 ──
+        {
+            List<IConfigElement> items = ColorPreviewHelper.createColorElementsARGB(c, cat(), "chromaChatHoverColor");
+            addEl(items, "chromaChatHoverHighlight");
+            list.add(ColorPreviewHelper.createPreviewCategory(
+                    "chroma.hover", "§l外观·悬停高亮", items,
+                    new ColorPreviewHelper.ColorInfoARGB[]{new ColorPreviewHelper.ColorInfoARGB("chromaChatHoverColor", "悬停高亮色")}, ""));
+        }
+        // ── 外观·时间戳颜色 ──
+        {
+            List<IConfigElement> items = ColorPreviewHelper.createColorElements(c, cat(), "chromaChatTimestampColor");
+            list.add(ColorPreviewHelper.createPreviewCategory(
+                    "chroma.timestamp", "§l外观·时间戳", items,
+                    new ColorPreviewHelper.ColorInfo[]{new ColorPreviewHelper.ColorInfo("chromaChatTimestampColor", "时间戳颜色")}, ""));
+        }
+        // ── 动画 ──
+        list.add(new DummyConfigElement.DummyCategoryElement(
+                "bhud.chroma.animation", "§l动画", el(
                 "chromaChatAnimBounciness", "chromaChatMsgAnimEnable", "chromaChatMsgAnimDuration")));
-        list.add(new DummyConfigElement.DummyCategoryElement("bhud.chroma.dedup", "bhud.chroma.dedup", el(
-                "chromaChatDedup", "chromaChatDedupBadgeColor", "chromaChatDedupAnim")));
-        list.add(new DummyConfigElement.DummyCategoryElement("bhud.chroma.avatar", "bhud.chroma.avatar", el(
+        // ── 消息折叠 ──
+        {
+            List<IConfigElement> items = ColorPreviewHelper.createColorElementsARGB(c, cat(), "chromaChatDedupBadgeColor");
+            addEl(items, "chromaChatDedup");
+            addEl(items, "chromaChatDedupAnim");
+            list.add(ColorPreviewHelper.createPreviewCategory(
+                    "chroma.dedup", "§l消息折叠", items,
+                    new ColorPreviewHelper.ColorInfoARGB[]{new ColorPreviewHelper.ColorInfoARGB("chromaChatDedupBadgeColor", "折叠徽标色")}, ""));
+        }
+        // ── 玩家头像 ──
+        list.add(new DummyConfigElement.DummyCategoryElement(
+                "bhud.chroma.avatar", "§l玩家头像", el(
                 "chromaChatAvatar", "chromaChatAvatarSize", "chromaChatAvatarRounded")));
         return list;
     }

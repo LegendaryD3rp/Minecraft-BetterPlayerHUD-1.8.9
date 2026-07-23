@@ -54,7 +54,6 @@ public class ChromaChatManager {
     // =================================================================
     //  Own message list (完全独立于 BetterChat / 原版 GuiNewChat)
     // =================================================================
-    private static final int MAX_LINES = 100;
     final List<MyChatLine> myChatLines = new ArrayList<MyChatLine>();
     private int myScrollPos = 0;
     private boolean myIsScrolled = false;
@@ -163,9 +162,16 @@ public class ChromaChatManager {
         }
     }
 
-    /** 把毫秒时间格式化为 "[MM-dd HH:mm] " */
+    /** 把毫秒时间格式化，格式由 config.chromaChatTimestampFormat 决定 */
     private static String formatChatTimestamp(long ms) {
-        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("[MM-dd HH:mm] ");
+        BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
+        String pattern;
+        switch (cfg != null ? cfg.chromaChatTimestampFormat : 0) {
+            case 1:  pattern = "[HH:mm] ";     break;
+            case 2:  pattern = "[HH:mm:ss] ";  break;
+            default: pattern = "[MM-dd HH:mm] "; break;
+        }
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat(pattern);
         sdf.setTimeZone(java.util.TimeZone.getDefault());
         return sdf.format(new java.util.Date(ms));
     }
@@ -331,8 +337,9 @@ public class ChromaChatManager {
         int pos = findInsertPos(myChatLines, nowMs);
         myChatLines.add(pos, new MyChatLine(event.message, ctr, nextLineId++, nowMs));
 
-        while (myChatLines.size() > MAX_LINES) {
-            myChatLines.remove(myChatLines.size() - 1);
+        int maxLines = cfg != null ? cfg.chromaChatMaxLines : 100;
+        while (myChatLines.size() > maxLines) {
+            myChatLines.remove(0);
         }
 
         // 新消息 → auto-scroll 到最新
@@ -367,8 +374,9 @@ public class ChromaChatManager {
         int pos = findInsertPos(cc.myChatLines, nowMs);
         cc.myChatLines.add(pos, new MyChatLine(component, ctr, cc.nextLineId++, nowMs));
 
-        while (cc.myChatLines.size() > MAX_LINES) {
-            cc.myChatLines.remove(cc.myChatLines.size() - 1);
+        int maxLines = cfg.chromaChatMaxLines;
+        while (cc.myChatLines.size() > maxLines) {
+            cc.myChatLines.remove(0);
         }
 
         cc.myScrollPos = -1;
@@ -688,7 +696,8 @@ public class ChromaChatManager {
                 }
 
                 if (showTime && j == 0) {
-                    mc.fontRendererObj.drawString(ml.formattedTime, tx, lineY, (alpha << 24) | 0x888888);
+                    int tsColor = (cfg.chromaChatTimestampColor & 0xFFFFFF) | (alpha << 24);
+                    mc.fontRendererObj.drawString(ml.formattedTime, tx, lineY, tsColor);
                     tx += timeWidth;
                 }
                 mc.fontRendererObj.drawString(wl[j], tx, lineY, 0xFFFFFF | (alpha << 24));

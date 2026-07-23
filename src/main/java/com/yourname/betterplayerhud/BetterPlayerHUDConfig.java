@@ -319,6 +319,7 @@ public class BetterPlayerHUDConfig {
     public int chromaChatYOffset = 0;                  // F7 编辑 Y 偏移
     public int chromaChatWidth = 320;                  // 聊天框宽度(px)
     public int chromaChatLineCount = 8;                // 可见行数
+    public int chromaChatMaxLines = 100;               // 缓存总条数
     // ── 外观 ──
     public int chromaChatBackgroundColor = 0x88000000; // 背景色 ARGB
     public int chromaChatBorderColor = 0x44000000;     // 边框色 ARGB
@@ -333,6 +334,8 @@ public class BetterPlayerHUDConfig {
     public int chromaChatHoverColor = 0x44FFFFFF;      // 高亮颜色 ARGB
     // ── 时间戳 ──
     public boolean chromaChatShowTimestamps = true;    // 显示时间戳
+    public int chromaChatTimestampColor = 0x888888;    // 时间戳颜色 RGB
+    public int chromaChatTimestampFormat = 0;          // 时间戳格式: 0=[MM-dd HH:mm] 1=[HH:mm] 2=[HH:mm:ss]
     // ── 物理去重折叠 ──
     public boolean chromaChatDedup = true;              // 相同发送者同内容折叠
     public int chromaChatDedupBadgeColor = 0x88FFFF55; // 折叠徽标 [Nx] 颜色
@@ -349,6 +352,10 @@ public class BetterPlayerHUDConfig {
         return 0xFF000000 | ((r & 0xFF) << 16) | ((g & 0xFF) << 8) | (b & 0xFF);
     }
 
+    private static int packARGB(int a, int r, int g, int b) {
+        return ((a & 0xFF) << 24) | ((r & 0xFF) << 16) | ((g & 0xFF) << 8) | (b & 0xFF);
+    }
+
     private int loadColor(String category, String keyBase, int defaultR, int defaultG, int defaultB) {
         int r = config.getInt(keyBase + "R", category, defaultR, 0, 255, "");
         int g = config.getInt(keyBase + "G", category, defaultG, 0, 255, "");
@@ -357,6 +364,21 @@ public class BetterPlayerHUDConfig {
     }
 
     private void saveColor(String category, String keyBase, int packed) {
+        config.get(category, keyBase + "R", 255).set((packed >> 16) & 0xFF);
+        config.get(category, keyBase + "G", 255).set((packed >> 8) & 0xFF);
+        config.get(category, keyBase + "B", 255).set(packed & 0xFF);
+    }
+
+    private int loadColorARGB(String category, String keyBase, int defaultA, int defaultR, int defaultG, int defaultB) {
+        int a = config.getInt(keyBase + "A", category, defaultA, 0, 255, "");
+        int r = config.getInt(keyBase + "R", category, defaultR, 0, 255, "");
+        int g = config.getInt(keyBase + "G", category, defaultG, 0, 255, "");
+        int b = config.getInt(keyBase + "B", category, defaultB, 0, 255, "");
+        return packARGB(a, r, g, b);
+    }
+
+    private void saveColorARGB(String category, String keyBase, int packed) {
+        config.get(category, keyBase + "A", 255).set((packed >> 24) & 0xFF);
         config.get(category, keyBase + "R", 255).set((packed >> 16) & 0xFF);
         config.get(category, keyBase + "G", 255).set((packed >> 8) & 0xFF);
         config.get(category, keyBase + "B", 255).set(packed & 0xFF);
@@ -1064,10 +1086,10 @@ public class BetterPlayerHUDConfig {
             p.comment = "聊天框宽度"; p.setMinValue(80).setMaxValue(800); chromaChatWidth = p.getInt();
             p = config.get(C, "chromaChatLineCount", 8);
             p.comment = "可见行数"; p.setMinValue(1).setMaxValue(50); chromaChatLineCount = p.getInt();
-            p = config.get(C, "chromaChatBackground", 0x88000000);
-            p.comment = "背景色 ARGB 十六进制"; chromaChatBackgroundColor = p.getInt();
-            p = config.get(C, "chromaChatBorder", 0x44000000);
-            p.comment = "边框色 ARGB 十六进制"; chromaChatBorderColor = p.getInt();
+            p = config.get(C, "chromaChatMaxLines", 100);
+            p.comment = "缓存总条数（旧消息被挤出）"; p.setMinValue(20).setMaxValue(500); chromaChatMaxLines = p.getInt();
+            chromaChatBackgroundColor = loadColorARGB(C, "chromaChatBackground", 0x88, 0x00, 0x00, 0x00);
+            chromaChatBorderColor = loadColorARGB(C, "chromaChatBorder", 0x44, 0x00, 0x00, 0x00);
             p = config.get(C, "chromaChatBorderRadius", 3);
             p.comment = "圆角半径"; p.setMinValue(0).setMaxValue(20); chromaChatBorderRadius = p.getInt();
             p = config.get(C, "chromaChatAnimBounciness", 0.35);
@@ -1078,14 +1100,15 @@ public class BetterPlayerHUDConfig {
             p.comment = "入场动画时长(ms)"; p.setMinValue(50).setMaxValue(1000); chromaChatMsgAnimDuration = p.getInt();
             p = config.get(C, "chromaChatHoverHighlight", true);
             p.comment = "鼠标悬停高亮"; chromaChatHoverHighlight = p.getBoolean();
-            p = config.get(C, "chromaChatHoverColor", 0x44FFFFFF);
-            p.comment = "悬停高亮颜色 ARGB"; chromaChatHoverColor = p.getInt();
+            chromaChatHoverColor = loadColorARGB(C, "chromaChatHoverColor", 0x44, 0xFF, 0xFF, 0xFF);
             p = config.get(C, "chromaChatShowTimestamps", true);
             p.comment = "在消息前显示 [HH:MM] 时间戳"; chromaChatShowTimestamps = p.getBoolean();
+            chromaChatTimestampColor = loadColor(C, "chromaChatTimestampColor", 0x88, 0x88, 0x88);
+            p = config.get(C, "chromaChatTimestampFormat", 0);
+            p.comment = "时间戳格式: 0=[MM-dd HH:mm] 1=[HH:mm] 2=[HH:mm:ss]"; p.setMinValue(0).setMaxValue(2); chromaChatTimestampFormat = p.getInt();
             p = config.get(C, "chromaChatDedup", true);
             p.comment = "相同发送者同内容消息折叠"; chromaChatDedup = p.getBoolean();
-            p = config.get(C, "chromaChatDedupBadgeColor", 0x88FFFF55);
-            p.comment = "折叠徽标 [Nx] 颜色 ARGB"; chromaChatDedupBadgeColor = p.getInt();
+            chromaChatDedupBadgeColor = loadColorARGB(C, "chromaChatDedupBadgeColor", 0x88, 0xFF, 0xFF, 0x55);
             p = config.get(C, "chromaChatDedupAnim", true);
             p.comment = "折叠计数变化时脉冲动画"; chromaChatDedupAnim = p.getBoolean();
             p = config.get(C, "chromaChatAvatar", true);
@@ -1357,17 +1380,20 @@ public class BetterPlayerHUDConfig {
         config.get(C, "chromaChatYOffset", 0).set(chromaChatYOffset);
         config.get(C, "chromaChatWidth", 320).set(chromaChatWidth);
         config.get(C, "chromaChatLineCount", 8).set(chromaChatLineCount);
-        config.get(C, "chromaChatBackground", 0x88000000).set(chromaChatBackgroundColor);
-        config.get(C, "chromaChatBorder", 0x44000000).set(chromaChatBorderColor);
+        config.get(C, "chromaChatMaxLines", 100).set(chromaChatMaxLines);
+        saveColorARGB(C, "chromaChatBackground", chromaChatBackgroundColor);
+        saveColorARGB(C, "chromaChatBorder", chromaChatBorderColor);
         config.get(C, "chromaChatBorderRadius", 3).set(chromaChatBorderRadius);
         config.get(C, "chromaChatAnimBounciness", 0.35).set(chromaChatAnimBounciness);
         config.get(C, "chromaChatMsgAnimEnable", true).set(chromaChatMsgAnimEnable);
         config.get(C, "chromaChatMsgAnimDuration", 300).set(chromaChatMsgAnimDuration);
         config.get(C, "chromaChatHoverHighlight", true).set(chromaChatHoverHighlight);
-        config.get(C, "chromaChatHoverColor", 0x44FFFFFF).set(chromaChatHoverColor);
+        saveColorARGB(C, "chromaChatHoverColor", chromaChatHoverColor);
         config.get(C, "chromaChatShowTimestamps", true).set(chromaChatShowTimestamps);
+        saveColor(C, "chromaChatTimestampColor", chromaChatTimestampColor);
+        config.get(C, "chromaChatTimestampFormat", 0).set(chromaChatTimestampFormat);
         config.get(C, "chromaChatDedup", true).set(chromaChatDedup);
-        config.get(C, "chromaChatDedupBadgeColor", 0x88FFFF55).set(chromaChatDedupBadgeColor);
+        saveColorARGB(C, "chromaChatDedupBadgeColor", chromaChatDedupBadgeColor);
         config.get(C, "chromaChatDedupAnim", true).set(chromaChatDedupAnim);
         config.get(C, "chromaChatAvatar", true).set(chromaChatAvatar);
         config.get(C, "chromaChatAvatarSize", 10).set(chromaChatAvatarSize);

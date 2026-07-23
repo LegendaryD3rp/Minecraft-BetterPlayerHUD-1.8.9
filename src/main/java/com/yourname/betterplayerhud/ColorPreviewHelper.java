@@ -62,6 +62,24 @@ public class ColorPreviewHelper {
         return list;
     }
 
+    /**
+     * 为一个颜色字段生成 R / G / B / A 四个原生滑块 IConfigElement（带 Alpha）。
+     */
+    public static List<IConfigElement> createColorElementsARGB(Configuration config,
+                                                               String category,
+                                                               String keyBase) {
+        List<IConfigElement> list = new ArrayList<>();
+        list.add(new SliderConfigElement(
+                config.get(category, keyBase + "A", 255, "", 0, 255)));
+        list.add(new SliderConfigElement(
+                config.get(category, keyBase + "R", 255, "", 0, 255)));
+        list.add(new SliderConfigElement(
+                config.get(category, keyBase + "G", 255, "", 0, 255)));
+        list.add(new SliderConfigElement(
+                config.get(category, keyBase + "B", 255, "", 0, 255)));
+        return list;
+    }
+
     // ═══════════════════════════════════════════════════════════════
     //  读 GUI 滑块实时值
     // ═══════════════════════════════════════════════════════════════
@@ -110,6 +128,8 @@ public class ColorPreviewHelper {
             int sw = 34;
 
             for (ColorInfo ci : colorInfos) {
+                boolean hasAlpha = ci instanceof ColorInfoARGB;
+                int a = hasAlpha ? getLiveInt(this, ci.keyBase + "A", 255) : 255;
                 int r = getLiveInt(this, ci.keyBase + "R", 128);
                 int g = getLiveInt(this, ci.keyBase + "G", 128);
                 int b = getLiveInt(this, ci.keyBase + "B", 128);
@@ -119,15 +139,16 @@ public class ColorPreviewHelper {
                 // 标签
                 this.fontRendererObj.drawString("\u00a7f" + ci.label,
                         px + (pw - fontRendererObj.getStringWidth(ci.label)) / 2, py, 0xFFFFFF);
-                // 色块
-                int color = 0xFF000000 | ((r & 0xFF) << 16) | ((g & 0xFF) << 8) | (b & 0xFF);
+                // 色块（带实际 Alpha）
+                int color = ((a & 0xFF) << 24) | ((r & 0xFF) << 16) | ((g & 0xFF) << 8) | (b & 0xFF);
                 drawRect(px + (pw - sw) / 2, py + 14, px + (pw + sw) / 2, py + 14 + sw, color);
                 drawRect(px + (pw - sw) / 2 - 1, py + 14 - 1, px + (pw + sw) / 2 + 1, py + 14, 0xFFAAAAAA);
                 drawRect(px + (pw - sw) / 2 - 1, py + 14 + sw, px + (pw + sw) / 2 + 1, py + 14 + sw + 1, 0xFFAAAAAA);
                 drawRect(px + (pw - sw) / 2 - 1, py + 14, px + (pw - sw) / 2, py + 14 + sw, 0xFFAAAAAA);
                 drawRect(px + (pw + sw) / 2, py + 14, px + (pw + sw) / 2 + 1, py + 14 + sw, 0xFFAAAAAA);
                 // RGB 文本
-                String s = "\u00a77R:" + r + " G:" + g + " B:" + b;
+                String s = hasAlpha ? ("\u00a77A:" + a + " R:" + r + " G:" + g + " B:" + b)
+                                    : ("\u00a77R:" + r + " G:" + g + " B:" + b);
                 drawCenteredString(fontRendererObj, s, px + pw / 2, py + 50, 0xAAAAAA);
 
                 py += 92;
@@ -155,6 +176,13 @@ public class ColorPreviewHelper {
         public ColorInfo(String keyBase, String label) {
             this.keyBase = keyBase;
             this.label = label;
+        }
+    }
+
+    /** 带 Alpha 通道的颜色元数据（多读一个 A 滑块，渲染时使用实际 Alpha）。 */
+    public static class ColorInfoARGB extends ColorInfo {
+        public ColorInfoARGB(String keyBase, String label) {
+            super(keyBase, label);
         }
     }
 
