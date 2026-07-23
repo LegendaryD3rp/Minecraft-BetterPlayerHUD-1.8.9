@@ -254,9 +254,7 @@ public class ChromaChatManager {
                 latest.incrementGroup();
                 latest.updateCounter = ctr;       // 刷新淡出定时器
                 dedupPulseMap.put(ctr, nowSysMs);
-                myScrollPos = 0;
-                myIsScrolled = false;
-                return; // 不添加新消息
+                return; // 不添加新消息，不踢 scrollPos
             }
         }
 
@@ -292,9 +290,7 @@ public class ChromaChatManager {
                 latest.incrementGroup();
                 latest.updateCounter = ctr;
                 cc.dedupPulseMap.put(ctr, nowSysMs);
-                cc.myScrollPos = 0;
-                cc.myIsScrolled = false;
-                return; // 不添加新消息
+                return; // 不添加新消息，不踢 scrollPos
             }
         }
 
