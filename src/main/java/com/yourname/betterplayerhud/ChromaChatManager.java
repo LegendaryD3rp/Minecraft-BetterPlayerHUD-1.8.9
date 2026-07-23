@@ -67,14 +67,18 @@ public class ChromaChatManager {
     private static final Pattern SENDER_PATTERN = Pattern.compile("^<(.+?)>");
     // ── 头像缓存 ──
     private final HashMap<String, ResourceLocation> avatarCache = new HashMap<String, ResourceLocation>();
+    // ── 去重脉冲动画 ──
+    private final java.util.HashMap<Integer, Long> dedupPulseMap = new java.util.HashMap<Integer, Long>();
 
     private static class MyChatLine {
         final IChatComponent message;
-        final int updateCounter;
         final int chatLineID;
         final long receivedTimeMs;
         final String formattedTime;      // 缓存的 "[HH:MM] " 时间戳
         final String senderName;         // 发送者名（系统消息为 null）
+        // 物理去重
+        int groupCount = 1;               // 去重折叠计数（>1 = 被折叠）
+        int updateCounter;                // 最近一次更新时的 updateCounter（防淡出，去重时刷新）
         // 换行缓存（lazy）
         private String[] cachedLines = null;
         private int lastWrapWidth = -1;
@@ -86,6 +90,11 @@ public class ChromaChatManager {
             this.receivedTimeMs = timeMs;
             this.formattedTime = formatChatTimestamp(timeMs);
             this.senderName = extractSenderName(msg.getUnformattedText());
+        }
+
+        /** 增加去重计数（物理折叠时调用） */
+        void incrementGroup() {
+            groupCount++;
         }
 
         /** 从消息文本中提取发送者名（如 "<张三> 你好" → "张三"） */
@@ -186,6 +195,14 @@ public class ChromaChatManager {
         tess.draw();
     }
 
+    /** 颜色向白色混合（用于脉冲动画） */
+    private static int blendColorToWhite(int color, float t) {
+        int r = (int)(((color >> 16) & 0xFF) * (1 - t) + 255 * t);
+        int g = (int)(((color >> 8) & 0xFF) * (1 - t) + 255 * t);
+        int b = (int)((color & 0xFF) * (1 - t) + 255 * t);
+        return (r << 16) | (g << 8) | b;
+    }
+
     // === Spring Animation (P1) ===
     private float animAmount = 1.0f;
     private float animVelocity = 0.0f;
@@ -226,6 +243,22 @@ public class ChromaChatManager {
 
         int ctr = mc.ingameGUI.getUpdateCounter();
         long nowMs = System.currentTimeMillis();  // 真实墙上时钟
+        long nowSysMs = Minecraft.getSystemTime(); // 仅用于动画脉冲
+
+        // ── 物理去重折叠 ──
+        if (cfg.chromaChatDedup && !myChatLines.isEmpty()) {
+            MyChatLine latest = myChatLines.get(0);
+            if (latest.senderName != null
+                    && latest.message.getUnformattedText().equals(event.message.getUnformattedText())) {
+                latest.incrementGroup();
+                latest.updateCounter = ctr;       // 刷新淡出定时器
+                dedupPulseMap.put(ctr, nowSysMs);
+                myScrollPos = 0;
+                myIsScrolled = false;
+                return; // 不添加新消息
+            }
+        }
+
         myChatLines.add(0, new MyChatLine(event.message, ctr, nextLineId++, nowMs));
 
         while (myChatLines.size() > MAX_LINES) {
@@ -248,6 +281,22 @@ public class ChromaChatManager {
 
         int ctr = mc.ingameGUI.getUpdateCounter();
         long nowMs = System.currentTimeMillis();
+        long nowSysMs = Minecraft.getSystemTime();
+
+        // ── 物理去重折叠 ──
+        if (cfg.chromaChatDedup && !cc.myChatLines.isEmpty()) {
+            MyChatLine latest = cc.myChatLines.get(0);
+            if (latest.senderName != null
+                    && latest.message.getUnformattedText().equals(component.getUnformattedText())) {
+                latest.incrementGroup();
+                latest.updateCounter = ctr;
+                cc.dedupPulseMap.put(ctr, nowSysMs);
+                cc.myScrollPos = 0;
+                cc.myIsScrolled = false;
+                return; // 不添加新消息
+            }
+        }
+
         cc.myChatLines.add(0, new MyChatLine(component, ctr, cc.nextLineId++, nowMs));
 
         while (cc.myChatLines.size() > MAX_LINES) {
@@ -574,6 +623,29 @@ public class ChromaChatManager {
                     tx += timeWidth;
                 }
                 mc.fontRendererObj.drawString(wl[j], tx, lineY, 0xFFFFFF | (alpha << 24));
+
+                // ── 去重徽标 [Nx]（显示在最后一行后） ──
+                if (ml.groupCount > 1 && j == wl.length - 1) {
+                    String badge = " [" + ml.groupCount + "x]";
+                    int badgeColor = cfg.chromaChatDedupBadgeColor & 0x00FFFFFF;
+                    // 脉冲动画：闪烁白色
+                    if (cfg.chromaChatDedupAnim) {
+                        Long pulseStart = dedupPulseMap.get(ml.updateCounter);
+                        if (pulseStart != null) {
+                            long pulseAge = now - pulseStart;
+                            if (pulseAge < 200) {
+                                float t = (float) pulseAge / 200.0f;
+                                int flash = blendColorToWhite(badgeColor, 1.0f - t * t);
+                                badgeColor = flash;
+                            } else {
+                                dedupPulseMap.remove(ml.updateCounter);
+                            }
+                        }
+                    }
+                    mc.fontRendererObj.drawString(badge,
+                        tx + mc.fontRendererObj.getStringWidth(wl[j]), lineY,
+                        (alpha << 24) | badgeColor);
+                }
             }
 
             y = entryTop; // 上移，给下一条消息（更旧的）腾位置
