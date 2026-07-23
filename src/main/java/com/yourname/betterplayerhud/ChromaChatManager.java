@@ -2,6 +2,7 @@ package com.yourname.betterplayerhud;
 
 import com.mojang.authlib.GameProfile;
 import net.minecraft.client.Minecraft;
+import net.minecraftforge.fml.common.gameevent.TickEvent;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiChat;
 import net.minecraft.client.gui.ScaledResolution;
@@ -59,11 +60,16 @@ public class ChromaChatManager {
     private boolean scrollBtnDown = false;
     private boolean scrollDragging = false;
     private int nextLineId = 1;
+    // 滚轮预读（在 tick 阶段抢在 GuiChat.handleMouseInput 读取/消耗事件后，依然可读）
+    private int pendingScroll = 0;
     // ── 发送者名称提取正则 ──
     private static final Pattern SENDER_PATTERN = Pattern.compile("^<(.+?)>");
 
     // ── 头像缓存 ──
     private final HashMap<String, ResourceLocation> avatarCache = new HashMap<String, ResourceLocation>();
+    // 头像默认皮肤路径（用于回退判断）
+    private static final ResourceLocation STEVE_SKIN = new ResourceLocation("textures/entity/steve.png");
+    private static final ResourceLocation ALEX_SKIN  = new ResourceLocation("textures/entity/alex.png");
 
     private static class MyChatLine {
         final IChatComponent message;
@@ -153,45 +159,38 @@ public class ChromaChatManager {
     }
 
     // =================================================================
-    //  玩家头像缓存
+    //  玩家头像获取——与 PlayerHUDHandler.renderPlayerHead 同源策略
     // =================================================================
     private ResourceLocation getAvatar(String name) {
         if (name == null) return null;
-        // 缓存命中（仅缓存真实皮肤，不缓存默认皮肤）
+        // 缓存命中
         ResourceLocation cached = avatarCache.get(name);
         if (cached != null) return cached;
-        // 从 tab list 获取已加载的真实皮肤纹理
-        // NetworkPlayerInfo.getLocationSkin() 在下完成前返回默认 Steve/Alex，
-        // 完成后再调用才返回真实纹理，所以：
-        //   - 真实纹理 → 缓存
-        //   - 默认纹理 → 不缓存，下次渲染再试
-        //   - 不在 tab list → 不渲染头像（不fallback，避免缓存死路径）
+        // 从 tab list 获取 skin ResourceLocation
         if (mc.getNetHandler() != null) {
             for (NetworkPlayerInfo info : mc.getNetHandler().getPlayerInfoMap()) {
                 GameProfile gp = info.getGameProfile();
                 if (gp != null && name.equalsIgnoreCase(gp.getName())) {
                     ResourceLocation skin = info.getLocationSkin();
-                    if (skin != null && !isDefaultSkin(skin)) {
+                    if (skin != null) {
+                        // 直接缓存，不管默认还是真实——TextureManager 异步下载完成后
+                        // 自动更新纹理，ResourceLocation 路径不变
                         if (avatarCache.size() >= 50) avatarCache.clear();
                         avatarCache.put(name, skin);
                         return skin;
                     }
-                    // 默认皮肤——不缓存，等异步下载完成后下次再拿
                     return null;
                 }
             }
         }
-        // 不在 tab list 里 → 暂不渲染，之后有新消息时再试
+        // 不在 tab list → 用 AbstractClientPlayer.getLocationSkin 回退
+        // 这会在 TextureManager 中创建纹理入口，触发异步下载
+        ResourceLocation fallback = net.minecraft.client.entity.AbstractClientPlayer.getLocationSkin(name);
+        if (fallback != null) {
+            avatarCache.put(name, fallback);
+            return fallback;
+        }
         return null;
-    }
-
-    // 默认皮肤路径（Steve/Alex）
-    private static final ResourceLocation STEVE_SKIN = new ResourceLocation("textures/entity/steve.png");
-    private static final ResourceLocation ALEX_SKIN  = new ResourceLocation("textures/entity/alex.png");
-
-    /** 判断是否是默认皮肤（Steve/Alex）——纹理路径直接比对 */
-    private static boolean isDefaultSkin(ResourceLocation loc) {
-        return STEVE_SKIN.equals(loc) || ALEX_SKIN.equals(loc);
     }
 
     /** 绘制纹理矩形（归一化 UV 坐标，同 PlayerHUDHandler.renderPlayerHead） */
@@ -380,9 +379,18 @@ public class ChromaChatManager {
         // Mouse.getDWheel() 返回自上次 poll() 以来的累积滚轮增量。
         // 不管 GuiChat 是否消耗了事件队列，getDWheel() 的值都会保留到下一轮 poll()。
         // 所以直接在渲染时读取即可，不需要 TickEvent 预读。
-        int wheel = Mouse.getDWheel();
+        int wheel = 0;
+        if (pendingScroll != 0) {
+            wheel = pendingScroll;
+            pendingScroll = 0;
+        } else {
+            // Fallback: 在非 GuiChat 模式下直接从 getDWheel 读
+            wheel = Mouse.getDWheel();
+        }
         if (wheel != 0 && (mc.currentScreen instanceof GuiChat || myScrollPos > 0)) {
-            int dir = (wheel > 0) ? 1 : -1;  // 向上滚=看更旧消息=scrollPos↑
+            // 方向约定：wheel > 0 = 物理向上（滚轮远离用户=向上推）
+            //   Natural scrolling 反转该符号，此处硬编码不做适配
+            int dir = (wheel > 0) ? -1 : 1;  // 向上滚=看更旧消息=scrollPos↑
             int maxScroll = Math.max(0, totalLines - Math.min(8, totalLines));
             int prev = myScrollPos;
             myScrollPos = MathHelper.clamp_int(prev + dir * 3, 0, maxScroll);
@@ -674,6 +682,20 @@ public class ChromaChatManager {
         // 递归查子节点（大部分 clickable 在 sibling 上）
         for (IChatComponent child : comp.getSiblings()) {
             forwardClick(child);
+        }
+    }
+
+    // =================================================================
+    //  Client tick — 提前抢读滚轮值
+    //  GuiChat.handleMouseInput() 会调用 Mouse.next() 遍历事件队列，但
+    //  Mouse.getDWheel()（累积值）不受 next() 影响，此处读取同样可靠。
+    //  TickEvent 时机早于渲染，确保滚轮值在 render 时已被捕获。
+    // =================================================================
+    @SubscribeEvent
+    public void onClientTick(TickEvent.ClientTickEvent event) {
+        if (event.phase == TickEvent.Phase.START && mc.currentScreen instanceof GuiChat) {
+            int w = Mouse.getDWheel();
+            if (w != 0) pendingScroll = w;
         }
     }
 
