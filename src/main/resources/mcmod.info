@@ -1,7 +1,7 @@
 [
   {
     "modid": "betterplayerhud",
-    "name": "BetterPlayerHUD 1.5.0 BETA",
+    "name": "BetterPlayerHUD",
     "description": "基于头像淡出曲线优化版，数据按 receivedTimeMs 升序排列。增量更新。",
     "version": "1.5.0",
     "mcversion": "1.8.9",

@@ -15,7 +15,7 @@ apply plugin: 'net.minecraftforge.gradle.forge'
 
 version = "1.5.0"
 group = "com.yourname.betterplayerhud"
-archivesBaseName = "BetterPlayerHUD1.5.0BETA"
+archivesBaseName = "BetterPlayerHUD"
 compileJava {
     options.encoding = 'UTF-8'
 }
