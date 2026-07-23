@@ -23,6 +23,7 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import org.lwjgl.input.Mouse;
+import org.lwjgl.opengl.GL11;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -159,11 +160,15 @@ public class ChromaChatManager {
     // =================================================================
     private ResourceLocation getAvatar(String name) {
         if (name == null) return null;
+        // 缓存命中（仅缓存真实皮肤，不缓存默认皮肤）
         ResourceLocation cached = avatarCache.get(name);
         if (cached != null) return cached;
         // 从 tab list 获取已加载的真实皮肤纹理
-        // 注意：NetworkPlayerInfo.getLocationSkin() 在异步下载完成前返回默认皮肤，
-        //       所以不能缓存默认皮肤——等异步下载完成后再次调用才会拿到真纹理
+        // NetworkPlayerInfo.getLocationSkin() 在下完成前返回默认 Steve/Alex，
+        // 完成后再调用才返回真实纹理，所以：
+        //   - 真实纹理 → 缓存
+        //   - 默认纹理 → 不缓存，下次渲染再试
+        //   - 不在 tab list → 不渲染头像（不fallback，避免缓存死路径）
         if (mc.getNetHandler() != null) {
             for (NetworkPlayerInfo info : mc.getNetHandler().getPlayerInfoMap()) {
                 GameProfile gp = info.getGameProfile();
@@ -174,22 +179,20 @@ public class ChromaChatManager {
                         avatarCache.put(name, skin);
                         return skin;
                     }
-                    // 只有默认皮肤——不缓存，下次再试（等异步下载完成）
-                    return skin; // 返回默认皮肤但不缓存
+                    // 默认皮肤——不缓存，等异步下载完成后下次再拿
+                    return null;
                 }
             }
         }
-        // 不在 tab list 里——用抽象路径，TextureManager 首次 bind 时异步下载
-        ResourceLocation loc = net.minecraft.client.entity.AbstractClientPlayer.getLocationSkin(name);
-        if (avatarCache.size() >= 50) avatarCache.clear();
-        avatarCache.put(name, loc);
-        return loc;
+        // 不在 tab list 里 → 暂不渲染，之后有新消息时再试
+        return null;
     }
 
-    /** 判断是否是默认皮肤（Steve/Alex） */
+    // 默认皮肤路径（Steve/Alex）
     private static final ResourceLocation STEVE_SKIN = new ResourceLocation("textures/entity/steve.png");
     private static final ResourceLocation ALEX_SKIN  = new ResourceLocation("textures/entity/alex.png");
 
+    /** 判断是否是默认皮肤（Steve/Alex）——纹理路径直接比对 */
     private static boolean isDefaultSkin(ResourceLocation loc) {
         return STEVE_SKIN.equals(loc) || ALEX_SKIN.equals(loc);
     }
@@ -588,14 +591,19 @@ public class ChromaChatManager {
             for (int j = 0; j < wl.length; j++) {
                 int lineY = entryTop + j * lineH;
 
-                // ── 头像（仅第一行，同血量条/tab list：u=8,v=8 面部 + u=40,v=8 帽子） ──
+                // ── 头像（仅第一行，同护甲条头像渲染：u=8,v=8 面部 + u=40,v=8 帽子） ──
                 if (showAvatar && j == 0 && ml.senderName != null) {
                     ResourceLocation skin = getAvatar(ml.senderName);
                     if (skin != null) {
                         mc.getTextureManager().bindTexture(skin);
+                        GlStateManager.enableBlend();
+                        GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+                        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+                        // 面部 (同 PlayerHUDHandler.renderPlayerHead 的 UV 坐标)
                         Gui.drawModalRectWithCustomSizedTexture(baseX + 2, lineY, 8, 8, avatarSize, avatarSize, 64, 64);
-                        // 第二层皮肤（hat overlay），同 GuiPlayerTabOverlay 逻辑
+                        // 第二层皮肤 hat overlay (同 GuiPlayerTabOverlay)
                         Gui.drawModalRectWithCustomSizedTexture(baseX + 2, lineY, 40, 8, avatarSize, avatarSize, 64, 64);
+                        GlStateManager.disableBlend();
                     }
                 }
 
@@ -661,7 +669,7 @@ public class ChromaChatManager {
     public void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase == TickEvent.Phase.START && mc.currentScreen instanceof GuiChat) {
             int w = Mouse.getDWheel();
-            if (w != 0) pendingScroll = w;
+            if (w != 0) pendingScroll += w;
         }
     }
 
