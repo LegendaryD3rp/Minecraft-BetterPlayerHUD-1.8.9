@@ -19,6 +19,7 @@ import net.minecraftforge.client.event.ClientChatReceivedEvent;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.network.FMLNetworkEvent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import org.lwjgl.input.Mouse;
@@ -234,6 +235,19 @@ public class ChromaChatManager {
 
     public void onConfigChanged() {}
 
+    // =================================================================
+    //  ClientDisconnectionFromServerEvent — 切服时清空聊天记录
+    // =================================================================
+    @SubscribeEvent
+    public void onClientDisconnect(FMLNetworkEvent.ClientDisconnectionFromServerEvent event) {
+        myChatLines.clear();
+        myScrollPos = 0;
+        myIsScrolled = false;
+        nextLineId = 0;
+        dedupPulseMap.clear();
+        msgAnimMap.clear();
+    }
+
     // ── 调试计数（每 300 帧 ≈ 5秒 打印一次） ──
     private int debugFrameCounter = 0;
 
@@ -247,6 +261,9 @@ public class ChromaChatManager {
 
         // [DEBUG] 收到了消息
         System.out.println("[ChromaChat] intercepted: " + event.message.getUnformattedText());
+
+        // 跳过纯空白消息（切服时的垃圾消息）
+        if (event.message.getUnformattedText().trim().isEmpty()) return;
 
         // 不 cancel 事件！其他模组的对话框监听（HitMarkerChatListener 等）需要收到消息。
         // 双重渲染由 RenderGameOverlayEvent.Chat 的 cancel 防止。
