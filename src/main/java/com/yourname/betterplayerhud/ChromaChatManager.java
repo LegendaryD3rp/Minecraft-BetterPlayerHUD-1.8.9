@@ -1,7 +1,6 @@
 package com.yourname.betterplayerhud;
 
 import com.mojang.authlib.GameProfile;
-import net.minecraftforge.fml.common.gameevent.TickEvent;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiChat;
@@ -60,8 +59,6 @@ public class ChromaChatManager {
     private boolean scrollBtnDown = false;
     private boolean scrollDragging = false;
     private int nextLineId = 1;
-    // 滚轮预读（绕过 GuiChat 消耗）
-    private int pendingScroll = 0;
     // ── 发送者名称提取正则 ──
     private static final Pattern SENDER_PATTERN = Pattern.compile("^<(.+?)>");
 
@@ -195,6 +192,19 @@ public class ChromaChatManager {
     /** 判断是否是默认皮肤（Steve/Alex）——纹理路径直接比对 */
     private static boolean isDefaultSkin(ResourceLocation loc) {
         return STEVE_SKIN.equals(loc) || ALEX_SKIN.equals(loc);
+    }
+
+    /** 绘制纹理矩形（归一化 UV 坐标，同 PlayerHUDHandler.renderPlayerHead） */
+    private static void drawTextureRect(int x, int y, int w, int h,
+                                        float uMin, float vMin, float uMax, float vMax) {
+        Tessellator tess = Tessellator.getInstance();
+        WorldRenderer wr = tess.getWorldRenderer();
+        wr.begin(7, DefaultVertexFormats.POSITION_TEX);
+        wr.pos(x,       y + h, 0.0D).tex(uMin, vMax).endVertex();
+        wr.pos(x + w,   y + h, 0.0D).tex(uMax, vMax).endVertex();
+        wr.pos(x + w,   y,     0.0D).tex(uMax, vMin).endVertex();
+        wr.pos(x,       y,     0.0D).tex(uMin, vMin).endVertex();
+        tess.draw();
     }
 
     // === Spring Animation (P1) ===
@@ -366,17 +376,16 @@ public class ChromaChatManager {
         // ── 弹性动画（类 ComboHandler：每帧更新 animAmount） ──
         updateSpring(chatOpen, now, cfg);
 
-        // ── 滚动检测（使用 pendingScroll——TickEvent 中从 Mouse.getDWheel 预读） ──
-        int wheel = pendingScroll;
-        pendingScroll = 0;
-        if (wheel != 0) {
-            // Wheel 仅在聊天框打开时才可能非零。MC 原版约定：
-            //   Mouse.getDWheel() > 0 = 向前滚 = 向上推
-            //   此处向上推 = 看更旧消息 = myScrollPos 增加
-            int prevPos = myScrollPos;
-            int dir = (wheel > 0) ? -1 : 1;  // 抵消自然滚动（物理向上→getDWheel负→dir=1→scrollPos↑看旧消息）
+        // ── 滚动检测 ──
+        // Mouse.getDWheel() 返回自上次 poll() 以来的累积滚轮增量。
+        // 不管 GuiChat 是否消耗了事件队列，getDWheel() 的值都会保留到下一轮 poll()。
+        // 所以直接在渲染时读取即可，不需要 TickEvent 预读。
+        int wheel = Mouse.getDWheel();
+        if (wheel != 0 && (mc.currentScreen instanceof GuiChat || myScrollPos > 0)) {
+            int dir = (wheel > 0) ? 1 : -1;  // 向上滚=看更旧消息=scrollPos↑
             int maxScroll = Math.max(0, totalLines - Math.min(8, totalLines));
-            myScrollPos = MathHelper.clamp_int(prevPos + dir * 3, 0, maxScroll);
+            int prev = myScrollPos;
+            myScrollPos = MathHelper.clamp_int(prev + dir * 3, 0, maxScroll);
             myIsScrolled = myScrollPos > 0;
         }
 
@@ -595,7 +604,7 @@ public class ChromaChatManager {
             for (int j = 0; j < wl.length; j++) {
                 int lineY = entryTop + j * lineH;
 
-                // ── 头像（仅第一行，同护甲条头像渲染：u=8,v=8 面部 + u=40,v=8 帽子） ──
+                // ── 头像（仅第一行，同护甲条头像渲染：归一化 UV 固定采 8×8 面部区域） ──
                 if (showAvatar && j == 0 && ml.senderName != null) {
                     ResourceLocation skin = getAvatar(ml.senderName);
                     if (skin != null) {
@@ -603,10 +612,12 @@ public class ChromaChatManager {
                         GlStateManager.enableBlend();
                         GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
                         GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
-                        // 面部 (同 PlayerHUDHandler.renderPlayerHead 的 UV 坐标)
-                        Gui.drawModalRectWithCustomSizedTexture(baseX + 2, lineY, 8, 8, avatarSize, avatarSize, 64, 64);
-                        // 第二层皮肤 hat overlay (同 GuiPlayerTabOverlay)
-                        Gui.drawModalRectWithCustomSizedTexture(baseX + 2, lineY, 40, 8, avatarSize, avatarSize, 64, 64);
+                        // 面部（归一化 UV，固定取 8/64~16/64，不受 avatarSize 影响）
+                        drawTextureRect(baseX + 2, lineY, avatarSize, avatarSize,
+                            8.0F / 64.0F, 8.0F / 64.0F, 16.0F / 64.0F, 16.0F / 64.0F);
+                        // 帽子 overlay（归一化 UV：u=40/64~48/64, v=8/64~16/64）
+                        drawTextureRect(baseX + 2, lineY, avatarSize, avatarSize,
+                            40.0F / 64.0F, 8.0F / 64.0F, 48.0F / 64.0F, 16.0F / 64.0F);
                         GlStateManager.disableBlend();
                     }
                 }
@@ -663,17 +674,6 @@ public class ChromaChatManager {
         // 递归查子节点（大部分 clickable 在 sibling 上）
         for (IChatComponent child : comp.getSiblings()) {
             forwardClick(child);
-        }
-    }
-
-    // =================================================================
-    //  Client tick — 提前抢读滚轮值（GuiChat 会消耗 Mouse.getDWheel）
-    // =================================================================
-    @SubscribeEvent
-    public void onClientTick(TickEvent.ClientTickEvent event) {
-        if (event.phase == TickEvent.Phase.START && mc.currentScreen instanceof GuiChat) {
-            int w = Mouse.getDWheel();
-            if (w != 0) pendingScroll += w;
         }
     }
 
