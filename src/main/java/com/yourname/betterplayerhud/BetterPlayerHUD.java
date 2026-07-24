@@ -21,8 +21,8 @@ public class BetterPlayerHUD {
     public static final String VERSION = "1.0-elite";
     public static BetterPlayerHUDConfig config;
 
-    // F8 键绑定（默认不绑定，用户手动设置；测试期间临时改成 KEY_F8）
-    public static KeyBinding keyBindF8 = new KeyBinding("key.bhud.openConfig", Keyboard.KEY_NONE, "key.categories.bhud");
+    // F8 键绑定（默认 F8，1.8.9 无冲突）
+    public static KeyBinding keyBindF8 = new KeyBinding("key.bhud.openConfig", Keyboard.KEY_F8, "key.categories.bhud");
 
     @Mod.EventHandler
     public void preInit(FMLPreInitializationEvent event) {
