@@ -6,7 +6,11 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.InputEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
+import net.minecraft.client.settings.KeyBinding;
+import net.minecraftforge.fml.client.registry.ClientRegistry;
+import org.lwjgl.input.Keyboard;
 
 import java.io.File;
 import java.awt.Rectangle;
@@ -17,6 +21,9 @@ public class BetterPlayerHUD {
     public static final String VERSION = "1.0-elite";
     public static BetterPlayerHUDConfig config;
 
+    // F8 键绑定（默认不绑定，用户手动设置；测试期间临时改成 KEY_F8）
+    public static KeyBinding keyBindF8 = new KeyBinding("key.bhud.openConfig", Keyboard.KEY_NONE, "key.categories.bhud");
+
     @Mod.EventHandler
     public void preInit(FMLPreInitializationEvent event) {
         File configFile = new File(event.getModConfigurationDirectory(), "betterplayerhud.cfg");
@@ -25,6 +32,10 @@ public class BetterPlayerHUD {
 
     @Mod.EventHandler
     public void init(FMLInitializationEvent event) {
+        // F8 键绑定（默认不绑定，用户手动设置）
+        ClientRegistry.registerKeyBinding(keyBindF8);
+        MinecraftForge.EVENT_BUS.register(new InputHandler());
+
         // 注册拖拽编辑模式
         HUDEditManager.init();
         MinecraftForge.EVENT_BUS.register(HUDEditManager.INSTANCE);
@@ -232,6 +243,18 @@ public class BetterPlayerHUD {
         // 注册装备&手持物品 HUD（模块23）
         MinecraftForge.EVENT_BUS.register(new EquipHUDHandler());
 
+        // 注册原版取消处理器（v1.6.0 P0 — 取消晕影/南瓜罩/传送门/副标题）
+        MinecraftForge.EVENT_BUS.register(new VanillaCancelHandler());
+
+        // P0 第 3 项：经验条 / Boss 血条 / 快捷栏
+        MinecraftForge.EVENT_BUS.register(new ExpBarHUDHandler());
+        MinecraftForge.EVENT_BUS.register(new BossHealthHUDHandler());
+        MinecraftForge.EVENT_BUS.register(new HotbarHUDHandler());
+
+        // P1: 玩家列表 / 调试信息
+        MinecraftForge.EVENT_BUS.register(new TabListHUDHandler());
+        MinecraftForge.EVENT_BUS.register(new DebugInfoHUDHandler());
+
         // 注册危机警戒图标（模块24）
         MinecraftForge.EVENT_BUS.register(new CrisisWarningHandler());
 
@@ -345,6 +368,29 @@ public class BetterPlayerHUD {
         public void onConfigChanged(ConfigChangedEvent.OnConfigChangedEvent event) {
             if (event.modID.equals(MODID)) {
                 config.reloadFromMemory();
+            }
+        }
+    }
+
+    /**
+     * 输入事件处理器 — 检测 F8 打开配置 GUI
+     */
+    public static class InputHandler {
+        @SubscribeEvent
+        public void onKeyInput(InputEvent.KeyInputEvent event) {
+            if (keyBindF8.isPressed()) {
+                net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getMinecraft();
+                if (mc.currentScreen == null) {
+                    mc.displayGuiScreen(new GuiModernConfig(mc.currentScreen));
+                }
+            }
+            // F9 语言切换：仅当配置页打开时生效
+            if (Keyboard.isKeyDown(Keyboard.KEY_F9)) {
+                net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getMinecraft();
+                if (mc.currentScreen instanceof GuiModernConfig) {
+                    LangManager.toggle();
+                    return;
+                }
             }
         }
     }

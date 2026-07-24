@@ -19,6 +19,24 @@ public class PlayerHUDHandler {
     private long lastBlinkTime = 0;
     private boolean blinkState = false;
 
+    /**
+     * Pre 取消：抢在原版渲染之前血量（HEALTH）和饱食度（FOOD）
+     * 前提：模块启用且对应子开关打开时，原版不再绘制。
+     */
+    @SubscribeEvent
+    public void onPreRenderGameOverlay(RenderGameOverlayEvent.Pre event) {
+        if (event.type == RenderGameOverlayEvent.ElementType.HEALTH) {
+            if (BetterPlayerHUD.config.enableHealthHUD && BetterPlayerHUD.config.showHealthHUD) {
+                event.setCanceled(true);
+            }
+        }
+        if (event.type == RenderGameOverlayEvent.ElementType.FOOD) {
+            if (BetterPlayerHUD.config.enableHealthHUD && BetterPlayerHUD.config.showHungerHUD) {
+                event.setCanceled(true);
+            }
+        }
+    }
+
     @SubscribeEvent
     public void onRenderGameOverlay(RenderGameOverlayEvent.Post event) {
         if (event.type != RenderGameOverlayEvent.ElementType.TEXT) {

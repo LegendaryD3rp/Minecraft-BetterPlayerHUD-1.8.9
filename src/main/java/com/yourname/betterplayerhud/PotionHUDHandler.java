@@ -25,6 +25,13 @@ public class PotionHUDHandler {
     private static final Minecraft mc = Minecraft.getMinecraft();
     private static final ResourceLocation INVENTORY_TEXTURE = new ResourceLocation("textures/gui/container/inventory.png");
 
+    /**
+     * 注意：1.8.9 Forge 无 POTION_ICONS ElementType，
+     * 原版药水图标渲染在 ALL 循环内不可单独取消。
+     * 自定义药水计时器在 Post(TEXT) 中覆盖显示。
+     * 如需隐藏原版药水图标，后续可通过 ASM/反射干预 GuiIngame.func_180474_b。
+     */
+
     @SubscribeEvent
     public void onRenderGameOverlay(RenderGameOverlayEvent.Post event) {
         if (event.type != RenderGameOverlayEvent.ElementType.TEXT) return;

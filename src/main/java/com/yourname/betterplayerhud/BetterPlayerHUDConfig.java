@@ -361,6 +361,26 @@ public class BetterPlayerHUDConfig {
     // ── 告示牌合并 ──
     public boolean chromaChatSignboardMerge = true;      // 合并系统公告板行
 
+    // ═══════════════════════════════════════════════════════════════
+    //  P0 第 3 项：经验条 / Boss 血条 / 快捷栏
+    // ═══════════════════════════════════════════════════════════════
+    public boolean enableXpBarHUD = true;
+    public int xpBarXOffset = 0;
+    public int xpBarYOffset = 0;
+    public int xpBarWidth = 182;    // min 80, max 400
+    public int xpBarHeight = 5;     // min 3, max 20
+    public boolean enableBossHealthHUD = true;
+    public boolean enableHotbarHUD = true;
+    public int hotbarYOffset = 0;
+
+    // ═══════════════════════════════════════════════════════════════
+    //  P1: TabList / DebugInfo
+    // ═══════════════════════════════════════════════════════════════
+    public boolean enableTabListHUD = true;
+    public boolean enableDebugInfoHUD = false;
+    public int debugInfoXOffset = 2;
+    public int debugInfoYOffset = 2;
+
     // ================================================================
     //  颜色工具方法
     // ================================================================
@@ -1159,6 +1179,46 @@ public class BetterPlayerHUDConfig {
             chromaChatSignboardMerge = p.getBoolean();
         }
 
+        // --- P0 第 3 项：经验条 ---
+        {
+            Property p = config.get(C, "enableXpBarHUD", true);
+            p.comment = "显示自定义经验条"; enableXpBarHUD = p.getBoolean();
+            p = config.get(C, "xpBarXOffset", 0);
+            p.comment = "经验条水平偏移"; xpBarXOffset = p.getInt();
+            p = config.get(C, "xpBarYOffset", 0);
+            p.comment = "经验条垂直偏移"; xpBarYOffset = p.getInt();
+            p = config.get(C, "xpBarWidth", 182);
+            p.comment = "经验条宽度"; p.setMinValue(80).setMaxValue(400); xpBarWidth = p.getInt();
+            p = config.get(C, "xpBarHeight", 5);
+            p.comment = "经验条高度"; p.setMinValue(3).setMaxValue(20); xpBarHeight = p.getInt();
+        }
+
+        // --- P0 第 3 项：Boss 血条 ---
+        {
+            Property p = config.get(C, "enableBossHealthHUD", true);
+            p.comment = "显示自定义 Boss 血条"; enableBossHealthHUD = p.getBoolean();
+        }
+
+        // --- P0 第 3 项：快捷栏 ---
+        {
+            Property p = config.get(C, "enableHotbarHUD", true);
+            p.comment = "显示自定义快捷栏"; enableHotbarHUD = p.getBoolean();
+            p = config.get(C, "hotbarYOffset", 0);
+            p.comment = "快捷栏垂直偏移"; hotbarYOffset = p.getInt();
+        }
+
+        // --- P1: TabList / DebugInfo ---
+        {
+            Property p = config.get(C, "enableTabListHUD", true);
+            p.comment = "显示自定义玩家列表（Tab 按住时）"; enableTabListHUD = p.getBoolean();
+            p = config.get(C, "enableDebugInfoHUD", false);
+            p.comment = "显示调试信息（FPS/坐标/内存）"; enableDebugInfoHUD = p.getBoolean();
+            p = config.get(C, "debugInfoXOffset", 2);
+            p.comment = "调试信息 X 偏移"; debugInfoXOffset = p.getInt();
+            p = config.get(C, "debugInfoYOffset", 2);
+            p.comment = "调试信息 Y 偏移"; debugInfoYOffset = p.getInt();
+        }
+
     }
 
     // ================================================================
@@ -1451,6 +1511,26 @@ public class BetterPlayerHUDConfig {
         config.get(C, "chromaChatAvatarSize", 10).set(chromaChatAvatarSize);
         config.get(C, "chromaChatAvatarRounded", true).set(chromaChatAvatarRounded);
         config.get(C, "chromaChatSignboardMerge", true).set(chromaChatSignboardMerge);
+
+        // --- P0 第 3 项：经验条 ---
+        config.get(C, "enableXpBarHUD", true).set(enableXpBarHUD);
+        config.get(C, "xpBarXOffset", 0).set(xpBarXOffset);
+        config.get(C, "xpBarYOffset", 0).set(xpBarYOffset);
+        config.get(C, "xpBarWidth", 182).set(xpBarWidth);
+        config.get(C, "xpBarHeight", 5).set(xpBarHeight);
+
+        // --- P0 第 3 项：Boss 血条 ---
+        config.get(C, "enableBossHealthHUD", true).set(enableBossHealthHUD);
+
+        // --- P0 第 3 项：快捷栏 ---
+        config.get(C, "enableHotbarHUD", true).set(enableHotbarHUD);
+        config.get(C, "hotbarYOffset", 0).set(hotbarYOffset);
+
+        // --- P1: TabList / DebugInfo ---
+        config.get(C, "enableTabListHUD", true).set(enableTabListHUD);
+        config.get(C, "enableDebugInfoHUD", false).set(enableDebugInfoHUD);
+        config.get(C, "debugInfoXOffset", 2).set(debugInfoXOffset);
+        config.get(C, "debugInfoYOffset", 2).set(debugInfoYOffset);
 
         // 持久化到磁盘
         config.save();

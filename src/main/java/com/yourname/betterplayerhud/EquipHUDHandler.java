@@ -33,6 +33,19 @@ public class EquipHUDHandler {
     private static final DecimalFormat DF = new DecimalFormat("#.##");
 
     // ================================================================
+    //  Pre — 取消原版盔甲栏（ARMOR），让位给自定义装甲 HUD
+    // ================================================================
+
+    @SubscribeEvent
+    public void onPreRender(RenderGameOverlayEvent.Pre event) {
+        if (event.type == RenderGameOverlayEvent.ElementType.ARMOR) {
+            if (BetterPlayerHUD.config.enableArmorHUD) {
+                event.setCanceled(true);
+            }
+        }
+    }
+
+    // ================================================================
     //  事件 — Post(ALL) 确保在 Hotbar 渲染后
     // ================================================================
 
