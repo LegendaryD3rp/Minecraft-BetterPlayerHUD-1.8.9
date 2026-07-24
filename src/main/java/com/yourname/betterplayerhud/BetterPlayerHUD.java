@@ -255,6 +255,11 @@ public class BetterPlayerHUD {
         MinecraftForge.EVENT_BUS.register(new TabListHUDHandler());
         MinecraftForge.EVENT_BUS.register(new DebugInfoHUDHandler());
 
+        // ── P2 新增模块 ──
+        MinecraftForge.EVENT_BUS.register(new JumpBarHUDHandler());
+        MinecraftForge.EVENT_BUS.register(new AirHUDHandler());
+        MinecraftForge.EVENT_BUS.register(new MountHealthHUDHandler());
+
         // 注册危机警戒图标（模块24）
         MinecraftForge.EVENT_BUS.register(new CrisisWarningHandler());
 

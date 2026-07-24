@@ -133,6 +133,23 @@ public class EquipHUDHandler {
         mc.getRenderItem().renderItemAndEffectIntoGUI(stack, x + 2, y + 2);
         RenderHelper.disableStandardItemLighting();
 
+        // ── 耐久显示 ──
+        if (cfg.showArmorDurability && stack.isItemStackDamageable()) {
+            int maxDamage = stack.getMaxDamage();
+            int damage = stack.getItemDamage();
+            int remaining = maxDamage - damage;
+            String durText = String.valueOf(remaining);
+            int durColor;
+            float ratio = (float) remaining / maxDamage;
+            if (ratio > 0.6f) durColor = 0xFF55FF55;
+            else if (ratio > 0.3f) durColor = 0xFFFFFF55;
+            else durColor = 0xFFFF5555;
+            // 在装备图标下方绘制小字
+            int durX = x + 6;
+            int durY = y + 18;
+            mc.fontRendererObj.drawString(durText, durX, durY, durColor, true);
+        }
+
         // ── 构建附魔行列表（每行一个附魔，固定数组零分配） ──
         String[] lines = new String[5];
         int lineCount = 0;

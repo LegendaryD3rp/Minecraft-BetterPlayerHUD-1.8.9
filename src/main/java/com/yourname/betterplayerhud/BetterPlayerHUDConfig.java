@@ -58,10 +58,12 @@ public class BetterPlayerHUDConfig {
     public int healthColorWarning = 0xFFFFFF00;
     public int healthColorDanger = 0xFFFF0000;
     public boolean showArmorHUD = true;
+    public boolean showArmorDurability = true;
     public int armorColor = 0xFF00FFFF;
     public boolean showHungerHUD = true;
     public int hungerColor = 0xFFFFA500; // 橙色，100为满
     public boolean showPlayerHead = true;
+    public String healthBarStyle = "default"; // "default" / "modern" / "pixel"
     public int headSize = 16;
     public int headTextSpacing = 2;
 
@@ -226,6 +228,8 @@ public class BetterPlayerHUDConfig {
     public int potionTextColor = 0xFFFFFFFF;
     public int potionXOffset = 0;
     public int potionYOffset = 0;
+    public boolean potionWarning = true;
+    public int potionWarnThreshold = 5; // 秒
 
     // ================================================================
     //  模块23：装备&手持物品 HUD
@@ -378,6 +382,27 @@ public class BetterPlayerHUDConfig {
     // ═══════════════════════════════════════════════════════════════
     public boolean enableTabListHUD = true;
     public boolean enableDebugInfoHUD = false;
+
+    // ================================================================
+    //  P2 新增模块：JumpBar / AirHUD / MountHP
+    // ================================================================
+    public boolean enableJumpBar = true;
+    public int jumpBarWidth = 100;
+    public int jumpBarHeight = 6;
+    public float jumpBarChargeSpeed = 0.02f;
+
+    public boolean enableAirHUD = true;
+    public int airBarWidth = 100;
+    public int airBarHeight = 8;
+    public int airHudX = 0;
+    public int airHudY = -80;
+
+    public boolean enableMountHP = true;
+    public int mountHPBarWidth = 100;
+    public int mountHPBarHeight = 8;
+    public int mountHPX = 0;
+    public int mountHPY = -60;
+
     public int debugInfoXOffset = 2;
     public int debugInfoYOffset = 2;
 
@@ -572,6 +597,9 @@ public class BetterPlayerHUDConfig {
             p = config.get(C, "showArmorHUD", true);
             p.comment = "是否显示护甲HUD"; showArmorHUD = p.getBoolean();
 
+            p = config.get(C, "showArmorDurability", true);
+            p.comment = "在装备上显示耐久度"; showArmorDurability = p.getBoolean();
+
             armorColor = loadColor(C, "armorColor", 0, 255, 255);
 
             p = config.get(C, "showHungerHUD", true);
@@ -587,6 +615,9 @@ public class BetterPlayerHUDConfig {
 
             p = config.get(C, "headTextSpacing", 2);
             p.comment = "头像与文本间距"; headTextSpacing = p.getInt();
+
+            p = config.get(C, "healthBarStyle", "default");
+            p.comment = "血条样式: default/modern/pixel"; healthBarStyle = p.getString();
         }
 
         // --- 模块7：距离 HUD ---
@@ -968,6 +999,12 @@ public class BetterPlayerHUDConfig {
 
             p = config.get(C, "potionYOffset", 0);
             p.comment = "药水HUD Y轴偏移"; potionYOffset = p.getInt();
+
+            p = config.get(C, "potionWarning", true);
+            p.comment = "药水效果到期前闪烁预警"; potionWarning = p.getBoolean();
+
+            p = config.get(C, "potionWarnThreshold", 5);
+            p.comment = "预警阈值(秒)"; p.setMinValue(1).setMaxValue(30); potionWarnThreshold = p.getInt();
         }
 
         // --- 模块26：药水计时器 ---
@@ -1219,6 +1256,46 @@ public class BetterPlayerHUDConfig {
             p.comment = "调试信息 Y 偏移"; debugInfoYOffset = p.getInt();
         }
 
+        // --- P2 新增模块：JumpBar ---
+        {
+            Property p = config.get(C, "enableJumpBar", true);
+            p.comment = "显示跳跃蓄力条"; enableJumpBar = p.getBoolean();
+            p = config.get(C, "jumpBarWidth", 100);
+            p.comment = "跳跃条宽度"; p.setMinValue(30).setMaxValue(300); jumpBarWidth = p.getInt();
+            p = config.get(C, "jumpBarHeight", 6);
+            p.comment = "跳跃条高度"; p.setMinValue(2).setMaxValue(20); jumpBarHeight = p.getInt();
+            p = config.get(C, "jumpBarChargeSpeed", 0.02f);
+            p.comment = "蓄力速率(每tick)"; p.setMinValue(0.001).setMaxValue(0.1); jumpBarChargeSpeed = (float) p.getDouble();
+        }
+
+        // --- P2 新增模块：AirHUD ---
+        {
+            Property p = config.get(C, "enableAirHUD", true);
+            p.comment = "显示自定义氧气条"; enableAirHUD = p.getBoolean();
+            p = config.get(C, "airBarWidth", 100);
+            p.comment = "氧气条宽度"; p.setMinValue(30).setMaxValue(300); airBarWidth = p.getInt();
+            p = config.get(C, "airBarHeight", 8);
+            p.comment = "氧气条高度"; p.setMinValue(2).setMaxValue(20); airBarHeight = p.getInt();
+            p = config.get(C, "airHudX", 0);
+            p.comment = "氧气条 X 偏移(相对屏幕中心)"; airHudX = p.getInt();
+            p = config.get(C, "airHudY", -80);
+            p.comment = "氧气条 Y 偏移(相对屏幕中心)"; airHudY = p.getInt();
+        }
+
+        // --- P2 新增模块：MountHP ---
+        {
+            Property p = config.get(C, "enableMountHP", true);
+            p.comment = "显示坐骑血量条"; enableMountHP = p.getBoolean();
+            p = config.get(C, "mountHPBarWidth", 100);
+            p.comment = "坐骑血量条宽度"; p.setMinValue(30).setMaxValue(300); mountHPBarWidth = p.getInt();
+            p = config.get(C, "mountHPBarHeight", 8);
+            p.comment = "坐骑血量条高度"; p.setMinValue(2).setMaxValue(20); mountHPBarHeight = p.getInt();
+            p = config.get(C, "mountHPX", 0);
+            p.comment = "坐骑血量条 X 偏移(相对屏幕中心)"; mountHPX = p.getInt();
+            p = config.get(C, "mountHPY", -60);
+            p.comment = "坐骑血量条 Y 偏移(相对屏幕中心)"; mountHPY = p.getInt();
+        }
+
     }
 
     // ================================================================
@@ -1260,10 +1337,12 @@ public class BetterPlayerHUDConfig {
         saveColor(C, "healthColorWarning", healthColorWarning);
         saveColor(C, "healthColorDanger", healthColorDanger);
         config.get(C, "showArmorHUD", true).set(showArmorHUD);
+        config.get(C, "showArmorDurability", true).set(showArmorDurability);
         saveColor(C, "armorColor", armorColor);
         config.get(C, "showHungerHUD", true).set(showHungerHUD);
         saveColor(C, "hungerColor", hungerColor);
         config.get(C, "showPlayerHead", true).set(showPlayerHead);
+        config.get(C, "healthBarStyle", "default").set(healthBarStyle);
         config.get(C, "headSize", 16).set(headSize);
         config.get(C, "headTextSpacing", 2).set(headTextSpacing);
 
@@ -1411,6 +1490,8 @@ public class BetterPlayerHUDConfig {
         saveColor(C, "potionTextColor", potionTextColor);
         config.get(C, "potionXOffset", 0).set(potionXOffset);
         config.get(C, "potionYOffset", 0).set(potionYOffset);
+        config.get(C, "potionWarning", true).set(potionWarning);
+        config.get(C, "potionWarnThreshold", 5).set(potionWarnThreshold);
         config.get(C, "enablePotionTimer", true).set(enablePotionTimer);
         config.get(C, "potionTimerXOffset", 0).set(potionTimerXOffset);
         config.get(C, "potionTimerYOffset", 0).set(potionTimerYOffset);
@@ -1474,6 +1555,11 @@ public class BetterPlayerHUDConfig {
         config.get(C, "comboYOffset", 0).set(comboYOffset);
         config.get(C, "comboScale", 1.0).set(comboScale);
 
+        // --- P2 新增模块 ---
+        config.get(C, "enableJumpBar", true).set(enableJumpBar);
+        config.get(C, "enableAirHUD", true).set(enableAirHUD);
+        config.get(C, "enableMountHP", true).set(enableMountHP);
+
         // --- 模块26：方块破坏进度指示器 ---
         config.get(C, "enableBlockBreakIndicator", true).set(enableBlockBreakIndicator);
         config.get(C, "blockBreakIndicatorX", 0).set(blockBreakIndicatorX);
@@ -1529,6 +1615,20 @@ public class BetterPlayerHUDConfig {
         // --- P1: TabList / DebugInfo ---
         config.get(C, "enableTabListHUD", true).set(enableTabListHUD);
         config.get(C, "enableDebugInfoHUD", false).set(enableDebugInfoHUD);
+        config.get(C, "enableJumpBar", true).set(enableJumpBar);
+        config.get(C, "jumpBarWidth", 100).set(jumpBarWidth);
+        config.get(C, "jumpBarHeight", 6).set(jumpBarHeight);
+        config.get(C, "jumpBarChargeSpeed", 0.02).set(jumpBarChargeSpeed);
+        config.get(C, "enableAirHUD", true).set(enableAirHUD);
+        config.get(C, "airBarWidth", 100).set(airBarWidth);
+        config.get(C, "airBarHeight", 8).set(airBarHeight);
+        config.get(C, "airHudX", 0).set(airHudX);
+        config.get(C, "airHudY", -80).set(airHudY);
+        config.get(C, "enableMountHP", true).set(enableMountHP);
+        config.get(C, "mountHPBarWidth", 100).set(mountHPBarWidth);
+        config.get(C, "mountHPBarHeight", 8).set(mountHPBarHeight);
+        config.get(C, "mountHPX", 0).set(mountHPX);
+        config.get(C, "mountHPY", -60).set(mountHPY);
         config.get(C, "debugInfoXOffset", 2).set(debugInfoXOffset);
         config.get(C, "debugInfoYOffset", 2).set(debugInfoYOffset);
 

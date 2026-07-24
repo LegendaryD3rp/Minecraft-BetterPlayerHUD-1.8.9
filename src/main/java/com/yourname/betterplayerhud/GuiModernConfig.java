@@ -61,6 +61,9 @@ public class GuiModernConfig extends GuiScreen {
     // ── 脉冲动画 ──
     private String pulseLabel = null;
     private long pulseEndTime = 0L;
+    // ── 搜索 ──
+    private String searchText = "";
+    private boolean isSearching = false;
     private final String[] tabKeys = {"config.general", "config.chat", "config.combat", "config.performance", "config.colors"};
 
     // ── 面板位置（动态计算） ──
@@ -512,6 +515,14 @@ public class GuiModernConfig extends GuiScreen {
                         (IntSupplier) () -> cfg.debugInfoXOffset, (Consumer<Integer>) (v) -> cfg.debugInfoXOffset = v, 0, 2000));
                 entries.add(new ConfigEntryDescriptor("debug.yOffset",
                         (IntSupplier) () -> cfg.debugInfoYOffset, (Consumer<Integer>) (v) -> cfg.debugInfoYOffset = v, 0, 2000));
+
+                // ── P2 新增模块 ──
+                entries.add(new ConfigEntryDescriptor("module.jumpbar",
+                        (BooleanSupplier) () -> cfg.enableJumpBar, (Consumer<Boolean>) (v) -> cfg.enableJumpBar = v));
+                entries.add(new ConfigEntryDescriptor("module.airhud",
+                        (BooleanSupplier) () -> cfg.enableAirHUD, (Consumer<Boolean>) (v) -> cfg.enableAirHUD = v));
+                entries.add(new ConfigEntryDescriptor("module.mountHP",
+                        (BooleanSupplier) () -> cfg.enableMountHP, (Consumer<Boolean>) (v) -> cfg.enableMountHP = v));
                 break;
             }
 
@@ -633,6 +644,26 @@ public class GuiModernConfig extends GuiScreen {
                     COLOR_TEXT_LIGHT, false);
         }
 
+        // 5.5 搜索框
+        int searchBoxY = panelTop + TAB_HEIGHT + 30;
+        int listLeft_tmp = panelLeft + 15;
+        int listRight_tmp = panelLeft + PANEL_WIDTH - 15;
+        int searchBoxW = (listRight_tmp - listLeft_tmp) / 2;
+        int searchBoxX = listLeft_tmp + (listRight_tmp - listLeft_tmp - searchBoxW) / 2;
+        int searchBoxH = 16;
+        drawRect(searchBoxX, searchBoxY, searchBoxX + searchBoxW, searchBoxY + searchBoxH, 0xFF333333);
+        drawRect(searchBoxX + 1, searchBoxY + 1, searchBoxX + searchBoxW - 1, searchBoxY + searchBoxH - 1, 0xFF222222);
+
+        String searchDisplay = searchText.isEmpty() ? "🔍 " + LangManager.get("common.search") : searchText;
+        mc.fontRendererObj.drawString(searchDisplay, searchBoxX + 4, searchBoxY + (searchBoxH - mc.fontRendererObj.FONT_HEIGHT) / 2,
+            searchText.isEmpty() ? 0xFF666666 : 0xFFFFFFFF, false);
+
+        // 搜索框聚焦指示
+        if (isSearching) {
+            drawRect(searchBoxX + 2 + mc.fontRendererObj.getStringWidth(searchDisplay), searchBoxY + 2,
+                searchBoxX + 2 + mc.fontRendererObj.getStringWidth(searchDisplay) + 1, searchBoxY + searchBoxH - 2, 0xFFFFFFFF);
+        }
+
         // 6. 配置项列表（滚动区域裁剪）
         int listLeft = panelLeft + 15;
         int listTopY = panelTop + LIST_TOP_OFFSET;
@@ -651,8 +682,11 @@ public class GuiModernConfig extends GuiScreen {
         int hoveredIdx = -1;
         int hoveredMX = 0, hoveredMY = 0;
 
+        int visibleIdx = 0;
         for (int i = 0; i < entries.size(); i++) {
-            int ey = listTopY + i * entryHeight - scrollOffset;
+            if (!searchMatches(entries.get(i))) continue;
+            int ey = listTopY + visibleIdx * entryHeight - scrollOffset;
+            visibleIdx++;
             if (ey + entryHeight < listTopY || ey > listBottomY) continue;
 
             boolean hover = mouseX >= listLeft && mouseX <= listRight && mouseY >= ey && mouseY <= ey + entryHeight;
@@ -716,15 +750,20 @@ public class GuiModernConfig extends GuiScreen {
             }
         }
 
-        // 7. 滚动条
+        // 7. 滚动条（基于可见条目数重新计算）
+        int visibleCount = 0;
+        for (ConfigEntryDescriptor e : entries) { if (searchMatches(e)) visibleCount++; }
+        int effectiveContentHeight = visibleCount * entryHeight;
+        int effectiveMaxScroll = Math.max(0, effectiveContentHeight - (listBottomY - listTopY));
+
         int scrollBarLeft = listRight - 6;
         int scrollBarTop = listTopY;
         int scrollBarHeight = listBottomY - listTopY;
         drawRect(scrollBarLeft, scrollBarTop, scrollBarLeft + 4, scrollBarTop + scrollBarHeight, COLOR_SCROLLBAR_BG);
-        if (maxScrollOffset > 0) {
-            float thumbRatio = (float) scrollBarHeight / (scrollBarHeight + contentHeight);
+        if (effectiveMaxScroll > 0) {
+            float thumbRatio = (float) scrollBarHeight / (scrollBarHeight + effectiveContentHeight);
             int thumbHeight = Math.max(10, (int) (scrollBarHeight * thumbRatio));
-            int thumbOffset = (int) ((float) scrollOffset / maxScrollOffset * (scrollBarHeight - thumbHeight));
+            int thumbOffset = (int) ((float) scrollOffset / effectiveMaxScroll * (scrollBarHeight - thumbHeight));
             drawRect(scrollBarLeft, scrollBarTop + thumbOffset, scrollBarLeft + 4, scrollBarTop + thumbOffset + thumbHeight, COLOR_SCROLLBAR);
         }
 
@@ -897,6 +936,19 @@ public class GuiModernConfig extends GuiScreen {
             return;
         }
 
+        // 搜索框点击
+        int searchBoxY_mc = panelTop + TAB_HEIGHT + 30;
+        int searchBoxW_mc = (panelLeft + PANEL_WIDTH - 15 - panelLeft - 15) / 2;
+        int searchBoxX_mc = (panelLeft + 15) + (panelLeft + PANEL_WIDTH - 15 - panelLeft - 15 - searchBoxW_mc) / 2;
+        int searchBoxH_mc = 16;
+        if (mouseX >= searchBoxX_mc && mouseX <= searchBoxX_mc + searchBoxW_mc &&
+            mouseY >= searchBoxY_mc && mouseY <= searchBoxY_mc + searchBoxH_mc) {
+            isSearching = true;
+            return;
+        } else {
+            isSearching = false;
+        }
+
         // Tab 点击
         int tabStartX = panelLeft + 10;
         int tabWidth = (PANEL_WIDTH - 20) / tabKeys.length;
@@ -936,8 +988,11 @@ public class GuiModernConfig extends GuiScreen {
         int hoveredIdx = -1;
         int hoveredMX = 0, hoveredMY = 0;
 
+        int visibleIdx_mc = 0;
         for (int i = 0; i < entries.size(); i++) {
-            int ey = listTopY + i * entryHeight - scrollOffset;
+            if (!searchMatches(entries.get(i))) continue;
+            int ey = listTopY + visibleIdx_mc * entryHeight - scrollOffset;
+            visibleIdx_mc++;
             if (ey + entryHeight < listTopY || ey > panelTop + PANEL_HEIGHT - LIST_BOTTOM_OFFSET) continue;
 
             ConfigEntryDescriptor entry = entries.get(i);
@@ -1098,6 +1153,31 @@ public class GuiModernConfig extends GuiScreen {
     // ────────────────────────────────────────────────────────────────
     @Override
     protected void keyTyped(char typedChar, int keyCode) {
+        if (isSearching) {
+            if (keyCode == Keyboard.KEY_ESCAPE) {
+                isSearching = false;
+                searchText = "";
+                scrollOffset = 0;
+                return;
+            }
+            if (keyCode == Keyboard.KEY_RETURN) {
+                isSearching = false;
+                return;
+            }
+            if (keyCode == Keyboard.KEY_BACK) {
+                if (searchText.length() > 0) {
+                    searchText = searchText.substring(0, searchText.length() - 1);
+                    scrollOffset = 0;
+                }
+                return;
+            }
+            if (typedChar >= ' ' && typedChar <= '~') {
+                searchText += typedChar;
+                scrollOffset = 0;
+                return;
+            }
+            return; // 搜索模式下其他键不处理
+        }
         if (keyCode == Keyboard.KEY_ESCAPE) {
             mc.displayGuiScreen(parentScreen);
         }
@@ -1114,6 +1194,18 @@ public class GuiModernConfig extends GuiScreen {
     private void triggerPulse(String labelKey) {
         pulseLabel = labelKey;
         pulseEndTime = System.currentTimeMillis() + 600;
+    }
+
+    // ── 搜索过滤 ──
+    private boolean searchMatches(ConfigEntryDescriptor entry) {
+        if (searchText.isEmpty()) return true;
+        String lower = searchText.toLowerCase();
+        String label = LangManager.get(entry.labelKey).toLowerCase();
+        if (label.contains(lower)) return true;
+        // 也搜索 tooltip
+        String tip = LangManager.get(entry.labelKey + ".tooltip");
+        if (!tip.equals(entry.labelKey + ".tooltip") && tip.toLowerCase().contains(lower)) return true;
+        return false;
     }
 
     // ────────────────────────────────────────────────────────────────

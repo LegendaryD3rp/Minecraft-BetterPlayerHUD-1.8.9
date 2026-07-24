@@ -71,6 +71,15 @@ public class LangManager {
         zh_CN.put("module.chroma", "蜃楼聊天框");
         en_US.put("module.chroma", "Chroma Chat");
 
+        zh_CN.put("module.jumpbar", "跳跃值");
+        en_US.put("module.jumpbar", "Jump Bar");
+
+        zh_CN.put("module.airhud", "空气值");
+        en_US.put("module.airhud", "Air HUD");
+
+        zh_CN.put("module.mountHP", "坐骑血量");
+        en_US.put("module.mountHP", "Mount HP");
+
         // ── 常用词 ──
         zh_CN.put("common.on", "开");
         en_US.put("common.on", "ON");
@@ -86,6 +95,9 @@ public class LangManager {
 
         zh_CN.put("common.cancel", "取消");
         en_US.put("common.cancel", "Cancel");
+
+        zh_CN.put("common.search", "搜索...");
+        en_US.put("common.search", "Search...");
 
         zh_CN.put("common.enabled", "启用");
         en_US.put("common.enabled", "Enabled");
@@ -529,6 +541,46 @@ public class LangManager {
         en_US.put("algo.hsv", "HSV");
         zh_CN.put("algo.sinewave", "正弦波");
         en_US.put("algo.sinewave", "Sine Wave");
+
+        // ═══════════════════════════════════════════════════════════
+        //  P2 新增模块：JumpBar / AirHUD / MountHP
+        // ═══════════════════════════════════════════════════════════
+        zh_CN.put("module.jumpbar", "跳跃蓄力条");
+        en_US.put("module.jumpbar", "Jump Bar");
+        zh_CN.put("module.airhud", "氧气条");
+        en_US.put("module.airhud", "Air HUD");
+        zh_CN.put("module.mountHP", "坐骑血量");
+        en_US.put("module.mountHP", "Mount Health");
+        zh_CN.put("module.jumpbar.tooltip", "按住空格时在屏幕下方显示跳跃蓄力条");
+        en_US.put("module.jumpbar.tooltip", "Show jump charge bar when holding space");
+        zh_CN.put("module.airhud.tooltip", "水下时显示自定义氧气条");
+        en_US.put("module.airhud.tooltip", "Show custom air bar when underwater");
+        zh_CN.put("module.mountHP.tooltip", "骑乘时显示坐骑血量条");
+        en_US.put("module.mountHP.tooltip", "Show mount health bar when riding");
+
+        // ═══════════════════════════════════════════════════════════
+        //  P2 组A增强：准星动态 / 血条样式 / 盔甲耐久 / 药水预警
+        // ═══════════════════════════════════════════════════════════
+        zh_CN.put("crosshair.dynamicSpread", "动态扩散");
+        en_US.put("crosshair.dynamicSpread", "Dynamic Spread");
+        zh_CN.put("crosshair.dynamicSpread.tooltip", "移动/跳跃时准星根据速度动态扩散");
+        en_US.put("crosshair.dynamicSpread.tooltip", "Crosshair spreads based on movement speed");
+        zh_CN.put("health.barStyle", "血条样式");
+        en_US.put("health.barStyle", "Health Bar Style");
+        zh_CN.put("health.barStyle.tooltip", "血量条显示样式：默认/现代/像素");
+        en_US.put("health.barStyle.tooltip", "Health bar style: Default/Modern/Pixel");
+        zh_CN.put("armor.showDurability", "耐久显示");
+        en_US.put("armor.showDurability", "Show Durability");
+        zh_CN.put("armor.showDurability.tooltip", "在装备上显示耐久度数值");
+        en_US.put("armor.showDurability.tooltip", "Show durability numbers on armor items");
+        zh_CN.put("potion.warning", "药水预警");
+        en_US.put("potion.warning", "Potion Warning");
+        zh_CN.put("potion.warning.tooltip", "药水效果即将到期时闪烁警告");
+        en_US.put("potion.warning.tooltip", "Flash warning when potion effect is about to expire");
+        zh_CN.put("potion.warnThreshold", "预警阈值(秒)");
+        en_US.put("potion.warnThreshold", "Warning Threshold (s)");
+        zh_CN.put("potion.warnThreshold.tooltip", "药水剩余时间低于此值时触发闪烁预警");
+        en_US.put("potion.warnThreshold.tooltip", "Potion warning flashes when remaining time is below this");
 
         // ═══════════════════════════════════════════════════════════
         //  Tooltip 悬浮说明

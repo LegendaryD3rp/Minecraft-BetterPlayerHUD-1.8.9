@@ -86,6 +86,17 @@ public class PotionHUDHandler {
             mc.getTextureManager().bindTexture(INVENTORY_TEXTURE);
             Gui.drawModalRectWithCustomSizedTexture(x, y, (float) u, (float) v, 18, 18, 256.0f, 256.0f);
 
+            // ── 药水预警闪烁 ──
+            if (cfg.potionWarning && effect.getDuration() > 0) {
+                float secondsLeft = effect.getDuration() / 20.0f;
+                if (secondsLeft <= cfg.potionWarnThreshold) {
+                    // 闪烁：每500ms交替显示/隐藏
+                    if ((System.currentTimeMillis() / 500) % 2 == 0) {
+                        Gui.drawRect(x, y, x + 18, y + 18, 0x66FF0000);
+                    }
+                }
+            }
+
             // ---- 绘制时长文字 ----
             int totalSec = effect.getDuration() / 20;
             String time;

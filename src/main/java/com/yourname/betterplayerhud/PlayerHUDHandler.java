@@ -125,10 +125,45 @@ public class PlayerHUDHandler {
         // 闪烁效果逻辑
         int barColor = getHealthColorWithBlink(healthPercentage);
 
+        // 血条样式
+        String style = BetterPlayerHUD.config.healthBarStyle;
+        boolean isModern = "modern".equals(style);
+        boolean isPixel = "pixel".equals(style);
+
         // 只有在非闪烁状态或闪烁状态为显示时才绘制血量条
         if (barColor != 0) {
             int currentWidth = (int)(barWidth * healthPercentage);
-            drawRect(adjustedHudLeft, hudTop, adjustedHudLeft + currentWidth, hudTop + barHeight, barColor);
+            if (isModern) {
+                // 现代样式：渐变 + 更高 + 内发光
+                int barHeightModern = barHeight + 2;
+                // 背景
+                drawRect(adjustedHudLeft, hudTop - 1, adjustedHudLeft + barWidth, hudTop - 1 + barHeightModern, 0xFF333333);
+                // 血量部分（渐变）
+                for (int w = 0; w < currentWidth; w++) {
+                    float t = (float) w / barWidth;
+                    int r = (int)((0xFF & (barColor >> 16)) * (1 - t * 0.3f));
+                    int g = (int)((0xFF & (barColor >> 8)) * (1 - t * 0.3f));
+                    int b = (int)(0xFF & barColor);
+                    int gradColor = (0xFF << 24) | (r << 16) | (g << 8) | b;
+                    drawRect(adjustedHudLeft + w, hudTop - 1, adjustedHudLeft + w + 1, hudTop - 1 + barHeightModern, gradColor);
+                }
+                // 内发光（顶部高光线）
+                drawRect(adjustedHudLeft, hudTop - 1, adjustedHudLeft + currentWidth, hudTop, 0x55FFFFFF);
+            } else if (isPixel) {
+                // 像素样式：块状
+                int pixelSize = 4;
+                int pixels = currentWidth / pixelSize;
+                int barHeightPixel = barHeight + 2;
+                drawRect(adjustedHudLeft, hudTop - 1, adjustedHudLeft + barWidth, hudTop - 1 + barHeightPixel, 0xFF222222);
+                for (int p = 0; p < pixels; p++) {
+                    int px = adjustedHudLeft + p * pixelSize;
+                    int color = (p % 2 == 0) ? barColor : lightenColor(barColor, 0.8f);
+                    drawRect(px, hudTop - 1, px + pixelSize - 1, hudTop - 1 + barHeightPixel, color);
+                }
+            } else {
+                // 默认样式（原有逻辑）
+                drawRect(adjustedHudLeft, hudTop, adjustedHudLeft + currentWidth, hudTop + barHeight, barColor);
+            }
         }
 
         FontRenderer fr = mc.fontRendererObj;
@@ -399,6 +434,15 @@ public class PlayerHUDHandler {
         } else {
             return BetterPlayerHUD.config.healthColorDanger;
         }
+    }
+
+    /** 提亮颜色 */
+    private int lightenColor(int color, float factor) {
+        int a = color & 0xFF000000;
+        int r = Math.min(255, (int)(((color >> 16) & 0xFF) * factor));
+        int g = Math.min(255, (int)(((color >> 8) & 0xFF) * factor));
+        int b = Math.min(255, (int)((color & 0xFF) * factor));
+        return a | (r << 16) | (g << 8) | b;
     }
 
     // 绘制矩形的方法（使用 GlStateManager + Tessellator，避免 raw GL 绕过缓存）
