@@ -260,6 +260,49 @@ public class BetterPlayerHUD {
         MinecraftForge.EVENT_BUS.register(new AirHUDHandler());
         MinecraftForge.EVENT_BUS.register(new MountHealthHUDHandler());
 
+        // ── F7 编辑模式注册：P0/P1/P2 新模块 ──
+        HUDEditManager.register("经验条",
+                (x) -> config.xpBarXOffset = x, (y) -> config.xpBarYOffset = y,
+                0, 0, (absX, absY, sw, sh) -> new int[]{absX - 100 + config.xpBarXOffset, absY});
+        HUDEditManager.setDefaultSize("经验条", 182, 22);
+        HUDEditManager.registerToggle("经验条",
+                () -> config.enableXpBarHUD, (v) -> config.enableXpBarHUD = v);
+
+        HUDEditManager.register("Boss血条",
+                (x) -> config.bossHpX = x, (y) -> config.bossHpY = y,
+                0, 0, (absX, absY, sw, sh) -> new int[]{absX - 100, absY});
+        HUDEditManager.setDefaultSize("Boss血条", 182, 20);
+        HUDEditManager.registerToggle("Boss血条",
+                () -> config.enableBossHealthHUD, (v) -> config.enableBossHealthHUD = v);
+
+        HUDEditManager.register("快捷栏",
+                (x) -> config.hotbarX = x, (y) -> config.hotbarYOffset = y,
+                0, 0, (absX, absY, sw, sh) -> new int[]{absX - 100, absY});
+        HUDEditManager.setDefaultSize("快捷栏", 182, 30);
+        HUDEditManager.registerToggle("快捷栏",
+                () -> config.enableHotbarHUD, (v) -> config.enableHotbarHUD = v);
+
+        HUDEditManager.register("跳跃条",
+                (x) -> config.jumpBarX = x != 0 ? x : 0, (y) -> config.jumpBarY = y != 0 ? y : 0,
+                0, -50, (absX, absY, sw, sh) -> new int[]{absX - 50, absY});
+        HUDEditManager.setDefaultSize("跳跃条", 100, 8);
+        HUDEditManager.registerToggle("跳跃条",
+                () -> config.enableJumpBar, (v) -> config.enableJumpBar = v);
+
+        HUDEditManager.register("氧气条",
+                (x) -> config.airHudX = x, (y) -> config.airHudY = y,
+                0, -80);
+        HUDEditManager.setDefaultSize("氧气条", 100, 10);
+        HUDEditManager.registerToggle("氧气条",
+                () -> config.enableAirHUD, (v) -> config.enableAirHUD = v);
+
+        HUDEditManager.register("坐骑血量",
+                (x) -> config.mountHPX = x, (y) -> config.mountHPY = y,
+                0, -60);
+        HUDEditManager.setDefaultSize("坐骑血量", 100, 10);
+        HUDEditManager.registerToggle("坐骑血量",
+                () -> config.enableMountHP, (v) -> config.enableMountHP = v);
+
         // 注册危机警戒图标（模块24）
         MinecraftForge.EVENT_BUS.register(new CrisisWarningHandler());
 

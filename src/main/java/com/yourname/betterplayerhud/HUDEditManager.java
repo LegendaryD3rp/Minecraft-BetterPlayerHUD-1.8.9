@@ -277,6 +277,15 @@ public class HUDEditManager {
         // 重置确认状态
         private long resetPromptTime = 0;
         private boolean resetAll = false;
+        private int activePage = 0;
+        private static final String[] PAGE_NAMES = {"⚔️ 战斗", "ℹ️ 信息", "📊 状态"};
+
+        // 每个页面对应的模块名列表
+        private static final java.util.List<String>[] PAGE_MODULES = new java.util.ArrayList[] {
+            new java.util.ArrayList<>(java.util.Arrays.asList("状态栏", "目标血量", "药水效果", "装甲栏", "手持物品", "物品数量", "危机警戒", "连击计数", "药水计时器")),
+            new java.util.ArrayList<>(java.util.Arrays.asList("罗盘", "距离信息", "按键显示", "性能检测", "蜃楼聊天框")),
+            new java.util.ArrayList<>(java.util.Arrays.asList("经验条", "Boss血条", "快捷栏", "跳跃条", "氧气条", "坐骑血量", "Tab列表", "调试信息"))
+        };
 
         private static final int BORDER_COLOR = 0xCCFFFFFF;
         private static final int SELECTED_COLOR = 0xCC00FF00;
@@ -284,6 +293,12 @@ public class HUDEditManager {
 
         GuiEditScreen() {
             this.allowUserInput = true;  // 必须=true，否则 Minecraft 1.8.9 不会将鼠标事件路由到 GuiScreen
+        }
+
+        /** 判断模块是否属于当前页面 */
+        private boolean isModuleOnPage(String moduleName, int page) {
+            if (page < 0 || page >= PAGE_MODULES.length) return false;
+            return PAGE_MODULES[page].contains(moduleName);
         }
 
         @Override
@@ -298,16 +313,17 @@ public class HUDEditManager {
 
             // 绘制所有模块的拖拽框
             for (Map.Entry<String, Rectangle> e : currentPositions.entrySet()) {
+                String name = e.getKey();
+                // 分页过滤
+                if (!isModuleOnPage(name, activePage)) continue;
                 Rectangle r = e.getValue();
                 // 从未有状态的模块 → 用默认placeholder替代
                 if (r == null || r.width <= 0 || r.height <= 0) {
-                    int[] ds = defaultSizes.get(e.getKey());
+                    int[] ds = defaultSizes.get(name);
                     if (ds == null) continue;
-                    int[] dp = defaultPositions.get(e.getKey());
+                    int[] dp = defaultPositions.get(name);
                     r = new Rectangle(dp[0], dp[1], ds[0], ds[1]);
                 }
-
-                String name = e.getKey();
                 boolean isHovered = r.contains(mouseX, mouseY);
                 boolean isDraggingThis = name.equals(dragging);
                 boolean isSelectedThis = name.equals(selected) && !isDraggingThis;
@@ -383,6 +399,17 @@ public class HUDEditManager {
             drawRect(width / 2 - hw / 2 - 4, height - 20, width / 2 + hw / 2 + 4, height - 4, 0xAA000000);
             fontRendererObj.drawStringWithShadow(hint, width / 2 - hw / 2, height - 16, 0xFFFFFF);
 
+            // ── 页码指示器 ──
+            int pageIndicatorY = height - 28;
+            for (int p = 0; p < PAGE_NAMES.length; p++) {
+                String pageLabel = (p == activePage ? "§l§e" : "§7") + "[" + PAGE_NAMES[p] + "]";
+                int pw = fontRendererObj.getStringWidth(pageLabel);
+                int px = width / 2 - 120 + p * 80;
+                fontRendererObj.drawString(pageLabel, px, pageIndicatorY, 0xFFFFFF, true);
+            }
+            String tabHint = "§7Tab 切页";
+            fontRendererObj.drawString(tabHint, width / 2 - fontRendererObj.getStringWidth(tabHint) / 2, pageIndicatorY - 10, 0xFFFFFF, true);
+
             // ── 重置确认提示 ──
             if (resetPromptTime > 0 && System.currentTimeMillis() - resetPromptTime < 3000) {
                 String prompt = resetAll
@@ -434,9 +461,12 @@ public class HUDEditManager {
             // 找到最上层被点击的模块
             String clicked = null;
             for (Map.Entry<String, Rectangle> e : currentPositions.entrySet()) {
+                String name = e.getKey();
+                // 分页过滤
+                if (!isModuleOnPage(name, activePage)) continue;
                 Rectangle r = e.getValue();
                 if (r != null && r.contains(mouseX, mouseY)) {
-                    clicked = e.getKey();
+                    clicked = name;
                     break;
                 }
             }
@@ -549,6 +579,14 @@ public class HUDEditManager {
             // F7 退出
             if (keyCode == keyEditMode.getKeyCode()) {
                 mc.displayGuiScreen(null);
+                return;
+            }
+
+            // Tab 切页
+            if (keyCode == Keyboard.KEY_TAB) {
+                activePage = (activePage + 1) % PAGE_NAMES.length;
+                selected = null;
+                dragging = null;
                 return;
             }
 

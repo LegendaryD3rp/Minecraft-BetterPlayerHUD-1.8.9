@@ -374,7 +374,10 @@ public class BetterPlayerHUDConfig {
     public int xpBarWidth = 182;    // min 80, max 400
     public int xpBarHeight = 5;     // min 3, max 20
     public boolean enableBossHealthHUD = true;
+    public int bossHpX = 0;
+    public int bossHpY = 0;
     public boolean enableHotbarHUD = true;
+    public int hotbarX = 0;
     public int hotbarYOffset = 0;
 
     // ═══════════════════════════════════════════════════════════════
@@ -387,6 +390,8 @@ public class BetterPlayerHUDConfig {
     //  P2 新增模块：JumpBar / AirHUD / MountHP
     // ================================================================
     public boolean enableJumpBar = true;
+    public int jumpBarX = 0;
+    public int jumpBarY = -50;
     public int jumpBarWidth = 100;
     public int jumpBarHeight = 6;
     public float jumpBarChargeSpeed = 0.02f;
@@ -1234,12 +1239,18 @@ public class BetterPlayerHUDConfig {
         {
             Property p = config.get(C, "enableBossHealthHUD", true);
             p.comment = "显示自定义 Boss 血条"; enableBossHealthHUD = p.getBoolean();
+            p = config.get(C, "bossHpX", 0);
+            p.comment = "Boss 血条水平偏移"; bossHpX = p.getInt();
+            p = config.get(C, "bossHpY", 0);
+            p.comment = "Boss 血条垂直偏移"; bossHpY = p.getInt();
         }
 
         // --- P0 第 3 项：快捷栏 ---
         {
             Property p = config.get(C, "enableHotbarHUD", true);
             p.comment = "显示自定义快捷栏"; enableHotbarHUD = p.getBoolean();
+            p = config.get(C, "hotbarX", 0);
+            p.comment = "快捷栏水平偏移"; hotbarX = p.getInt();
             p = config.get(C, "hotbarYOffset", 0);
             p.comment = "快捷栏垂直偏移"; hotbarYOffset = p.getInt();
         }
@@ -1260,6 +1271,10 @@ public class BetterPlayerHUDConfig {
         {
             Property p = config.get(C, "enableJumpBar", true);
             p.comment = "显示跳跃蓄力条"; enableJumpBar = p.getBoolean();
+            p = config.get(C, "jumpBarX", 0);
+            p.comment = "跳跃条水平偏移"; jumpBarX = p.getInt();
+            p = config.get(C, "jumpBarY", -50);
+            p.comment = "跳跃条垂直偏移"; jumpBarY = p.getInt();
             p = config.get(C, "jumpBarWidth", 100);
             p.comment = "跳跃条宽度"; p.setMinValue(30).setMaxValue(300); jumpBarWidth = p.getInt();
             p = config.get(C, "jumpBarHeight", 6);
@@ -1607,15 +1622,20 @@ public class BetterPlayerHUDConfig {
 
         // --- P0 第 3 项：Boss 血条 ---
         config.get(C, "enableBossHealthHUD", true).set(enableBossHealthHUD);
+        config.get(C, "bossHpX", 0).set(bossHpX);
+        config.get(C, "bossHpY", 0).set(bossHpY);
 
         // --- P0 第 3 项：快捷栏 ---
         config.get(C, "enableHotbarHUD", true).set(enableHotbarHUD);
+        config.get(C, "hotbarX", 0).set(hotbarX);
         config.get(C, "hotbarYOffset", 0).set(hotbarYOffset);
 
         // --- P1: TabList / DebugInfo ---
         config.get(C, "enableTabListHUD", true).set(enableTabListHUD);
         config.get(C, "enableDebugInfoHUD", false).set(enableDebugInfoHUD);
         config.get(C, "enableJumpBar", true).set(enableJumpBar);
+        config.get(C, "jumpBarX", 0).set(jumpBarX);
+        config.get(C, "jumpBarY", -50).set(jumpBarY);
         config.get(C, "jumpBarWidth", 100).set(jumpBarWidth);
         config.get(C, "jumpBarHeight", 6).set(jumpBarHeight);
         config.get(C, "jumpBarChargeSpeed", 0.02).set(jumpBarChargeSpeed);

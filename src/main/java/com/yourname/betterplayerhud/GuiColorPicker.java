@@ -62,7 +62,11 @@ public class GuiColorPicker extends GuiScreen {
         int previewX = px + 250;
         int previewY = py + 30;
         drawRect(previewX, previewY, previewX + previewSize, previewY + previewSize, packARGB());
-        drawRect(previewX, previewY, previewX + previewSize, previewY + previewSize, 0xFF888888); // border
+        // 描边
+        drawRect(previewX - 1, previewY - 1, previewX + previewSize + 1, previewY, 0xFF888888);
+        drawRect(previewX - 1, previewY + previewSize, previewX + previewSize + 1, previewY + previewSize + 1, 0xFF888888);
+        drawRect(previewX - 1, previewY, previewX, previewY + previewSize, 0xFF888888);
+        drawRect(previewX + previewSize, previewY, previewX + previewSize + 1, previewY + previewSize, 0xFF888888);
 
         // ── R/G/B 滑块 ──
         int sliderY = py + 35;
