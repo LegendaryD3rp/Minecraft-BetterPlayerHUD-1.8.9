@@ -47,6 +47,7 @@ public class GuiModernConfig extends GuiScreen {
     private String searchQuery = "";
     private boolean isSearching = false;
     private int contentHeight = 0;
+    private long debugFlashEnd = 0L;
 
     private static class ConfigEntryDescriptor {
         enum Type { BOOLEAN, INT, FLOAT, COLOR, ENUM }
@@ -572,8 +573,16 @@ new String[]{"detailed", "minimal", "simple"}));
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         Gui.drawRect(0, 0, width, height, CLR_BG);
+        if (System.currentTimeMillis() < debugFlashEnd) {
+            Gui.drawRect(0, 0, width, height, 0x44FFFF00);
+        }
         int rx = LEFT_W + 8, rw = width - rx - 8;
         Gui.drawRect(0, 0, LEFT_W, height, CLR_PANEL);
+        // DEBUG: show getter value of first entry
+        if (localEntries != null && !localEntries.isEmpty()) {
+            String raw = localEntries.get(0).getter.get();
+            drawString(mc.fontRendererObj, "DBG=" + raw, rx + 4, 2, 0xFFFF00FF);
+        }
         Gui.drawRect(0, 0, LEFT_W, 32, 0xFF222244);
         drawCenteredString(mc.fontRendererObj, I18n.format("gui.modules"), LEFT_W / 2, 10, CLR_TEXT);
         Gui.drawRect(0, 32, LEFT_W, 33, 0xFF333355);
@@ -644,11 +653,13 @@ new String[]{"detailed", "minimal", "simple"}));
                 case COLOR: drawColorPreview(vx, yi + 2, ENTRY_H, desc, mouseX, mouseY); break;
                 case ENUM: drawEnumSpinner(vx, yi + 2, ENTRY_H, desc, mouseX, mouseY); break;
             }
+            // 脉冲动画——仅在开关更新时短暂高亮（使用 Card 级脉冲，不遮盖类内部件）
             if (pulseLabel != null && pulseLabel.equals(desc.labelKey) && System.currentTimeMillis() < pulseEndTime) {
                 long rem = pulseEndTime - System.currentTimeMillis();
                 int pa = (int)((rem / 600.0) * (0x3C - 0x0A) + 0x0A);
                 if (pa > 0x3C) pa = 0x3C; if (pa < 0x0A) pa = 0x0A;
-                Gui.drawRect(rx + 2, yi + 1, rx + rw - 2, yi + ENTRY_H - 1, (pa << 24) | 0x00FFD700);
+                // 仅左侧 3px 蓝色强调条变亮，不遮盖内容
+                Gui.drawRect(rx + 2, yi + 1, rx + 5, yi + ENTRY_H - 1, (pa << 24) | 0x00FFFFFF);
             }
         }
         int btnY = height - 32;
@@ -851,52 +862,68 @@ new String[]{"detailed", "minimal", "simple"}));
                 int vx = rx + rw / 2 + 4;
                 switch (desc.type) {
                     case BOOLEAN: {
-                        if (mouseX >= vx + 40) {
-                            boolean val = ((BooleanSupplier)desc.getter).getAsBoolean();
-                            ((Consumer<Boolean>)desc.setter).accept(!val);
-                            triggerPulse(desc.labelKey);
-                        }
+                        debugFlashEnd = System.currentTimeMillis() + 2000L;
+                        boolean oldVal = ((BooleanSupplier)desc.getter).getAsBoolean();
+                        ((Consumer<Boolean>)desc.setter).accept(!oldVal);
+                        triggerPulse(desc.labelKey);
                         return;
                     }
                     case INT: {
-                        if (mouseX >= vx + 40) {
-                            int cur = ((IntSupplier)desc.getter).getAsInt();
-                            int step = (Keyboard.isKeyDown(42) || Keyboard.isKeyDown(54)) ? 100 : 1;
-                            if (mouseX >= vx + 85 && mouseX <= vx + 100)
-                                ((Consumer<Integer>)desc.setter).accept(Math.max(desc.minInt, cur - step));
-                            else if (mouseX >= vx + 105 && mouseX <= vx + 120)
-                                ((Consumer<Integer>)desc.setter).accept(Math.min(desc.maxInt, cur + step));
-                            triggerPulse(desc.labelKey);
-                        }
+                        debugFlashEnd = System.currentTimeMillis() + 2000L;
+                        int cur = ((IntSupplier)desc.getter).getAsInt();
+                        int step = (Keyboard.isKeyDown(42) || Keyboard.isKeyDown(54)) ? 100 : 1;
+                        int la = vx - 80;
+                        int valX = la + 21;
+                        String vs = String.valueOf(cur);
+                        int ra = valX + mc.fontRendererObj.getStringWidth(vs) + 5;
+                        if (mouseX >= la && mouseX <= la + 16)
+                            ((Consumer<Integer>)desc.setter).accept(Math.max(desc.minInt, cur - step));
+                        else if (mouseX >= ra && mouseX <= ra + 16)
+                            ((Consumer<Integer>)desc.setter).accept(Math.min(desc.maxInt, cur + step));
+                        else return;
+                        triggerPulse(desc.labelKey);
                         return;
                     }
                     case FLOAT: {
-                        if (mouseX >= vx + 40) {
-                            float cur = (float)((DoubleSupplier)desc.getter).getAsDouble();
-                            float step = (Keyboard.isKeyDown(42) || Keyboard.isKeyDown(54)) ? 10.0F : 1.0F;
-                            if (mouseX >= vx + 85 && mouseX <= vx + 100)
-                                ((Consumer<Float>)desc.setter).accept(Math.max(desc.minFloat, cur - step));
-                            else if (mouseX >= vx + 105 && mouseX <= vx + 120)
-                                ((Consumer<Float>)desc.setter).accept(Math.min(desc.maxFloat, cur + step));
-                            triggerPulse(desc.labelKey);
-                        }
+                        debugFlashEnd = System.currentTimeMillis() + 2000L;
+                        float cur = (float)((DoubleSupplier)desc.getter).getAsDouble();
+                        float step = (Keyboard.isKeyDown(42) || Keyboard.isKeyDown(54)) ? 10.0F : 1.0F;
+                        int la = vx - 80;
+                        int valX = la + 21;
+                        String vs = String.format("%.1f", cur);
+                        int ra = valX + mc.fontRendererObj.getStringWidth(vs) + 5;
+                        if (mouseX >= la && mouseX <= la + 16)
+                            ((Consumer<Float>)desc.setter).accept(Math.max(desc.minFloat, cur - step));
+                        else if (mouseX >= ra && mouseX <= ra + 16)
+                            ((Consumer<Float>)desc.setter).accept(Math.min(desc.maxFloat, cur + step));
+                        else return;
+                        triggerPulse(desc.labelKey);
                         return;
                     }
-                    case COLOR:
-                        if (mouseX >= vx && mouseX <= vx + 80 && mouseY >= yi + 2 && mouseY <= yi + ENTRY_H - 2) {
-                            int cur = ((IntSupplier)desc.getter).getAsInt();
-                            mc.displayGuiScreen(new GuiColorPicker(this, (IntSupplier)desc.getter, (Consumer<Integer>)desc.setter));
-                        }
-                        return;
                     case ENUM: {
-                        if (mouseX >= vx + 10 && mouseX <= vx + 100 && mouseY >= yi + 2 && mouseY <= yi + ENTRY_H - 2) {
-                            String[] vals = desc.enumValues;
-                            String cur = (String)((Supplier)desc.getter).get();
-                            int nxtIdx = 0;
-                            for (int j = 0; j < vals.length; j++) if (vals[j].equals(cur)) nxtIdx = (j + 1) % vals.length;
-                            ((Consumer<String>)desc.setter).accept(vals[nxtIdx]);
-                            triggerPulse(desc.labelKey);
-                        }
+                        debugFlashEnd = System.currentTimeMillis() + 2000L;
+                        String cur = (String)((Supplier)desc.getter).get();
+                        int la = vx - 80;
+                        int valX = la + 21;
+                        int ra = valX + mc.fontRendererObj.getStringWidth(cur) + 5;
+                        if (mouseX >= la && mouseX <= la + 16) {
+                            int nxt = desc.enumValues.length - 1;
+                            for (int j = 0; j < desc.enumValues.length; j++)
+                                if (desc.enumValues[j].equals(cur)) nxt = (j - 1 + desc.enumValues.length) % desc.enumValues.length;
+                            ((Consumer<String>)desc.setter).accept(desc.enumValues[nxt]);
+                        } else if (mouseX >= ra && mouseX <= ra + 16) {
+                            int nxt = 0;
+                            for (int j = 0; j < desc.enumValues.length; j++)
+                                if (desc.enumValues[j].equals(cur)) nxt = (j + 1) % desc.enumValues.length;
+                            ((Consumer<String>)desc.setter).accept(desc.enumValues[nxt]);
+                        } else return;
+                        triggerPulse(desc.labelKey);
+                        return;
+                    }
+                    case COLOR: {
+                        debugFlashEnd = System.currentTimeMillis() + 2000L;
+                        int cur = ((IntSupplier)desc.getter).getAsInt();
+                        mc.displayGuiScreen(new GuiColorPicker(GuiModernConfig.this, (IntSupplier)desc.getter, (Consumer<Integer>)desc.setter));
                         return;
                     }
                 }
