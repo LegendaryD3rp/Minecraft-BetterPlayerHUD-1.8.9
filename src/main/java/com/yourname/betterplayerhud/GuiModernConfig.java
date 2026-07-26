@@ -807,6 +807,13 @@ new String[]{"detailed", "minimal", "simple"}));
     protected void mouseClicked(int mouseX, int mouseY, int mouseButton) {
         if (mouseButton != 0) return;
         int rx = LEFT_W + 8, rw = width - rx - 8;
+        // 按钮优先：必须在条目迭代之前处理，否则底部条目会拦截按钮点击
+        int btnY = height - 32;
+        if (mouseY >= btnY) {
+            if (mouseX >= rx + 4 && mouseX <= rx + 84) { saveConfig(); return; }
+            if (mouseX >= rx + 88 && mouseX <= rx + 168) { BetterPlayerHUD.config.loadConfig(); buildFromConfig(); return; }
+            if (mouseX >= rx + rw - 84 && mouseX <= rx + rw - 4) { mc.displayGuiScreen(null); return; }
+        }
         int treeY = 38, y = treeY - treeScrollOffset;
         for (ConfigTreeNode root : treeRoots) {
             if (mouseX >= 4 && mouseX <= LEFT_W - 4 && mouseY >= y && mouseY <= y + 18) { root.expanded = !root.expanded; return; }
@@ -844,27 +851,36 @@ new String[]{"detailed", "minimal", "simple"}));
                 int vx = rx + rw / 2 + 4;
                 switch (desc.type) {
                     case BOOLEAN: {
-                        boolean val = ((BooleanSupplier)desc.getter).getAsBoolean();
-                        ((Consumer<Boolean>)desc.setter).accept(!val);
-                        triggerPulse(desc.labelKey); return;
+                        if (mouseX >= vx + 40) {
+                            boolean val = ((BooleanSupplier)desc.getter).getAsBoolean();
+                            ((Consumer<Boolean>)desc.setter).accept(!val);
+                            triggerPulse(desc.labelKey);
+                        }
+                        return;
                     }
                     case INT: {
-                        int cur = ((IntSupplier)desc.getter).getAsInt();
-                        int step = (Keyboard.isKeyDown(42) || Keyboard.isKeyDown(54)) ? 100 : 1;
-                        if (mouseX >= vx + 85 && mouseX <= vx + 100)
-                            ((Consumer<Integer>)desc.setter).accept(Math.max(desc.minInt, cur - step));
-                        else if (mouseX >= vx + 105 && mouseX <= vx + 120)
-                            ((Consumer<Integer>)desc.setter).accept(Math.min(desc.maxInt, cur + step));
-                        triggerPulse(desc.labelKey); return;
+                        if (mouseX >= vx + 40) {
+                            int cur = ((IntSupplier)desc.getter).getAsInt();
+                            int step = (Keyboard.isKeyDown(42) || Keyboard.isKeyDown(54)) ? 100 : 1;
+                            if (mouseX >= vx + 85 && mouseX <= vx + 100)
+                                ((Consumer<Integer>)desc.setter).accept(Math.max(desc.minInt, cur - step));
+                            else if (mouseX >= vx + 105 && mouseX <= vx + 120)
+                                ((Consumer<Integer>)desc.setter).accept(Math.min(desc.maxInt, cur + step));
+                            triggerPulse(desc.labelKey);
+                        }
+                        return;
                     }
                     case FLOAT: {
-                        float cur = (float)((DoubleSupplier)desc.getter).getAsDouble();
-                        float step = (Keyboard.isKeyDown(42) || Keyboard.isKeyDown(54)) ? 10.0F : 1.0F;
-                        if (mouseX >= vx + 85 && mouseX <= vx + 100)
-                            ((Consumer<Float>)desc.setter).accept(Math.max(desc.minFloat, cur - step));
-                        else if (mouseX >= vx + 105 && mouseX <= vx + 120)
-                            ((Consumer<Float>)desc.setter).accept(Math.min(desc.maxFloat, cur + step));
-                        triggerPulse(desc.labelKey); return;
+                        if (mouseX >= vx + 40) {
+                            float cur = (float)((DoubleSupplier)desc.getter).getAsDouble();
+                            float step = (Keyboard.isKeyDown(42) || Keyboard.isKeyDown(54)) ? 10.0F : 1.0F;
+                            if (mouseX >= vx + 85 && mouseX <= vx + 100)
+                                ((Consumer<Float>)desc.setter).accept(Math.max(desc.minFloat, cur - step));
+                            else if (mouseX >= vx + 105 && mouseX <= vx + 120)
+                                ((Consumer<Float>)desc.setter).accept(Math.min(desc.maxFloat, cur + step));
+                            triggerPulse(desc.labelKey);
+                        }
+                        return;
                     }
                     case COLOR:
                         if (mouseX >= vx && mouseX <= vx + 80 && mouseY >= yi + 2 && mouseY <= yi + ENTRY_H - 2) {
@@ -886,10 +902,6 @@ new String[]{"detailed", "minimal", "simple"}));
                 }
             }
         }
-        int btnY = height - 32;
-        if (mouseX >= rx + 4 && mouseX <= rx + 84 && mouseY >= btnY && mouseY <= btnY + 24) { saveConfig(); return; }
-        if (mouseX >= rx + 88 && mouseX <= rx + 168 && mouseY >= btnY && mouseY <= btnY + 24) { BetterPlayerHUD.config.loadConfig(); buildFromConfig(); return; }
-        if (mouseX >= rx + rw - 84 && mouseX <= rx + rw - 4 && mouseY >= btnY && mouseY <= btnY + 24) { mc.displayGuiScreen(null); return; }
     }
     @Override
     public void handleMouseInput() {
