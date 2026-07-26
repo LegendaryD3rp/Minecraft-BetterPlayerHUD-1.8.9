@@ -894,6 +894,7 @@ new String[]{"detailed", "minimal", "simple"}));
     @Override
     public void handleMouseInput() {
         try {
+            super.handleMouseInput();
             int d = Mouse.getEventDWheel();
             if (d != 0) {
                 int amt = (d > 0) ? -22 : 22;
