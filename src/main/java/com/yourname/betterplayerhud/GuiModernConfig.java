@@ -1,989 +1,620 @@
 package com.yourname.betterplayerhud;
 
-import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.WorldRenderer;
+import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
+import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.resources.I18n;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
+import org.lwjgl.opengl.GL11;
+
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
-import java.util.function.DoubleSupplier;
-import java.util.function.IntSupplier;
 import java.util.function.Supplier;
+import java.lang.reflect.Field;
+import java.io.IOException;
 
+/**
+ * F8 配置界面 — v1.6.0 从零重写版
+ *
+ * 三层树：分类（Category）→ 模块（Module）→ 子设置组（Sub-group）
+ * 摩登 UI：左侧树面板（图标色点 + 选中高亮）、右侧卡片式条目（圆角 + 分隔线）、
+ *          脉冲动画、搜索过滤、HSL 颜色选择器
+ *
+ * 本地化：树节点/条目标签走 .lang 文件（Forge I18n），开关/提示走 LangManager
+ */
 public class GuiModernConfig extends GuiScreen {
 
-    private static final int CLR_BG = 0xFF0D0D1A;
-    private static final int CLR_PANEL = 0xFF1A1A2E;
-    private static final int CLR_CARD = 0xFF22223A;
-    private static final int CLR_CARD_HOVER = 0xFF2A2A4E;
-    private static final int CLR_BLUE = 0xFF4A9EFF;
-    private static final int CLR_TEXT = 0xFFCCCCCC;
-    private static final int CLR_TEXT_SEC = 0xFF888888;
-    private static final int CLR_DIVIDER = 0xFF2A2A3E;
-    private static final int CLR_SAVE = 0xFF1A6B1A;
-    private static final int CLR_RESET = 0xFF6B1A1A;
-    private static final int LEFT_W = 220;
-    private static final int ENTRY_H = 24;
-    // Legacy color constants (used by extracted helper methods)
-    private static final int COLOR_TOGGLE_ON = 0xFF4CAF50;
-    private static final int COLOR_TOGGLE_OFF = 0xFF666666;
-    private static final int COLOR_VALUE_TEXT = 0xFFCCCCCC;
-    private static final int COLOR_ARROW_HOVER = 0xFF888888;
-    private static final int COLOR_ARROW_BG = 0xFF666666;
-    private static final int COLOR_TEXT_LIGHT = 0xFFCCCCCC;
+    // ═══ 色板 ═══
+    private static final int C_BG=0xFF0D0D1A, C_PANEL=0xFF1A1A2E, C_CARD=0xFF22223A;
+    private static final int C_CARD_HOVER=0xFF2A2A4E, C_ACCENT=0xFF4A9EFF, C_TEXT=0xFFCCCCCC;
+    private static final int C_TEXT_DIM=0xFF888888, C_DIVIDER=0xFF2A2A3E, C_TOGGLE_ON=0xFF4CAF50;
+    private static final int C_TOGGLE_OFF=0xFF666666, C_HEADER=0xFF16162A, C_SEARCH_BG=0xFF2A2A3E;
+    private static final int LEFT_W=210, HEADER_H=36, FOOTER_H=22, ENTRY_H=22;
+    private static final int C_SEL_ACCENT=0xFF4A9EFF;
 
-    private final List<ConfigTreeNode> treeRoots = new ArrayList<>();
-    private ConfigTreeNode selectedNode = null;
-    private List<ConfigEntryDescriptor> localEntries = null;
-    private int treeScrollOffset = 0;
-    private int entriesScrollOffset = 0;
-    private final GuiScreen parentScreen;
-    private String pulseLabel = null;
-    private long pulseEndTime = 0L;
-    private ConfigEntryDescriptor hoveredEntry = null;
-    private String searchQuery = "";
-    private boolean isSearching = false;
-    private int contentHeight = 0;
-    private long debugFlashEnd = 0L;
+    // ═══ 数据模型 ═══
+    public static class TreeNode {
+        public String label;                     // lang key（.lang 文件）
+        public int dotColor=0xFF4A9EFF;          // 树节点色点
+        public List<TreeNode> children=new ArrayList<>();
+        public List<ConfigEntry> entries=new ArrayList<>();
+        public boolean expanded=true;
+        TreeNode(String l){label=l;}
+    }
 
-    private static class ConfigEntryDescriptor {
-        enum Type { BOOLEAN, INT, FLOAT, COLOR, ENUM }
-        final Type type;
-        final String labelKey;                           // LangManager key
-        final java.util.function.Supplier<String> getter; // 返回当前值的字符串表示
-        final Object setter;                             // Consumer<Boolean>/Consumer<Integer>/Consumer<Float>/Consumer<String>
-
-        // ── 范围约束（仅 INT/FLOAT 有效，默认无限制） ──
-        final int minInt;
-        final int maxInt;
-        final float minFloat;
-        final float maxFloat;
-
-        // ── Enum 支持 ──
-        final String[] enumValues;
-
-        // ── Tooltip 支持（可选，null = 不显示） ──
-        public String tooltipKey;
-
-        /** 链式设置 tooltip key，方便条目注册时一行搞定 */
-        public ConfigEntryDescriptor withTooltip(String tooltipKey) {
-            this.tooltipKey = tooltipKey;
-            return this;
-        }
-
-        // Boolean
-        ConfigEntryDescriptor(String labelKey, java.util.function.BooleanSupplier getter, java.util.function.Consumer<Boolean> setter) {
-            this.type = Type.BOOLEAN;
-            this.labelKey = labelKey;
-            this.getter = () -> String.valueOf(getter.getAsBoolean());
-            this.setter = setter;
-            this.minInt = 0; this.maxInt = 0;
-            this.minFloat = 0f; this.maxFloat = 0f;
-            this.enumValues = null;
-        }
-
-        // Int（无范围限制）
-        ConfigEntryDescriptor(String labelKey, java.util.function.IntSupplier getter, java.util.function.Consumer<Integer> setter) {
-            this(labelKey, getter, setter, Integer.MIN_VALUE, Integer.MAX_VALUE);
-        }
-
-        // Int（带范围限制）
-        ConfigEntryDescriptor(String labelKey, java.util.function.IntSupplier getter, java.util.function.Consumer<Integer> setter, int minInt, int maxInt) {
-            this.type = Type.INT;
-            this.labelKey = labelKey;
-            this.getter = () -> String.valueOf(getter.getAsInt());
-            this.setter = setter;
-            this.minInt = minInt;
-            this.maxInt = maxInt;
-            this.minFloat = 0f; this.maxFloat = 0f;
-            this.enumValues = null;
-        }
-
-        // Float（无范围限制）
-        ConfigEntryDescriptor(String labelKey, java.util.function.DoubleSupplier getter, java.util.function.Consumer<Float> setter) {
-            this(labelKey, getter, setter, Float.NEGATIVE_INFINITY, Float.POSITIVE_INFINITY);
-        }
-
-        // Float（带范围限制）
-        ConfigEntryDescriptor(String labelKey, java.util.function.DoubleSupplier getter, java.util.function.Consumer<Float> setter, float minFloat, float maxFloat) {
-            this.type = Type.FLOAT;
-            this.labelKey = labelKey;
-            this.getter = () -> String.format("%.1f", getter.getAsDouble());
-            this.setter = setter;
-            this.minInt = 0; this.maxInt = 0;
-            this.minFloat = minFloat;
-            this.maxFloat = maxFloat;
-            this.enumValues = null;
-        }
-
-        // Color (packed ARGB int) — 多一个 boolean 标记用于区分 INT(IntSupplier)
-        ConfigEntryDescriptor(String labelKey, java.util.function.IntSupplier getter, java.util.function.Consumer<Integer> setter, boolean isColor) {
-            this.type = Type.COLOR;
-            this.labelKey = labelKey;
-            this.getter = () -> {
-                int c = getter.getAsInt();
-                return String.format("#%02X%02X%02X%02X",
-                    (c >> 24) & 0xFF, (c >> 16) & 0xFF, (c >> 8) & 0xFF, c & 0xFF);
-            };
-            this.setter = setter;
-            this.minInt = 0; this.maxInt = 0;
-            this.minFloat = 0f; this.maxFloat = 0f;
-            this.enumValues = null;
-        }
-
-        // Enum (cycle through values)
-        ConfigEntryDescriptor(String labelKey, java.util.function.Supplier<String> getter, java.util.function.Consumer<String> setter, String[] values) {
-            this.type = Type.ENUM;
-            this.labelKey = labelKey;
-            this.getter = getter;
-            this.setter = setter;
-            this.enumValues = values;
-            this.minInt = 0; this.maxInt = 0;
-            this.minFloat = 0f; this.maxFloat = 0f;
+    public static class ConfigEntry {
+        public enum Type{BOOLEAN,INT,FLOAT,COLOR,ENUM}
+        public final Type type;
+        public final String label;               // lang key（.lang 文件）
+        public final Supplier<String> getter;    // 当前值字符串
+        public final String tooltip;             // tooltip key（LangManager），无则 null
+        public final Object setter;              // Consumer<Boolean>/<Integer>/<Float>/<String>
+        public final int minInt,maxInt;
+        public final float minFlt,maxFlt;
+        public final String[] enumValues;
+        public final boolean isARGB;
+        public final String colorKey;            // 颜色字段名
+        int x,y,w,h;
+        public ConfigEntry(Type t,String lb,Supplier<String> g,Object s,
+                           int mn,int mx,float mnf,float mxf,String[] ev,
+                           String tip,boolean argb,String ck){
+            type=t;label=lb;getter=g;setter=s;minInt=mn;maxInt=mx;
+            minFlt=mnf;maxFlt=mxf;enumValues=ev;tooltip=tip;isARGB=argb;colorKey=ck;
         }
     }
 
-    public GuiModernConfig(GuiScreen parent) { this.parentScreen = parent; }
+    // ═══ 界面状态 ═══
+    private final GuiScreen parent;
+    private final List<TreeNode> roots=new ArrayList<>();
+    private TreeNode selectedNode=null;
+    private int treeScroll=0, entryScroll=0;
+    private String searchQuery="";
+    private ConfigEntry hoveredEntry=null;
+    private long pulseEnd=0;
+    private String pulseLabel=null;
+
+    public GuiModernConfig(GuiScreen p){parent=p;buildTree();selectFirst();}
+
+    // ═══ 反射字段读写 ═══
+    private static java.util.Map<String,Field> cfMap=null;
+    private static Field cf(String n){
+        if(cfMap==null){
+            cfMap=new java.util.HashMap<>();
+            try{for(Field f:BetterPlayerHUDConfig.class.getDeclaredFields()){f.setAccessible(true);cfMap.put(f.getName(),f);}}
+            catch(Exception e){}
+        }
+        return cfMap.get(n);
+    }
+    private static BetterPlayerHUDConfig cfg(){return BetterPlayerHUD.config;}
+
+    // ═══ 条目构造辅助（反射读写，避免 lambda 编译问题） ═══
+    private static ConfigEntry mkBool(String lb,String fn,String tip){
+        return new ConfigEntry(ConfigEntry.Type.BOOLEAN,lb,
+            ()->{try{return String.valueOf(cf(fn).getBoolean(cfg()));}catch(Exception e){return "false";}},
+            (Consumer<Boolean>)v->{try{cf(fn).setBoolean(cfg(),v);}catch(Exception e){}},
+            0,0,0,0,null,tip,false,null);
+    }
+    private static ConfigEntry mkInt(String lb,String fn,int mn,int mx,String tip){
+        return new ConfigEntry(ConfigEntry.Type.INT,lb,
+            ()->String.valueOf(getIntField(fn)),
+            (Consumer<Integer>)v->setIntField(fn,v),
+            mn,mx,0,0,null,tip,false,null);
+    }
+    private static ConfigEntry mkFlt(String lb,String fn,float mn,float mx,String tip){
+        return new ConfigEntry(ConfigEntry.Type.FLOAT,lb,
+            ()->{try{return String.format("%.1f",cf(fn).getFloat(cfg()));}catch(Exception e){return "0.0";}},
+            (Consumer<Float>)v->{try{cf(fn).setFloat(cfg(),v);}catch(Exception e){}},
+            0,0,mn,mx,null,tip,false,null);
+    }
+    private static ConfigEntry mkEnm(String lb,String fn,String[] ev,String tip){
+        return new ConfigEntry(ConfigEntry.Type.ENUM,lb,
+            ()->{try{Object o=cf(fn).get(cfg());return o==null?"":String.valueOf(o);}catch(Exception e){return "";}},
+            (Consumer<String>)v->{try{cf(fn).set(cfg(),v);}catch(Exception e){}},
+            0,0,0,0,ev,tip,false,null);
+    }
+    private static ConfigEntry mkCol(String lb,String fn,boolean argb,String tip){
+        return new ConfigEntry(ConfigEntry.Type.COLOR,lb,
+            ()->String.format("#%06X",getColorField(fn)&0xFFFFFF),
+            (Consumer<Integer>)v->setColorField(fn,v),
+            0,0,0,0,null,tip,argb,fn);
+    }
+
+    private static int getIntField(String n){
+        try{Field f=cf(n);if(f==null)return 0;
+            if(f.getType()==int.class)return f.getInt(cfg());
+            return (int)f.getFloat(cfg());   // 兼容 float 字段（如 hitSize）
+        }catch(Exception e){return 0;}
+    }
+    private static void setIntField(String n,int v){
+        try{Field f=cf(n);if(f==null)return;
+            if(f.getType()==int.class)f.setInt(cfg(),v);
+            else f.setFloat(cfg(),(float)v);
+        }catch(Exception e){}
+    }
+
+    private static int getColorField(String k){
+        BetterPlayerHUDConfig c=cfg();if(c==null)return 0xFFFFFFFF;
+        try{Field f=cf(k);return f==null?0xFFFFFFFF:f.getInt(c);}catch(Exception e){return 0xFFFFFFFF;}
+    }
+    private static void setColorField(String k,int v){
+        BetterPlayerHUDConfig c=cfg();if(c==null)return;
+        try{Field f=cf(k);if(f!=null)f.setInt(c,v);}catch(Exception e){}
+    }
+
+    // ═══ 树构建（v1.6.0 全量 139 项，三层树） ═══
+    private void buildTree(){
+        roots.clear();
+
+        // ── 战斗 ──
+        TreeNode combat=new TreeNode("category.combat");combat.dotColor=0xFFE74C3C;combat.expanded=true;roots.add(combat);
+
+        TreeNode crosshair=new TreeNode("module.crosshair");crosshair.dotColor=0xFFE74C3C;crosshair.expanded=true;combat.children.add(crosshair);
+        TreeNode xgen=new TreeNode("crosshair.group.general");crosshair.children.add(xgen);
+        xgen.entries.add(mkEnm("crosshair.style","crosshairStyle",new String[]{"default","dot","circle","cross","arrow"},null));
+        xgen.entries.add(mkInt("crosshair.gap","crosshairGap",0,20,null));
+        xgen.entries.add(mkInt("crosshair.thickness","crosshairThickness",1,10,null));
+        xgen.entries.add(mkBool("crosshair.dot","crosshairOutline",null));
+        xgen.entries.add(mkBool("crosshair.spread","crosshairSpread",null));
+        TreeNode xrgb=new TreeNode("crosshair.group.rgb");crosshair.children.add(xrgb);
+        xrgb.entries.add(mkBool("rgb.enable","enableRGBMode",null));
+        xrgb.entries.add(mkInt("rgb.speed","rgbSpeed",50,5000,null));
+        xrgb.entries.add(mkEnm("rgb.mode","rgbFlowMode",new String[]{"perimeter","uniform"},null));
+        xrgb.entries.add(mkEnm("rgb.algorithm","rgbColorAlgo",new String[]{"hsv","sinewave"},null));
+        TreeNode xent=new TreeNode("crosshair.group.entity");crosshair.children.add(xent);
+        xent.entries.add(mkBool("crosshair.entityColor","crosshairEntityColor",null));
+        xent.entries.add(mkInt("crosshair.range","crosshairEntityRange",1,50,null));
+
+        TreeNode hitmarker=new TreeNode("module.hitmarker");hitmarker.dotColor=0xFFE74C3C;hitmarker.expanded=true;combat.children.add(hitmarker);
+        TreeNode hmgen=new TreeNode("hitmarker.group.general");hitmarker.children.add(hmgen);
+        hmgen.entries.add(mkBool("module.hitmarker","enableHitMarker",null));
+        hmgen.entries.add(mkBool("hitmarker.useS19","hitMarkerUseS19",null));
+        hmgen.entries.add(mkBool("hitmarker.hitSound","enableHitSounds",null));
+        hmgen.entries.add(mkBool("hitmarker.killSound","enableKillSound",null));
+        hmgen.entries.add(mkFlt("hitmarker.volume","soundVolume",0.0f,1.0f,null));
+        TreeNode hmapp=new TreeNode("hitmarker.group.appearance");hitmarker.children.add(hmapp);
+        hmapp.entries.add(mkInt("hitmarker.hitSize","hitSize",2,32,null));
+        hmapp.entries.add(mkFlt("hitmarker.hitAlpha","hitAlpha",0.0f,1.0f,null));
+        hmapp.entries.add(mkBool("hitmarker.border","hitMarkerEnableBorder",null));
+        hmapp.entries.add(mkFlt("hitmarker.borderWidth","hitMarkerBorderWidth",0.5f,5.0f,null));
+        hmapp.entries.add(mkFlt("hitmarker.blood","hitBloodIntensity",0.0f,1.0f,null));
+        hmapp.entries.add(mkBool("hitmarker.randomRotate","hitMarkerRandomRotate",null));
+        hmapp.entries.add(mkFlt("hitmarker.rotateStrength","hitMarkerRandomRotateStrength",0.0f,90.0f,null));
+
+        TreeNode combo=new TreeNode("module.combo");combo.dotColor=0xFFE74C3C;combo.expanded=true;combat.children.add(combo);
+        combo.entries.add(mkBool("module.combo","enableCombo",null));
+        combo.entries.add(mkInt("combo.xOffset","comboXOffset",-500,500,null));
+        combo.entries.add(mkInt("combo.yOffset","comboYOffset",-500,500,null));
+        combo.entries.add(mkFlt("combo.scale","comboScale",0.25f,4.0f,null));
+
+        TreeNode target=new TreeNode("module.target");target.dotColor=0xFFE74C3C;target.expanded=true;combat.children.add(target);
+        target.entries.add(mkBool("module.target","enableTargetHealth",null));
+
+        TreeNode bol=new TreeNode("module.blockOutline");bol.dotColor=0xFFE74C3C;bol.expanded=true;combat.children.add(bol);
+        bol.entries.add(mkBool("blockOutline.enable","enableBlockHighlight",null));
+        bol.entries.add(mkFlt("blockOutline.width","blockOutlineWidth",1.0f,8.0f,null));
+        bol.entries.add(mkInt("blockOutline.alpha","blockOutlineAlpha",0,255,null));
+        bol.entries.add(mkBool("blockOutline.visibleOnly","drawVisibleFacesOnlyBlocks",null));
+
+        TreeNode ehl=new TreeNode("module.entityHL");ehl.dotColor=0xFFE74C3C;ehl.expanded=true;combat.children.add(ehl);
+        ehl.entries.add(mkBool("entityHL.enable","enableEntityHighlight",null));
+        ehl.entries.add(mkFlt("entityHL.width","entityOutlineWidth",1.0f,8.0f,null));
+        ehl.entries.add(mkInt("entityHL.alpha","entityOutlineAlpha",0,255,null));
+
+        TreeNode bb=new TreeNode("module.blockBreak");bb.dotColor=0xFFE74C3C;bb.expanded=true;combat.children.add(bb);
+        bb.entries.add(mkBool("blockBreak.enable","enableBlockBreakIndicator",null));
+        bb.entries.add(mkInt("blockBreak.x","blockBreakIndicatorX",-200,200,null));
+        bb.entries.add(mkInt("blockBreak.y","blockBreakIndicatorY",0,200,null));
+        bb.entries.add(mkInt("blockBreak.width","blockBreakIndicatorWidth",10,200,null));
+        bb.entries.add(mkInt("blockBreak.height","blockBreakIndicatorHeight",2,20,null));
+        bb.entries.add(mkBool("blockBreak.showPercent","blockBreakIndicatorShowPercent",null));
+
+        // ── 信息 ──
+        TreeNode info=new TreeNode("category.info");info.dotColor=0xFF3498DB;info.expanded=true;roots.add(info);
+
+        TreeNode compass=new TreeNode("module.compass");compass.dotColor=0xFF3498DB;compass.expanded=true;info.children.add(compass);
+        TreeNode cgen=new TreeNode("compass.group.general");compass.children.add(cgen);
+        cgen.entries.add(mkBool("compass.show","showCompassHUD",null));
+        cgen.entries.add(mkInt("compass.x","xPosition",-200,2000,null));
+        cgen.entries.add(mkInt("compass.y","yPosition",0,2000,null));
+        cgen.entries.add(mkFlt("compass.scale","scale",0.5f,3.0f,null));
+        cgen.entries.add(mkEnm("compass.style","displayStyle",new String[]{"detailed","minimal","simple"},null));
+        TreeNode cdisp=new TreeNode("compass.group.display");compass.children.add(cdisp);
+        cdisp.entries.add(mkBool("compass.degreeMarks","showDegreeMarks",null));
+        cdisp.entries.add(mkBool("compass.needle","showCompassNeedle",null));
+        cdisp.entries.add(mkInt("compass.interval","degreeMarkInterval",5,90,null));
+        cdisp.entries.add(mkBool("compass.dynamicScale","dynamicScaling",null));
+        cdisp.entries.add(mkBool("compass.horizon","showHorizon",null));
+        cdisp.entries.add(mkBool("compass.exactAngle","showExactAngle",null));
+
+        TreeNode health=new TreeNode("module.health");health.dotColor=0xFF3498DB;health.expanded=true;info.children.add(health);
+        TreeNode hlay=new TreeNode("health.group.layout");health.children.add(hlay);
+        hlay.entries.add(mkInt("health.x","healthHudX",-500,2000,null));
+        hlay.entries.add(mkInt("health.y","healthHudY",-500,500,null));
+        hlay.entries.add(mkBool("health.showArmor","showArmorHUD",null));
+        TreeNode helem=new TreeNode("health.group.elements");health.children.add(helem);
+        helem.entries.add(mkBool("health.showHunger","showHungerHUD",null));
+        helem.entries.add(mkBool("health.showHead","showPlayerHead",null));
+        helem.entries.add(mkInt("health.headSize","headSize",8,64,null));
+        helem.entries.add(mkInt("health.textSpacing","headTextSpacing",0,20,null));
+
+        TreeNode dist=new TreeNode("module.distance");dist.dotColor=0xFF3498DB;dist.expanded=true;info.children.add(dist);
+        TreeNode dcoord=new TreeNode("distance.group.coords");dist.children.add(dcoord);
+        dcoord.entries.add(mkInt("dist.x","distanceHudX",0,2000,null));
+        dcoord.entries.add(mkInt("dist.y","distanceHudY",0,2000,null));
+        dcoord.entries.add(mkInt("dist.precision","distancePrecision",0,5,null));
+        TreeNode ddisp=new TreeNode("distance.group.display");dist.children.add(ddisp);
+        ddisp.entries.add(mkBool("dist.showTarget","showTargetInfo",null));
+        ddisp.entries.add(mkBool("dist.showBlockInfo","showBlockCoordinates",null));
+        ddisp.entries.add(mkBool("dist.hardness","showBlockHardness",null));
+        ddisp.entries.add(mkBool("dist.showTool","showRequiredTool",null));
+
+        TreeNode keys=new TreeNode("module.keys");keys.dotColor=0xFF3498DB;keys.expanded=true;info.children.add(keys);
+        keys.entries.add(mkInt("keys.x","keysDisplayX",0,2000,null));
+        keys.entries.add(mkInt("keys.y","keysDisplayY",0,2000,null));
+        keys.entries.add(mkInt("keys.size","keysSize",12,64,null));
+        keys.entries.add(mkInt("keys.spacing","keysSpacing",0,32,null));
+        keys.entries.add(mkFlt("keys.scale","keysScale",0.25f,4.0f,null));
+        keys.entries.add(mkBool("keys.background","showKeysBackground",null));
+        keys.entries.add(mkFlt("keys.opacity","keysOpacity",0.0f,1.0f,null));
+
+        TreeNode chrom=new TreeNode("module.chroma");chrom.dotColor=0xFF3498DB;chrom.expanded=true;info.children.add(chrom);
+        chrom.entries.add(mkBool("module.chroma","enableChromaChat",null));
+        chrom.entries.add(mkInt("chroma.width","chromaChatWidth",80,800,null));
+        chrom.entries.add(mkInt("chroma.lines","chromaChatLineCount",1,50,null));
+        chrom.entries.add(mkBool("chroma.timestamp","chromaChatShowTimestamps",null));
+        chrom.entries.add(mkBool("chroma.avatar","chromaChatAvatar",null));
+        chrom.entries.add(mkBool("chroma.signboard","chromaChatSignboardMerge",null));
+        chrom.entries.add(mkInt("chroma.maxLines","chromaChatMaxLines",20,500,null));
+
+        TreeNode perf=new TreeNode("module.performance");perf.dotColor=0xFF3498DB;perf.expanded=true;info.children.add(perf);
+        perf.entries.add(mkBool("module.performance","enablePerformanceHUD",null));
+
+        TreeNode tab=new TreeNode("module.tablist");tab.dotColor=0xFF3498DB;tab.expanded=true;info.children.add(tab);
+        tab.entries.add(mkBool("module.tablist","enableTabListHUD",null));
+
+        TreeNode dbg=new TreeNode("module.debug");dbg.dotColor=0xFF3498DB;dbg.expanded=true;info.children.add(dbg);
+        dbg.entries.add(mkBool("module.debug","enableDebugInfoHUD",null));
+        dbg.entries.add(mkInt("debug.xOffset","debugInfoXOffset",0,2000,null));
+        dbg.entries.add(mkInt("debug.yOffset","debugInfoYOffset",0,2000,null));
+
+        // ── 状态 ──
+        TreeNode status=new TreeNode("category.status");status.dotColor=0xFF2ECC71;status.expanded=true;roots.add(status);
+
+        TreeNode xp=new TreeNode("module.expbar");xp.dotColor=0xFF2ECC71;xp.expanded=true;status.children.add(xp);
+        xp.entries.add(mkBool("module.expbar","enableXpBarHUD",null));
+        xp.entries.add(mkInt("xpbar.offsetX","xpBarXOffset",-500,500,null));
+        xp.entries.add(mkInt("xpbar.offsetY","xpBarYOffset",-500,500,null));
+        xp.entries.add(mkInt("xpbar.width","xpBarWidth",80,400,null));
+        xp.entries.add(mkInt("xpbar.height","xpBarHeight",3,20,null));
+
+        TreeNode boss=new TreeNode("module.bossHP");boss.dotColor=0xFF2ECC71;boss.expanded=true;status.children.add(boss);
+        boss.entries.add(mkBool("module.bossHP","enableBossHealthHUD",null));
+
+        TreeNode hotbar=new TreeNode("module.hotbar");hotbar.dotColor=0xFF2ECC71;hotbar.expanded=true;status.children.add(hotbar);
+        hotbar.entries.add(mkBool("module.hotbar","enableHotbarHUD",null));
+
+        TreeNode potion=new TreeNode("module.potion");potion.dotColor=0xFF2ECC71;potion.expanded=true;status.children.add(potion);
+        TreeNode ptimer=new TreeNode("potion.group.timer");potion.children.add(ptimer);
+        ptimer.entries.add(mkBool("module.potiontimer","enablePotionTimer",null));
+        ptimer.entries.add(mkInt("potionTimer.xOffset","potionTimerXOffset",-500,500,null));
+        ptimer.entries.add(mkInt("potionTimer.yOffset","potionTimerYOffset",-500,500,null));
+        ptimer.entries.add(mkInt("potionTimer.iconSize","potionTimerIconSize",16,64,null));
+        TreeNode peff=new TreeNode("potion.group.effects");potion.children.add(peff);
+        peff.entries.add(mkBool("module.potion","enablePotionHUD",null));
+        peff.entries.add(mkInt("potion.xOffset","potionXOffset",-500,500,null));
+        peff.entries.add(mkInt("potion.yOffset","potionYOffset",-500,500,null));
+
+        TreeNode crisis=new TreeNode("module.crisis");crisis.dotColor=0xFF2ECC71;crisis.expanded=true;status.children.add(crisis);
+        crisis.entries.add(mkBool("module.crisis","enableCrisisWarning",null));
+        crisis.entries.add(mkBool("crisis.warnHealth","crisisWarnHealth",null));
+        crisis.entries.add(mkFlt("crisis.healthThreshold","crisisHealthThreshold",0.5f,20.0f,null));
+        crisis.entries.add(mkBool("crisis.warnHunger","crisisWarnHunger",null));
+        crisis.entries.add(mkInt("crisis.hungerThreshold","crisisHungerThreshold",1,20,null));
+        crisis.entries.add(mkBool("crisis.warnTnt","crisisWarnTnt",null));
+        crisis.entries.add(mkFlt("crisis.tntRadius","crisisTntRadius",2.0f,50.0f,null));
+        crisis.entries.add(mkInt("crisis.xOffset","crisisXOffset",-500,500,null));
+        crisis.entries.add(mkInt("crisis.yOffset","crisisYOffset",-500,500,null));
+        crisis.entries.add(mkInt("crisis.iconSize","crisisIconSize",12,64,null));
+
+        TreeNode jumpbar=new TreeNode("module.jumpbar");jumpbar.dotColor=0xFF2ECC71;jumpbar.expanded=true;status.children.add(jumpbar);
+        jumpbar.entries.add(mkBool("module.jumpbar","enableJumpBar",null));
+
+        TreeNode airhud=new TreeNode("module.airhud");airhud.dotColor=0xFF2ECC71;airhud.expanded=true;status.children.add(airhud);
+        airhud.entries.add(mkBool("module.airhud","enableAirHUD",null));
+
+        TreeNode mount=new TreeNode("module.mountHP");mount.dotColor=0xFF2ECC71;mount.expanded=true;status.children.add(mount);
+        mount.entries.add(mkBool("module.mountHP","enableMountHP",null));
+
+        // ── 颜色 ──
+        TreeNode colors=new TreeNode("category.colors");colors.dotColor=0xFFF39C12;colors.expanded=true;roots.add(colors);
+        colors.entries.add(mkCol("color.healthSafe","healthColorSafe",true,null));
+        colors.entries.add(mkCol("color.healthWarning","healthColorWarning",true,null));
+        colors.entries.add(mkCol("color.healthDanger","healthColorDanger",true,null));
+        colors.entries.add(mkCol("color.armor","armorColor",true,null));
+        colors.entries.add(mkCol("color.hunger","hungerColor",true,null));
+        colors.entries.add(mkCol("color.compass","compassColor",true,null));
+        colors.entries.add(mkCol("color.distance","distanceColor",true,null));
+        colors.entries.add(mkCol("color.targetInfo","targetInfoColor",true,null));
+        colors.entries.add(mkCol("color.blockInfo","blockInfoColor",true,null));
+        colors.entries.add(mkCol("color.keysActive","keysActiveColor",true,null));
+        colors.entries.add(mkCol("color.keysInactive","keysInactiveColor",true,null));
+        colors.entries.add(mkCol("color.keysText","keysTextColor",true,null));
+        colors.entries.add(mkCol("color.potionText","potionTextColor",true,null));
+        colors.entries.add(mkCol("color.blockOutline","blockOutlineColor",true,null));
+        colors.entries.add(mkCol("color.entityHostile","entityOutlineColorHostile",true,null));
+        colors.entries.add(mkCol("color.entityNeutral","entityOutlineColorNeutral",true,null));
+        colors.entries.add(mkCol("color.entityFriendly","entityOutlineColorFriendly",true,null));
+        colors.entries.add(mkCol("color.crosshair","crosshairColor",true,null));
+        colors.entries.add(mkCol("color.crosshairPlayer","crosshairColorPlayer",true,null));
+        colors.entries.add(mkCol("color.crosshairHostile","crosshairColorHostile",true,null));
+        colors.entries.add(mkCol("color.crosshairPassive","crosshairColorPassive",true,null));
+        colors.entries.add(mkCol("color.crosshairNeutral","crosshairColorNeutral",true,null));
+        colors.entries.add(mkCol("color.crosshairOther","crosshairColorOther",true,null));
+        colors.entries.add(mkCol("color.hitMarker","hitColor",true,null));
+        colors.entries.add(mkCol("color.killMarker","killColor",true,null));
+        colors.entries.add(mkCol("color.breakStart","blockBreakIndicatorColorStart",true,null));
+        colors.entries.add(mkCol("color.breakEnd","blockBreakIndicatorColorEnd",true,null));
+    }
+
+    private void selectFirst(){
+        if(!roots.isEmpty()){
+            selectedNode=roots.get(0);
+            if(!selectedNode.children.isEmpty())selectedNode=selectedNode.children.get(0);
+        }
+    }
+
+    private void selectNode(TreeNode n){selectedNode=n;entryScroll=0;}
+
+    // ═══ 本地化（双轨：树/条目走 .lang，开关/提示走 LangManager） ═══
+    private String tr(String k){return I18n.format(k);}
+    private String tipOf(String key){String t=LangManager.get(key+".tooltip");return t.equals(key+".tooltip")?null:t;}
+    private String onOff(boolean on){return LangManager.get(on?"common.on":"common.off");}
+
+    @Override public void initGui(){Keyboard.enableRepeatEvents(true);}
+    @Override public void onGuiClosed(){Keyboard.enableRepeatEvents(false);if(cfg()!=null)cfg().saveConfig();}
+
     @Override
-    public void initGui() { buildTree(); selectFirstLeaf(); }
-    private void buildFromConfig() { treeRoots.clear(); buildTree(); selectFirstLeaf(); }
-    private void saveConfig() { BetterPlayerHUD.config.saveConfig(); triggerPulse("gui.saved"); }
-    private void recalcLayout() { if (localEntries != null) contentHeight = localEntries.size() * ENTRY_H; }
-    private void selectFirstLeaf() {
-        for (ConfigTreeNode r : treeRoots)
-            for (ConfigTreeNode c : r.children)
-                if (c.isLeaf()) { selectedNode = c; localEntries = c.entries; recalcLayout(); return; }
-                else for (ConfigTreeNode s : c.children)
-                    if (s.isLeaf()) { selectedNode = s; localEntries = s.entries; recalcLayout(); return; }
+    public void drawScreen(int mx,int my,float pt){
+        fillR(0,0,width,height,C_BG); drawHeader(mx,my); drawLeftTree(mx,my); drawRightCards(mx,my); drawFooter(mx,my);
+        super.drawScreen(mx,my,pt);
     }
-    private static class ConfigTreeNode {
-        final String labelKey;
-        final List<ConfigTreeNode> children = new ArrayList<>();
-        final List<ConfigEntryDescriptor> entries = new ArrayList<>();
-        boolean expanded = false;
-        int dotColor = 0xFF888888;
-        ConfigTreeNode(String labelKey) { this.labelKey = labelKey; }
-        boolean isLeaf() { return children.isEmpty(); }
+
+    private void drawHeader(int mx,int my){
+        fillR(0,0,width,HEADER_H,C_HEADER); fillR(0,HEADER_H-1,width,HEADER_H,C_DIVIDER);
+        fr().drawStringWithShadow("←",8,10,0xFFFFFF);
+        fr().drawStringWithShadow(tr("gui.modules"),26,11,0xFFFFFF);
+        int sx=width-90; fillR(sx,8,sx+80,28,C_SEARCH_BG); fillR(sx,8,sx+80,28,C_DIVIDER);
+        fr().drawString(searchQuery.isEmpty()?"§7"+tr("gui.search_hint"):searchQuery,sx+6,13,0xFFFFFF);
     }
-    private int computeMaxTreeScroll() {
-        int h = 28;
-        for (ConfigTreeNode r : treeRoots) { h += 20;
-            if (!r.expanded) continue;
-            for (ConfigTreeNode c : r.children) { h += 18;
-                if (!c.expanded || c.isLeaf()) continue;
-                h += c.children.size() * 16;
+
+    private void drawLeftTree(int mx,int my){
+        int x0=0,y0=HEADER_H,tw=LEFT_W,th=height-HEADER_H-FOOTER_H;
+        fillR(x0,y0,x0+tw,y0+th,C_PANEL); fillR(x0+tw-1,y0,x0+tw,y0+th,C_DIVIDER);
+        GL11.glEnable(GL11.GL_SCISSOR_TEST);
+        ScaledResolution sr=new ScaledResolution(mc); int sf=sr.getScaleFactor();
+        GL11.glScissor(0,(mc.displayHeight-(y0+th)*sf),tw*sf,th*sf);
+        int y=y0+4-treeScroll;
+        for(TreeNode cat:roots){
+            boolean ch=mx>=x0+8&&mx<=x0+tw-8&&my>=y&&my<=y+22;
+            fillR(x0+4,y,x0+tw-4,y+22,ch?C_CARD_HOVER:C_PANEL);
+            fillR(x0+6,y+7,x0+12,y+15,cat.dotColor);
+            fr().drawStringWithShadow(cat.expanded?"▼":"▶",x0+14,y+5,0xFF666666);
+            fr().drawStringWithShadow("§l"+tr(cat.label),x0+22,y+5,0xFFFFFF);
+            y+=24; if(!cat.expanded)continue;
+            for(TreeNode mod:cat.children){
+                boolean sel=selectedNode==mod,hov=mx>=x0+20&&mx<=x0+tw-4&&my>=y&&my<=y+20;
+                if(hov||sel)fillR(x0+18,y,x0+tw-4,y+20,sel?C_SEL_ACCENT:0xFF2A2A4E);
+                fr().drawStringWithShadow(tr(mod.label),x0+22,y+4,sel?0xFFFFFF:(hov?C_TEXT:C_TEXT_DIM));
+                if(sel)fillR(x0+18,y+2,x0+19,y+18,C_ACCENT);
+                y+=21;
+                for(TreeNode grp:mod.children){
+                    boolean gh=mx>=x0+32&&mx<=x0+tw-4&&my>=y&&my<=y+18;
+                    fillR(x0+30,y,x0+tw-4,y+18,gh?0xFF2A2A4E:C_PANEL);
+                    fr().drawStringWithShadow(grp.expanded?"▾":"▸",x0+32,y+3,0xFF666666);
+                    fr().drawStringWithShadow(tr(grp.label),x0+44,y+3,C_TEXT_DIM);
+                    y+=19;
+                }
             }
         }
-        return Math.max(0, h - (height - 40));
+        GL11.glDisable(GL11.GL_SCISSOR_TEST);
     }
-    private void buildTree() {
-        BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
-        treeRoots.clear();
-        ConfigTreeNode combat = new ConfigTreeNode("category.combat");
-        combat.dotColor = 0xFFE74C3C; combat.expanded = true;
-        ConfigTreeNode crosshair = new ConfigTreeNode("module.crosshair");
-        crosshair.dotColor = 0xFFE74C3C; crosshair.expanded = true;
-        ConfigTreeNode xgen = new ConfigTreeNode("crosshair.group.general"); xgen.expanded = true;
-        xgen.entries.add(new ConfigEntryDescriptor("crosshair.style",
-(java.util.function.Supplier<String>) () -> cfg.crosshairStyle,
-(Consumer<String>) (v) -> cfg.crosshairStyle = v,
-new String[]{"default", "dot", "circle", "cross", "arrow"}));
-        xgen.entries.add(new ConfigEntryDescriptor("crosshair.gap",
-(IntSupplier) () -> cfg.crosshairGap, (Consumer<Integer>) (v) -> cfg.crosshairGap = v, 0, 20));
-        xgen.entries.add(new ConfigEntryDescriptor("crosshair.thickness",
-(IntSupplier) () -> cfg.crosshairThickness, (Consumer<Integer>) (v) -> cfg.crosshairThickness = v, 1, 10));
-        xgen.entries.add(new ConfigEntryDescriptor("crosshair.dot",
-(BooleanSupplier) () -> cfg.crosshairOutline, (Consumer<Boolean>) (v) -> cfg.crosshairOutline = v));
-        xgen.entries.add(new ConfigEntryDescriptor("crosshair.spread",
-(BooleanSupplier) () -> cfg.crosshairSpread, (Consumer<Boolean>) (v) -> cfg.crosshairSpread = v));
-        ConfigTreeNode xrgb = new ConfigTreeNode("crosshair.group.rgb"); xrgb.expanded = true;
-        xrgb.entries.add(new ConfigEntryDescriptor("entityHL.alpha",
-(IntSupplier) () -> cfg.entityOutlineAlpha, (Consumer<Integer>) (v) -> cfg.entityOutlineAlpha = v, 0, 255));
-        xrgb.entries.add(new ConfigEntryDescriptor("rgb.enable",
-(BooleanSupplier) () -> cfg.enableRGBMode, (Consumer<Boolean>) (v) -> cfg.enableRGBMode = v));
-        xrgb.entries.add(new ConfigEntryDescriptor("rgb.speed",
-(IntSupplier) () -> cfg.rgbSpeed, (Consumer<Integer>) (v) -> cfg.rgbSpeed = v, 50, 5000));
-        xrgb.entries.add(new ConfigEntryDescriptor("rgb.mode",
-(java.util.function.Supplier<String>) () -> cfg.rgbFlowMode,
-(Consumer<String>) (v) -> cfg.rgbFlowMode = v,
-new String[]{"perimeter", "uniform"}));
-        ConfigTreeNode xent = new ConfigTreeNode("crosshair.group.entity"); xent.expanded = true;
-        xent.entries.add(new ConfigEntryDescriptor("crosshair.entityColor",
-(BooleanSupplier) () -> cfg.crosshairEntityColor, (Consumer<Boolean>) (v) -> cfg.crosshairEntityColor = v));
-        xent.entries.add(new ConfigEntryDescriptor("crosshair.range",
-(IntSupplier) () -> cfg.crosshairEntityRange, (Consumer<Integer>) (v) -> cfg.crosshairEntityRange = v, 1, 50));
-        crosshair.children.add(xgen); crosshair.children.add(xrgb); crosshair.children.add(xent);
-        combat.children.add(crosshair);
-        ConfigTreeNode hitmarker = new ConfigTreeNode("module.hitmarker");
-        hitmarker.dotColor = 0xFFE74C3C; hitmarker.expanded = true;
-        ConfigTreeNode hmgen = new ConfigTreeNode("hitmarker.group.general"); hmgen.expanded = true;
-        hmgen.entries.add(new ConfigEntryDescriptor("module.hitmarker",
-(BooleanSupplier) () -> cfg.enableHitMarker, (Consumer<Boolean>) (v) -> cfg.enableHitMarker = v));
-        hmgen.entries.add(new ConfigEntryDescriptor("hitmarker.useS19",
-(BooleanSupplier) () -> cfg.hitMarkerUseS19, (Consumer<Boolean>) (v) -> cfg.hitMarkerUseS19 = v));
-        hmgen.entries.add(new ConfigEntryDescriptor("hitmarker.hitSound",
-(BooleanSupplier) () -> cfg.enableHitSounds, (Consumer<Boolean>) (v) -> cfg.enableHitSounds = v));
-        hmgen.entries.add(new ConfigEntryDescriptor("hitmarker.killSound",
-(BooleanSupplier) () -> cfg.enableKillSound, (Consumer<Boolean>) (v) -> cfg.enableKillSound = v));
-        hmgen.entries.add(new ConfigEntryDescriptor("hitmarker.volume",
-(DoubleSupplier) () -> (double) cfg.soundVolume, (Consumer<Float>) (v) -> cfg.soundVolume = v, 0.0f, 1.0f));
-        ConfigTreeNode hmapp = new ConfigTreeNode("hitmarker.group.appearance"); hmapp.expanded = true;
-        hmapp.entries.add(new ConfigEntryDescriptor("hitmarker.hitSize",
-(IntSupplier) () -> (int) cfg.hitSize, (Consumer<Integer>) (v) -> cfg.hitSize = (float) v, 2, 32));
-        hmapp.entries.add(new ConfigEntryDescriptor("hitmarker.hitAlpha",
-(DoubleSupplier) () -> (double) cfg.hitAlpha, (Consumer<Float>) (v) -> cfg.hitAlpha = v, 0.0f, 1.0f));
-        hmapp.entries.add(new ConfigEntryDescriptor("hitmarker.border",
-(BooleanSupplier) () -> cfg.hitMarkerEnableBorder, (Consumer<Boolean>) (v) -> cfg.hitMarkerEnableBorder = v));
-        hmapp.entries.add(new ConfigEntryDescriptor("hitmarker.borderWidth",
-(DoubleSupplier) () -> (double) cfg.hitMarkerBorderWidth, (Consumer<Float>) (v) -> cfg.hitMarkerBorderWidth = v, 0.5f, 5.0f));
-        hmapp.entries.add(new ConfigEntryDescriptor("hitmarker.blood",
-(DoubleSupplier) () -> (double) cfg.hitBloodIntensity, (Consumer<Float>) (v) -> cfg.hitBloodIntensity = v, 0.0f, 1.0f));
-        hmapp.entries.add(new ConfigEntryDescriptor("hitmarker.randomRotate",
-(BooleanSupplier) () -> cfg.hitMarkerRandomRotate, (Consumer<Boolean>) (v) -> cfg.hitMarkerRandomRotate = v));
-        hmapp.entries.add(new ConfigEntryDescriptor("hitmarker.rotateStrength",
-(DoubleSupplier) () -> (double) cfg.hitMarkerRandomRotateStrength, (Consumer<Float>) (v) -> cfg.hitMarkerRandomRotateStrength = v, 0.0f, 90.0f));
-        hitmarker.children.add(hmgen); hitmarker.children.add(hmapp);
-        combat.children.add(hitmarker);
-        ConfigTreeNode comboLf = new ConfigTreeNode("module.combo");
-        comboLf.dotColor = 0xFFE74C3C;
-        comboLf.entries.add(new ConfigEntryDescriptor("module.combo",
-(BooleanSupplier) () -> cfg.enableCombo, (Consumer<Boolean>) (v) -> cfg.enableCombo = v));
-        comboLf.entries.add(new ConfigEntryDescriptor("combo.xOffset",
-(IntSupplier) () -> cfg.comboXOffset, (Consumer<Integer>) (v) -> cfg.comboXOffset = v, -500, 500));
-        comboLf.entries.add(new ConfigEntryDescriptor("combo.yOffset",
-(IntSupplier) () -> cfg.comboYOffset, (Consumer<Integer>) (v) -> cfg.comboYOffset = v, -500, 500));
-        combat.children.add(comboLf);
-        ConfigTreeNode tgtLf = new ConfigTreeNode("module.target");
-        tgtLf.dotColor = 0xFFE74C3C;
-        tgtLf.entries.add(new ConfigEntryDescriptor("combo.scale",
-(DoubleSupplier) () -> (double) cfg.comboScale, (Consumer<Float>) (v) -> cfg.comboScale = v, 0.25f, 4.0f));
-        combat.children.add(tgtLf);
-        ConfigTreeNode bolLf = new ConfigTreeNode("module.blockOutline");
-        bolLf.dotColor = 0xFFE74C3C;
-        bolLf.entries.add(new ConfigEntryDescriptor("module.target",
-(BooleanSupplier) () -> cfg.enableTargetHealth, (Consumer<Boolean>) (v) -> cfg.enableTargetHealth = v));
-        bolLf.entries.add(new ConfigEntryDescriptor("blockOutline.enable",
-(BooleanSupplier) () -> cfg.enableBlockHighlight, (Consumer<Boolean>) (v) -> cfg.enableBlockHighlight = v));
-        bolLf.entries.add(new ConfigEntryDescriptor("blockOutline.width",
-(DoubleSupplier) () -> (double) cfg.blockOutlineWidth, (Consumer<Float>) (v) -> cfg.blockOutlineWidth = v, 1.0f, 8.0f));
-        bolLf.entries.add(new ConfigEntryDescriptor("blockOutline.alpha",
-(IntSupplier) () -> cfg.blockOutlineAlpha, (Consumer<Integer>) (v) -> cfg.blockOutlineAlpha = v, 0, 255));
-        combat.children.add(bolLf);
-        ConfigTreeNode ehlLf = new ConfigTreeNode("module.entityHL");
-        ehlLf.dotColor = 0xFFE74C3C;
-        ehlLf.entries.add(new ConfigEntryDescriptor("blockOutline.visibleOnly",
-(BooleanSupplier) () -> cfg.drawVisibleFacesOnlyBlocks, (Consumer<Boolean>) (v) -> cfg.drawVisibleFacesOnlyBlocks = v));
-        ehlLf.entries.add(new ConfigEntryDescriptor("entityHL.enable",
-(BooleanSupplier) () -> cfg.enableEntityHighlight, (Consumer<Boolean>) (v) -> cfg.enableEntityHighlight = v));
-        ehlLf.entries.add(new ConfigEntryDescriptor("entityHL.width",
-(DoubleSupplier) () -> (double) cfg.entityOutlineWidth, (Consumer<Float>) (v) -> cfg.entityOutlineWidth = v, 1.0f, 8.0f));
-        combat.children.add(ehlLf);
-        ConfigTreeNode bbrLf = new ConfigTreeNode("module.blockBreak");
-        bbrLf.dotColor = 0xFFE74C3C;
-        bbrLf.entries.add(new ConfigEntryDescriptor("rgb.algorithm",
-(java.util.function.Supplier<String>) () -> cfg.rgbColorAlgo,
-(Consumer<String>) (v) -> cfg.rgbColorAlgo = v,
-new String[]{"hsv", "sinewave"}));
-        bbrLf.entries.add(new ConfigEntryDescriptor("blockBreak.enable",
-(BooleanSupplier) () -> cfg.enableBlockBreakIndicator, (Consumer<Boolean>) (v) -> cfg.enableBlockBreakIndicator = v));
-        bbrLf.entries.add(new ConfigEntryDescriptor("blockBreak.x",
-(IntSupplier) () -> cfg.blockBreakIndicatorX, (Consumer<Integer>) (v) -> cfg.blockBreakIndicatorX = v, -200, 200));
-        bbrLf.entries.add(new ConfigEntryDescriptor("blockBreak.y",
-(IntSupplier) () -> cfg.blockBreakIndicatorY, (Consumer<Integer>) (v) -> cfg.blockBreakIndicatorY = v, 0, 200));
-        bbrLf.entries.add(new ConfigEntryDescriptor("blockBreak.width",
-(IntSupplier) () -> cfg.blockBreakIndicatorWidth, (Consumer<Integer>) (v) -> cfg.blockBreakIndicatorWidth = v, 10, 200));
-        bbrLf.entries.add(new ConfigEntryDescriptor("blockBreak.height",
-(IntSupplier) () -> cfg.blockBreakIndicatorHeight, (Consumer<Integer>) (v) -> cfg.blockBreakIndicatorHeight = v, 2, 20));
-        bbrLf.entries.add(new ConfigEntryDescriptor("blockBreak.showPercent",
-(BooleanSupplier) () -> cfg.blockBreakIndicatorShowPercent, (Consumer<Boolean>) (v) -> cfg.blockBreakIndicatorShowPercent = v));
-        combat.children.add(bbrLf);
-        treeRoots.add(combat);
-        ConfigTreeNode info = new ConfigTreeNode("category.info");
-        info.dotColor = 0xFF3498DB; info.expanded = true;
-        ConfigTreeNode compass = new ConfigTreeNode("module.compass");
-        compass.dotColor = 0xFF3498DB; compass.expanded = true;
-        ConfigTreeNode cgen = new ConfigTreeNode("compass.group.general"); cgen.expanded = true;
-        cgen.entries.add(new ConfigEntryDescriptor("compass.show",
-(BooleanSupplier) () -> cfg.showCompassHUD, (Consumer<Boolean>) (v) -> cfg.showCompassHUD = v));
-        cgen.entries.add(new ConfigEntryDescriptor("compass.x",
-(IntSupplier) () -> cfg.xPosition, (Consumer<Integer>) (v) -> cfg.xPosition = v, -200, 2000));
-        cgen.entries.add(new ConfigEntryDescriptor("compass.y",
-(IntSupplier) () -> cfg.yPosition, (Consumer<Integer>) (v) -> cfg.yPosition = v, 0, 2000));
-        cgen.entries.add(new ConfigEntryDescriptor("compass.scale",
-(DoubleSupplier) () -> (double) cfg.scale, (Consumer<Float>) (v) -> cfg.scale = v, 0.25f, 4.0f));
-        cgen.entries.add(new ConfigEntryDescriptor("compass.style",
-(java.util.function.Supplier<String>) () -> cfg.displayStyle,
-(Consumer<String>) (v) -> cfg.displayStyle = v,
-new String[]{"detailed", "minimal", "simple"}));
-        ConfigTreeNode cdisp = new ConfigTreeNode("compass.group.display"); cdisp.expanded = true;
-        cdisp.entries.add(new ConfigEntryDescriptor("compass.degreeMarks",
-(BooleanSupplier) () -> cfg.showDegreeMarks, (Consumer<Boolean>) (v) -> cfg.showDegreeMarks = v));
-        cdisp.entries.add(new ConfigEntryDescriptor("compass.needle",
-(BooleanSupplier) () -> cfg.showCompassNeedle, (Consumer<Boolean>) (v) -> cfg.showCompassNeedle = v));
-        cdisp.entries.add(new ConfigEntryDescriptor("compass.interval",
-(IntSupplier) () -> cfg.degreeMarkInterval, (Consumer<Integer>) (v) -> cfg.degreeMarkInterval = v, 5, 90));
-        cdisp.entries.add(new ConfigEntryDescriptor("compass.dynamicScale",
-(BooleanSupplier) () -> cfg.dynamicScaling, (Consumer<Boolean>) (v) -> cfg.dynamicScaling = v));
-        cdisp.entries.add(new ConfigEntryDescriptor("compass.horizon",
-(BooleanSupplier) () -> cfg.showHorizon, (Consumer<Boolean>) (v) -> cfg.showHorizon = v));
-        cdisp.entries.add(new ConfigEntryDescriptor("compass.exactAngle",
-(BooleanSupplier) () -> cfg.showExactAngle, (Consumer<Boolean>) (v) -> cfg.showExactAngle = v));
-        compass.children.add(cgen); compass.children.add(cdisp);
-        info.children.add(compass);
-        ConfigTreeNode health = new ConfigTreeNode("module.health");
-        health.dotColor = 0xFF3498DB; health.expanded = true;
-        ConfigTreeNode hlay = new ConfigTreeNode("health.group.layout"); hlay.expanded = true;
-        hlay.entries.add(new ConfigEntryDescriptor("health.x",
-(IntSupplier) () -> cfg.healthHudX, (Consumer<Integer>) (v) -> cfg.healthHudX = v, -500, 2000));
-        hlay.entries.add(new ConfigEntryDescriptor("health.y",
-(IntSupplier) () -> cfg.healthHudY, (Consumer<Integer>) (v) -> cfg.healthHudY = v, -500, 500));
-        hlay.entries.add(new ConfigEntryDescriptor("health.showArmor",
-(BooleanSupplier) () -> cfg.showArmorHUD, (Consumer<Boolean>) (v) -> cfg.showArmorHUD = v));
-        ConfigTreeNode helem = new ConfigTreeNode("health.group.elements"); helem.expanded = true;
-        helem.entries.add(new ConfigEntryDescriptor("health.showHunger",
-(BooleanSupplier) () -> cfg.showHungerHUD, (Consumer<Boolean>) (v) -> cfg.showHungerHUD = v));
-        helem.entries.add(new ConfigEntryDescriptor("health.showHead",
-(BooleanSupplier) () -> cfg.showPlayerHead, (Consumer<Boolean>) (v) -> cfg.showPlayerHead = v));
-        helem.entries.add(new ConfigEntryDescriptor("health.headSize",
-(IntSupplier) () -> cfg.headSize, (Consumer<Integer>) (v) -> cfg.headSize = v, 8, 64));
-        helem.entries.add(new ConfigEntryDescriptor("health.textSpacing",
-(IntSupplier) () -> cfg.headTextSpacing, (Consumer<Integer>) (v) -> cfg.headTextSpacing = v, 0, 20));
-        health.children.add(hlay); health.children.add(helem);
-        info.children.add(health);
-        ConfigTreeNode dist = new ConfigTreeNode("module.distance");
-        dist.dotColor = 0xFF3498DB; dist.expanded = true;
-        ConfigTreeNode dcoord = new ConfigTreeNode("distance.group.coords"); dcoord.expanded = true;
-        dcoord.entries.add(new ConfigEntryDescriptor("dist.x",
-(IntSupplier) () -> cfg.distanceHudX, (Consumer<Integer>) (v) -> cfg.distanceHudX = v, 0, 2000));
-        dcoord.entries.add(new ConfigEntryDescriptor("dist.y",
-(IntSupplier) () -> cfg.distanceHudY, (Consumer<Integer>) (v) -> cfg.distanceHudY = v, 0, 2000));
-        dcoord.entries.add(new ConfigEntryDescriptor("dist.precision",
-(IntSupplier) () -> cfg.distancePrecision, (Consumer<Integer>) (v) -> cfg.distancePrecision = v, 0, 5));
-        ConfigTreeNode ddisp = new ConfigTreeNode("distance.group.display"); ddisp.expanded = true;
-        ddisp.entries.add(new ConfigEntryDescriptor("dist.showTarget",
-(BooleanSupplier) () -> cfg.showTargetInfo, (Consumer<Boolean>) (v) -> cfg.showTargetInfo = v));
-        ddisp.entries.add(new ConfigEntryDescriptor("dist.showBlockInfo",
-(BooleanSupplier) () -> cfg.showBlockCoordinates, (Consumer<Boolean>) (v) -> cfg.showBlockCoordinates = v));
-        ddisp.entries.add(new ConfigEntryDescriptor("dist.hardness",
-(BooleanSupplier) () -> cfg.showBlockHardness, (Consumer<Boolean>) (v) -> cfg.showBlockHardness = v));
-        ddisp.entries.add(new ConfigEntryDescriptor("dist.showTool",
-(BooleanSupplier) () -> cfg.showRequiredTool, (Consumer<Boolean>) (v) -> cfg.showRequiredTool = v));
-        dist.children.add(dcoord); dist.children.add(ddisp);
-        info.children.add(dist);
-        ConfigTreeNode keysLf = new ConfigTreeNode("module.keys");
-        keysLf.dotColor = 0xFF3498DB;
-        keysLf.entries.add(new ConfigEntryDescriptor("keys.x",
-(IntSupplier) () -> cfg.keysDisplayX, (Consumer<Integer>) (v) -> cfg.keysDisplayX = v, 0, 2000));
-        keysLf.entries.add(new ConfigEntryDescriptor("keys.y",
-(IntSupplier) () -> cfg.keysDisplayY, (Consumer<Integer>) (v) -> cfg.keysDisplayY = v, 0, 2000));
-        keysLf.entries.add(new ConfigEntryDescriptor("keys.size",
-(IntSupplier) () -> cfg.keysSize, (Consumer<Integer>) (v) -> cfg.keysSize = v, 12, 64));
-        keysLf.entries.add(new ConfigEntryDescriptor("keys.spacing",
-(IntSupplier) () -> cfg.keysSpacing, (Consumer<Integer>) (v) -> cfg.keysSpacing = v, 0, 32));
-        keysLf.entries.add(new ConfigEntryDescriptor("keys.scale",
-(DoubleSupplier) () -> (double) cfg.keysScale, (Consumer<Float>) (v) -> cfg.keysScale = v, 0.25f, 4.0f));
-        keysLf.entries.add(new ConfigEntryDescriptor("keys.background",
-(BooleanSupplier) () -> cfg.showKeysBackground, (Consumer<Boolean>) (v) -> cfg.showKeysBackground = v));
-        keysLf.entries.add(new ConfigEntryDescriptor("keys.opacity",
-(DoubleSupplier) () -> (double) cfg.keysOpacity, (Consumer<Float>) (v) -> cfg.keysOpacity = v, 0.0f, 1.0f));
-        info.children.add(keysLf);
-        ConfigTreeNode chromLf = new ConfigTreeNode("module.chroma");
-        chromLf.dotColor = 0xFF3498DB;
-        chromLf.entries.add(new ConfigEntryDescriptor("module.chroma",
-(BooleanSupplier) () -> cfg.enableChromaChat, (Consumer<Boolean>) (v) -> cfg.enableChromaChat = v));
-        chromLf.entries.add(new ConfigEntryDescriptor("chroma.width",
-(IntSupplier) () -> cfg.chromaChatWidth, (Consumer<Integer>) (v) -> cfg.chromaChatWidth = v, 80, 800));
-        chromLf.entries.add(new ConfigEntryDescriptor("chroma.lines",
-(IntSupplier) () -> cfg.chromaChatLineCount, (Consumer<Integer>) (v) -> cfg.chromaChatLineCount = v, 1, 50));
-        chromLf.entries.add(new ConfigEntryDescriptor("chroma.timestamp",
-(BooleanSupplier) () -> cfg.chromaChatShowTimestamps, (Consumer<Boolean>) (v) -> cfg.chromaChatShowTimestamps = v));
-        chromLf.entries.add(new ConfigEntryDescriptor("chroma.avatar",
-(BooleanSupplier) () -> cfg.chromaChatAvatar, (Consumer<Boolean>) (v) -> cfg.chromaChatAvatar = v));
-        chromLf.entries.add(new ConfigEntryDescriptor("chroma.signboard",
-(BooleanSupplier) () -> cfg.chromaChatSignboardMerge, (Consumer<Boolean>) (v) -> cfg.chromaChatSignboardMerge = v));
-        chromLf.entries.add(new ConfigEntryDescriptor("chroma.maxLines",
-(IntSupplier) () -> cfg.chromaChatMaxLines, (Consumer<Integer>) (v) -> cfg.chromaChatMaxLines = v, 20, 500));
-        info.children.add(chromLf);
-        ConfigTreeNode perfLf = new ConfigTreeNode("module.performance");
-        perfLf.dotColor = 0xFF3498DB;
-        perfLf.entries.add(new ConfigEntryDescriptor("module.performance",
-(BooleanSupplier) () -> cfg.enablePerformanceHUD, (Consumer<Boolean>) (v) -> cfg.enablePerformanceHUD = v));
-        info.children.add(perfLf);
-        ConfigTreeNode tabLf = new ConfigTreeNode("module.tablist");
-        tabLf.dotColor = 0xFF3498DB;
-        tabLf.entries.add(new ConfigEntryDescriptor("module.tablist",
-(BooleanSupplier) () -> cfg.enableTabListHUD, (Consumer<Boolean>) (v) -> cfg.enableTabListHUD = v));
-        info.children.add(tabLf);
-        ConfigTreeNode dbgLf = new ConfigTreeNode("module.debug");
-        dbgLf.dotColor = 0xFF3498DB;
-        dbgLf.entries.add(new ConfigEntryDescriptor("module.debug",
-(BooleanSupplier) () -> cfg.enableDebugInfoHUD, (Consumer<Boolean>) (v) -> cfg.enableDebugInfoHUD = v));
-        dbgLf.entries.add(new ConfigEntryDescriptor("debug.xOffset",
-(IntSupplier) () -> cfg.debugInfoXOffset, (Consumer<Integer>) (v) -> cfg.debugInfoXOffset = v, 0, 2000));
-        dbgLf.entries.add(new ConfigEntryDescriptor("debug.yOffset",
-(IntSupplier) () -> cfg.debugInfoYOffset, (Consumer<Integer>) (v) -> cfg.debugInfoYOffset = v, 0, 2000));
-        info.children.add(dbgLf);
-        treeRoots.add(info);
-        ConfigTreeNode status = new ConfigTreeNode("category.status");
-        status.dotColor = 0xFF2ECC71; status.expanded = true;
-        ConfigTreeNode xpLf = new ConfigTreeNode("module.expbar");
-        xpLf.dotColor = 0xFF2ECC71;
-        xpLf.entries.add(new ConfigEntryDescriptor("module.expbar",
-(BooleanSupplier) () -> cfg.enableXpBarHUD, (Consumer<Boolean>) (v) -> cfg.enableXpBarHUD = v));
-        xpLf.entries.add(new ConfigEntryDescriptor("xpbar.offsetX",
-(IntSupplier) () -> cfg.xpBarXOffset, (Consumer<Integer>) (v) -> cfg.xpBarXOffset = v, -500, 500));
-        xpLf.entries.add(new ConfigEntryDescriptor("xpbar.offsetY",
-(IntSupplier) () -> cfg.xpBarYOffset, (Consumer<Integer>) (v) -> cfg.xpBarYOffset = v, -500, 500));
-        xpLf.entries.add(new ConfigEntryDescriptor("xpbar.width",
-(IntSupplier) () -> cfg.xpBarWidth, (Consumer<Integer>) (v) -> cfg.xpBarWidth = v, 80, 400));
-        status.children.add(xpLf);
-        ConfigTreeNode bossLf = new ConfigTreeNode("module.bossHP");
-        bossLf.dotColor = 0xFF2ECC71;
-        bossLf.entries.add(new ConfigEntryDescriptor("xpbar.height",
-(IntSupplier) () -> cfg.xpBarHeight, (Consumer<Integer>) (v) -> cfg.xpBarHeight = v, 3, 20));
-        status.children.add(bossLf);
-        ConfigTreeNode hotbLf = new ConfigTreeNode("module.hotbar");
-        hotbLf.dotColor = 0xFF2ECC71;
-        hotbLf.entries.add(new ConfigEntryDescriptor("module.bossHP",
-(BooleanSupplier) () -> cfg.enableBossHealthHUD, (Consumer<Boolean>) (v) -> cfg.enableBossHealthHUD = v));
-        hotbLf.entries.add(new ConfigEntryDescriptor("module.hotbar",
-(BooleanSupplier) () -> cfg.enableHotbarHUD, (Consumer<Boolean>) (v) -> cfg.enableHotbarHUD = v));
-        status.children.add(hotbLf);
-        ConfigTreeNode potion = new ConfigTreeNode("module.potion");
-        potion.dotColor = 0xFF2ECC71; potion.expanded = true;
-        ConfigTreeNode ptimer = new ConfigTreeNode("potion.group.timer"); ptimer.expanded = true;
-        ptimer.entries.add(new ConfigEntryDescriptor("module.potion",
-(BooleanSupplier) () -> cfg.enablePotionHUD, (Consumer<Boolean>) (v) -> cfg.enablePotionHUD = v));
-        ptimer.entries.add(new ConfigEntryDescriptor("module.potiontimer",
-(BooleanSupplier) () -> cfg.enablePotionTimer, (Consumer<Boolean>) (v) -> cfg.enablePotionTimer = v));
-        ptimer.entries.add(new ConfigEntryDescriptor("potion.xOffset",
-(IntSupplier) () -> cfg.potionXOffset, (Consumer<Integer>) (v) -> cfg.potionXOffset = v, -500, 500));
-        ptimer.entries.add(new ConfigEntryDescriptor("potion.yOffset",
-(IntSupplier) () -> cfg.potionYOffset, (Consumer<Integer>) (v) -> cfg.potionYOffset = v, -500, 500));
-        ConfigTreeNode peff = new ConfigTreeNode("potion.group.effects"); peff.expanded = true;
-        peff.entries.add(new ConfigEntryDescriptor("potionTimer.xOffset",
-(IntSupplier) () -> cfg.potionTimerXOffset, (Consumer<Integer>) (v) -> cfg.potionTimerXOffset = v, -500, 500));
-        peff.entries.add(new ConfigEntryDescriptor("potionTimer.yOffset",
-(IntSupplier) () -> cfg.potionTimerYOffset, (Consumer<Integer>) (v) -> cfg.potionTimerYOffset = v, -500, 500));
-        peff.entries.add(new ConfigEntryDescriptor("potionTimer.iconSize",
-(IntSupplier) () -> cfg.potionTimerIconSize, (Consumer<Integer>) (v) -> cfg.potionTimerIconSize = v, 16, 64));
-        potion.children.add(ptimer); potion.children.add(peff);
-        status.children.add(potion);
-        ConfigTreeNode crisisLf = new ConfigTreeNode("module.crisis");
-        crisisLf.dotColor = 0xFF2ECC71;
-        crisisLf.entries.add(new ConfigEntryDescriptor("module.crisis",
-(BooleanSupplier) () -> cfg.enableCrisisWarning, (Consumer<Boolean>) (v) -> cfg.enableCrisisWarning = v));
-        crisisLf.entries.add(new ConfigEntryDescriptor("crisis.warnHealth",
-(BooleanSupplier) () -> cfg.crisisWarnHealth, (Consumer<Boolean>) (v) -> cfg.crisisWarnHealth = v));
-        crisisLf.entries.add(new ConfigEntryDescriptor("crisis.healthThreshold",
-(DoubleSupplier) () -> cfg.crisisHealthThreshold, (Consumer<Float>) (v) -> cfg.crisisHealthThreshold = v, 0.5f, 20.0f));
-        crisisLf.entries.add(new ConfigEntryDescriptor("crisis.warnHunger",
-(BooleanSupplier) () -> cfg.crisisWarnHunger, (Consumer<Boolean>) (v) -> cfg.crisisWarnHunger = v));
-        crisisLf.entries.add(new ConfigEntryDescriptor("crisis.hungerThreshold",
-(IntSupplier) () -> cfg.crisisHungerThreshold, (Consumer<Integer>) (v) -> cfg.crisisHungerThreshold = v, 1, 20));
-        crisisLf.entries.add(new ConfigEntryDescriptor("crisis.warnTnt",
-(BooleanSupplier) () -> cfg.crisisWarnTnt, (Consumer<Boolean>) (v) -> cfg.crisisWarnTnt = v));
-        crisisLf.entries.add(new ConfigEntryDescriptor("crisis.tntRadius",
-(DoubleSupplier) () -> cfg.crisisTntRadius, (Consumer<Float>) (v) -> cfg.crisisTntRadius = v, 2.0f, 50.0f));
-        crisisLf.entries.add(new ConfigEntryDescriptor("crisis.xOffset",
-(IntSupplier) () -> cfg.crisisXOffset, (Consumer<Integer>) (v) -> cfg.crisisXOffset = v, -500, 500));
-        crisisLf.entries.add(new ConfigEntryDescriptor("crisis.yOffset",
-(IntSupplier) () -> cfg.crisisYOffset, (Consumer<Integer>) (v) -> cfg.crisisYOffset = v, -500, 500));
-        crisisLf.entries.add(new ConfigEntryDescriptor("crisis.iconSize",
-(IntSupplier) () -> cfg.crisisIconSize, (Consumer<Integer>) (v) -> cfg.crisisIconSize = v, 16, 128));
-        status.children.add(crisisLf);
-        ConfigTreeNode jumpLf = new ConfigTreeNode("module.jumpbar");
-        jumpLf.dotColor = 0xFF2ECC71;
-        jumpLf.entries.add(new ConfigEntryDescriptor("module.jumpbar",
-(BooleanSupplier) () -> cfg.enableJumpBar, (Consumer<Boolean>) (v) -> cfg.enableJumpBar = v));
-        status.children.add(jumpLf);
-        ConfigTreeNode airLf = new ConfigTreeNode("module.airhud");
-        airLf.dotColor = 0xFF2ECC71;
-        airLf.entries.add(new ConfigEntryDescriptor("module.airhud",
-(BooleanSupplier) () -> cfg.enableAirHUD, (Consumer<Boolean>) (v) -> cfg.enableAirHUD = v));
-        status.children.add(airLf);
-        ConfigTreeNode mountLf = new ConfigTreeNode("module.mountHP");
-        mountLf.dotColor = 0xFF2ECC71;
-        mountLf.entries.add(new ConfigEntryDescriptor("module.mountHP",
-(BooleanSupplier) () -> cfg.enableMountHP, (Consumer<Boolean>) (v) -> cfg.enableMountHP = v));
-        status.children.add(mountLf);
-        treeRoots.add(status);
-        ConfigTreeNode colors = new ConfigTreeNode("category.colors");
-        colors.dotColor = 0xFFF39C12; colors.expanded = true;
-        colors.entries.add(new ConfigEntryDescriptor("color.healthSafe",
-(IntSupplier) () -> cfg.healthColorSafe, (Consumer<Integer>) (v) -> cfg.healthColorSafe = v, true));
-        colors.entries.add(new ConfigEntryDescriptor("color.healthWarning",
-(IntSupplier) () -> cfg.healthColorWarning, (Consumer<Integer>) (v) -> cfg.healthColorWarning = v, true));
-        colors.entries.add(new ConfigEntryDescriptor("color.healthDanger",
-(IntSupplier) () -> cfg.healthColorDanger, (Consumer<Integer>) (v) -> cfg.healthColorDanger = v, true));
-        colors.entries.add(new ConfigEntryDescriptor("color.armor",
-(IntSupplier) () -> cfg.armorColor, (Consumer<Integer>) (v) -> cfg.armorColor = v, true));
-        colors.entries.add(new ConfigEntryDescriptor("color.hunger",
-(IntSupplier) () -> cfg.hungerColor, (Consumer<Integer>) (v) -> cfg.hungerColor = v, true));
-        colors.entries.add(new ConfigEntryDescriptor("color.compass",
-(IntSupplier) () -> cfg.compassColor, (Consumer<Integer>) (v) -> cfg.compassColor = v, true));
-        colors.entries.add(new ConfigEntryDescriptor("color.distance",
-(IntSupplier) () -> cfg.distanceColor, (Consumer<Integer>) (v) -> cfg.distanceColor = v, true));
-        colors.entries.add(new ConfigEntryDescriptor("color.targetInfo",
-(IntSupplier) () -> cfg.targetInfoColor, (Consumer<Integer>) (v) -> cfg.targetInfoColor = v, true));
-        colors.entries.add(new ConfigEntryDescriptor("color.blockInfo",
-(IntSupplier) () -> cfg.blockInfoColor, (Consumer<Integer>) (v) -> cfg.blockInfoColor = v, true));
-        colors.entries.add(new ConfigEntryDescriptor("color.keysActive",
-(IntSupplier) () -> cfg.keysActiveColor, (Consumer<Integer>) (v) -> cfg.keysActiveColor = v, true));
-        colors.entries.add(new ConfigEntryDescriptor("color.keysInactive",
-(IntSupplier) () -> cfg.keysInactiveColor, (Consumer<Integer>) (v) -> cfg.keysInactiveColor = v, true));
-        colors.entries.add(new ConfigEntryDescriptor("color.keysText",
-(IntSupplier) () -> cfg.keysTextColor, (Consumer<Integer>) (v) -> cfg.keysTextColor = v, true));
-        colors.entries.add(new ConfigEntryDescriptor("color.potionText",
-(IntSupplier) () -> cfg.potionTextColor, (Consumer<Integer>) (v) -> cfg.potionTextColor = v, true));
-        colors.entries.add(new ConfigEntryDescriptor("color.blockOutline",
-(IntSupplier) () -> cfg.blockOutlineColor, (Consumer<Integer>) (v) -> cfg.blockOutlineColor = v, true));
-        colors.entries.add(new ConfigEntryDescriptor("color.entityHostile",
-(IntSupplier) () -> cfg.entityOutlineColorHostile, (Consumer<Integer>) (v) -> cfg.entityOutlineColorHostile = v, true));
-        colors.entries.add(new ConfigEntryDescriptor("color.entityNeutral",
-(IntSupplier) () -> cfg.entityOutlineColorNeutral, (Consumer<Integer>) (v) -> cfg.entityOutlineColorNeutral = v, true));
-        colors.entries.add(new ConfigEntryDescriptor("color.entityFriendly",
-(IntSupplier) () -> cfg.entityOutlineColorFriendly, (Consumer<Integer>) (v) -> cfg.entityOutlineColorFriendly = v, true));
-        colors.entries.add(new ConfigEntryDescriptor("color.crosshair",
-(IntSupplier) () -> cfg.crosshairColor, (Consumer<Integer>) (v) -> cfg.crosshairColor = v, true));
-        colors.entries.add(new ConfigEntryDescriptor("color.crosshairPlayer",
-(IntSupplier) () -> cfg.crosshairColorPlayer, (Consumer<Integer>) (v) -> cfg.crosshairColorPlayer = v, true));
-        colors.entries.add(new ConfigEntryDescriptor("color.crosshairHostile",
-(IntSupplier) () -> cfg.crosshairColorHostile, (Consumer<Integer>) (v) -> cfg.crosshairColorHostile = v, true));
-        colors.entries.add(new ConfigEntryDescriptor("color.crosshairPassive",
-(IntSupplier) () -> cfg.crosshairColorPassive, (Consumer<Integer>) (v) -> cfg.crosshairColorPassive = v, true));
-        colors.entries.add(new ConfigEntryDescriptor("color.crosshairNeutral",
-(IntSupplier) () -> cfg.crosshairColorNeutral, (Consumer<Integer>) (v) -> cfg.crosshairColorNeutral = v, true));
-        colors.entries.add(new ConfigEntryDescriptor("color.crosshairOther",
-(IntSupplier) () -> cfg.crosshairColorOther, (Consumer<Integer>) (v) -> cfg.crosshairColorOther = v, true));
-        colors.entries.add(new ConfigEntryDescriptor("color.hitMarker",
-(IntSupplier) () -> cfg.hitColor, (Consumer<Integer>) (v) -> cfg.hitColor = v, true));
-        colors.entries.add(new ConfigEntryDescriptor("color.killMarker",
-(IntSupplier) () -> cfg.killColor, (Consumer<Integer>) (v) -> cfg.killColor = v, true));
-        colors.entries.add(new ConfigEntryDescriptor("color.breakStart",
-(IntSupplier) () -> cfg.blockBreakIndicatorColorStart, (Consumer<Integer>) (v) -> cfg.blockBreakIndicatorColorStart = v, true));
-        colors.entries.add(new ConfigEntryDescriptor("color.breakEnd",
-(IntSupplier) () -> cfg.blockBreakIndicatorColorEnd, (Consumer<Integer>) (v) -> cfg.blockBreakIndicatorColorEnd = v, true));
-        treeRoots.add(colors);
+
+    private void drawRightCards(int mx,int my){
+        int x0=LEFT_W,y0=HEADER_H,cw=width-LEFT_W,ch=height-HEADER_H-FOOTER_H;
+        hoveredEntry=null; if(selectedNode==null)return;
+        fillR(x0,y0,width,y0+ch,C_BG);
+        GL11.glEnable(GL11.GL_SCISSOR_TEST);
+        ScaledResolution sr=new ScaledResolution(mc); int sf=sr.getScaleFactor();
+        GL11.glScissor(x0*sf,(mc.displayHeight-(y0+ch)*sf),(width-x0)*sf,ch*sf);
+        int cardY=y0+4-entryScroll,vx=x0+6;
+        fr().drawStringWithShadow("§l"+tr(selectedNode.label),vx,cardY,C_ACCENT); cardY+=18;
+        boolean searching=!searchQuery.isEmpty();
+        String q=searchQuery.toLowerCase();
+        for(TreeNode grp:selectedNode.children){
+            if(!grp.expanded||grp.entries.isEmpty())continue;
+            int shown=0;
+            for(ConfigEntry e:grp.entries){
+                if(searching&&!tr(e.label).toLowerCase().contains(q))continue;
+                shown++;
+            }
+            if(searching&&shown==0)continue;
+            int cw2=cw-12;
+            String gn=tr(grp.label); int gw=fr().getStringWidth(gn);
+            fillR(vx,cardY,vx+gw+16,cardY+16,C_ACCENT);
+            fr().drawStringWithShadow(gn,vx+8,cardY+4,0xFFFFFF); cardY+=20;
+            for(ConfigEntry e:grp.entries){
+                if(searching&&!tr(e.label).toLowerCase().contains(q))continue;
+                boolean hover=mx>=vx+40&&mx<=vx+cw2-4&&my>=cardY&&my<=cardY+ENTRY_H;
+                fillR(vx+2,cardY,vx+cw2-2,cardY+ENTRY_H,hover?C_CARD_HOVER:C_CARD);
+                fr().drawStringWithShadow(tr(e.label),vx+8,cardY+6,C_TEXT);
+                if(hover)hoveredEntry=e;
+                switch(e.type){
+                    case BOOLEAN:drawToggle(e,vx,cardY,mx,my);break;
+                    case INT:drawSpinner(e,vx,cardY,mx,my,false);break;
+                    case FLOAT:drawSpinner(e,vx,cardY,mx,my,true);break;
+                    case COLOR:drawColorPreview(e,vx,cardY,mx,my);break;
+                    case ENUM:drawEnumCycle(e,vx,cardY,mx,my);break;
+                }
+                fillR(vx+4,cardY+ENTRY_H-1,vx+cw2-4,cardY+ENTRY_H-1,C_DIVIDER);
+                e.x=vx+2;e.y=cardY;e.w=cw2-4;e.h=ENTRY_H;
+                cardY+=ENTRY_H;
+            }
+            fillR(vx+2,cardY-1,vx+cw2-2,cardY,C_DIVIDER);
+            cardY+=4;
+        }
+        GL11.glDisable(GL11.GL_SCISSOR_TEST);
+    }
+
+    private void drawFooter(int mx,int my){
+        int fy=height-FOOTER_H; fillR(0,fy,width,height,C_HEADER); fillR(0,fy,width,fy+1,C_DIVIDER);
+        String tip=hoveredEntry!=null?tipOf(hoveredEntry.label):null;
+        if(tip!=null){
+            int mw=width-40;
+            while(fr().getStringWidth(tip+"...")>mw&&tip.length()>2)tip=tip.substring(0,tip.length()-1);
+            fr().drawStringWithShadow("§7"+tip,8,fy+7,C_TEXT_DIM);
+        }
+        if(pulseLabel!=null&&System.currentTimeMillis()<pulseEnd){
+            long left=pulseEnd-System.currentTimeMillis();
+            float p=left/400f; if(p>1)p=1;
+            int alpha=(int)(120+135*p);
+            fr().drawStringWithShadow("✓ "+tr(pulseLabel),width-150,fy+7,0xFFFFFF|(alpha<<24));
+        }
+    }
+
+    private void drawToggle(ConfigEntry e,int vx,int cy,int mx,int my){
+        boolean on="true".equals(e.getter.get());
+        int bx=vx+130,by=cy+3,tw=40,th=16;
+        fillR(bx,by,bx+tw,by+th,on?C_TOGGLE_ON:C_TOGGLE_OFF);
+        fillR(bx,by,bx+tw,by+th,0x44000000);
+        int kx=on?bx+tw-16:bx; fillR(kx+2,by+2,kx+14,by+14,0xFFFFFFFF);
+        fr().drawStringWithShadow(onOff(on),bx+tw+6,cy+6,on?C_TOGGLE_ON:C_TEXT_DIM);
+    }
+
+    private void drawSpinner(ConfigEntry e,int vx,int cy,int mx,int my,boolean isFloat){
+        String val=e.getter.get(); int tx=vx+130,bw=16;
+        fillR(tx,cy+3,tx+bw,cy+19,C_CARD_HOVER); fillR(tx,cy+3,tx+bw,cy+19,C_DIVIDER);
+        fr().drawStringWithShadow("−",tx+4,cy+7,C_TEXT);
+        fr().drawStringWithShadow(val,tx+bw+8,cy+6,0xFFFFFF);
+        int px=tx+bw+8+fr().getStringWidth(val)+8;
+        fillR(px,cy+3,px+bw,cy+19,C_CARD_HOVER); fillR(px,cy+3,px+bw,cy+19,C_DIVIDER);
+        fr().drawStringWithShadow("+",px+4,cy+7,C_TEXT);
+    }
+
+    private void drawColorPreview(ConfigEntry e,int vx,int cy,int mx,int my){
+        int color=getColorField(e.colorKey); int px=vx+130,sz=14;
+        fillR(px-1,cy+3,px+sz+1,cy+5+sz,0xFF000000);
+        fillR(px,cy+4,px+sz,cy+4+sz,color);
+        fr().drawStringWithShadow(String.format("#%06X",color&0xFFFFFF),px+sz+8,cy+6,0xFFFFFF);
+    }
+
+    private void drawEnumCycle(ConfigEntry e,int vx,int cy,int mx,int my){
+        String val=e.getter.get(); int tx=vx+130,bw=16;
+        fillR(tx,cy+3,tx+bw,cy+19,C_CARD_HOVER);
+        fr().drawStringWithShadow("◀",tx+4,cy+7,C_TEXT);
+        fr().drawStringWithShadow(val,tx+bw+8,cy+6,0xFFFFFF);
+        int px=tx+bw+8+fr().getStringWidth(val)+8;
+        fillR(px,cy+3,px+bw,cy+19,C_CARD_HOVER);
+        fr().drawStringWithShadow("▶",px+4,cy+7,C_TEXT);
     }
 
     @Override
-    public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        Gui.drawRect(0, 0, width, height, CLR_BG);
-        if (System.currentTimeMillis() < debugFlashEnd) {
-            Gui.drawRect(0, 0, width, height, 0x44FFFF00);
-        }
-        int rx = LEFT_W + 8, rw = width - rx - 8;
-        Gui.drawRect(0, 0, LEFT_W, height, CLR_PANEL);
-        // DEBUG: show getter value of first entry
-        if (localEntries != null && !localEntries.isEmpty()) {
-            String raw = localEntries.get(0).getter.get();
-            drawString(mc.fontRendererObj, "DBG=" + raw, rx + 4, 2, 0xFFFF00FF);
-        }
-        Gui.drawRect(0, 0, LEFT_W, 32, 0xFF222244);
-        drawCenteredString(mc.fontRendererObj, I18n.format("gui.modules"), LEFT_W / 2, 10, CLR_TEXT);
-        Gui.drawRect(0, 32, LEFT_W, 33, 0xFF333355);
-        int treeY = 38, y = treeY - treeScrollOffset;
-        for (ConfigTreeNode root : treeRoots) {
-            if (y + 18 >= treeY && y <= height) {
-                Gui.drawRect(4, y, LEFT_W - 4, y + 18, 0x082A2A4E);
-                Gui.drawRect(8, y + 5, 16, y + 13, root.dotColor);
-                mc.fontRendererObj.drawString(I18n.format(root.labelKey), 22, y + 4, 0xFF8888AA, false);
-                mc.fontRendererObj.drawString(root.expanded ? "\u25BC" : "\u25B6", LEFT_W - 18, y + 4, 0xFF555577, false);
-            }
-            y += 20;
-            if (!root.expanded) continue;
-            for (ConfigTreeNode child : root.children) {
-                boolean sel = (child == selectedNode);
-                if (y + 18 >= treeY && y <= height) {
-                    if (sel) Gui.drawRect(4, y, LEFT_W - 4, y + 16, 0xFF333366);
-                    mc.fontRendererObj.drawString(I18n.format(child.labelKey), 22, y + 2, sel ? 0xFFEEEEFF : 0xFFAAAAAA, false);
-                    if (!child.isLeaf())
-                        mc.fontRendererObj.drawString(child.expanded ? "\u25BC" : "\u25B6", LEFT_W - 18, y + 2, 0xFF555577, false);
-                }
-                y += 18;
-                if (child.isLeaf() || !child.expanded) continue;
-                for (ConfigTreeNode sub : child.children) {
-                    boolean ssel = (sub == selectedNode);
-                    if (y + 16 >= treeY && y <= height) {
-                        if (ssel) Gui.drawRect(4, y, LEFT_W - 4, y + 14, 0xFF444477);
-                        mc.fontRendererObj.drawString(I18n.format(sub.labelKey), 34, y + 1, ssel ? 0xFFEEEEFF : 0xFF888888, false);
-                    }
-                    y += 16;
+    protected void mouseClicked(int mx,int my,int btn){
+        if(btn!=0)return;
+        if(mx>=4&&mx<=24&&my>=4&&my<=30){mc.displayGuiScreen(parent);return;}
+        int y=HEADER_H+4-treeScroll;
+        for(TreeNode cat:roots){
+            if(mx>=8&&mx<=LEFT_W-8&&my>=y&&my<=y+22){cat.expanded=!cat.expanded;return;}
+            y+=24;if(!cat.expanded)continue;
+            for(TreeNode mod:cat.children){
+                if(mx>=20&&mx<=LEFT_W-4&&my>=y&&my<=y+20){selectNode(mod);return;}
+                y+=21;
+                for(TreeNode grp:mod.children){
+                    if(mx>=32&&mx<=LEFT_W-4&&my>=y&&my<=y+18){grp.expanded=!grp.expanded;selectNode(mod);return;}
+                    y+=19;
                 }
             }
         }
-        if (selectedNode == null || localEntries == null || localEntries.isEmpty()) {
-            drawCenteredString(mc.fontRendererObj, I18n.format("gui.select_category"), width / 2, height / 2, CLR_TEXT_SEC);
-            super.drawScreen(mouseX, mouseY, partialTicks); return;
+        if(selectedNode==null)return;
+        int vx=LEFT_W+6,cardY=HEADER_H+20-entryScroll;
+        boolean searching=!searchQuery.isEmpty();
+        String q=searchQuery.toLowerCase();
+        for(TreeNode grp:selectedNode.children){
+            if(!grp.expanded)continue;cardY+=20;
+            int cw=width-LEFT_W-12;
+            for(ConfigEntry e:grp.entries){
+                if(searching&&!tr(e.label).toLowerCase().contains(q))continue;
+                if(my>=cardY&&my<=cardY+ENTRY_H&&mx>=vx+40){handleClick(e,mx,my,vx,cardY,cw);return;}
+                cardY+=ENTRY_H;
+            }cardY+=4;
         }
-        Gui.drawRect(rx, 0, rx + rw, 32, CLR_PANEL);
-        drawCenteredString(mc.fontRendererObj, I18n.format(selectedNode.labelKey), rx + rw / 2, 10, CLR_TEXT);
-        Gui.drawRect(rx, 32, rx + rw, 33, CLR_DIVIDER);
-        int sx = rx + 4, sw = rw - 8;
-        Gui.drawRect(sx, 36, sx + sw, 54, 0xFF2A2A3E);
-        mc.fontRendererObj.drawString(isSearching ? searchQuery + "_" : I18n.format("gui.search_hint"), sx + 4, 40, CLR_TEXT_SEC, false);
-        int ey = 60;
-        int visStart = Math.max(0, entriesScrollOffset / ENTRY_H);
-        int maxVis = (height - ey) / ENTRY_H + 2;
-        int drawEnd = Math.min(localEntries.size(), visStart + maxVis);
-        hoveredEntry = null;
-        String searchQ = searchQuery.trim().toLowerCase();
-        for (int i = visStart; i < drawEnd; i++) {
-            ConfigEntryDescriptor desc = localEntries.get(i);
-            if (!searchQ.isEmpty() && !I18n.format(desc.labelKey).toLowerCase().contains(searchQ)) continue;
-            int yi = ey + i * ENTRY_H - entriesScrollOffset;
-            if (yi + ENTRY_H < 32 || yi > height) continue;
-            boolean hover = mouseX >= rx && mouseX <= rx + rw && mouseY >= yi && mouseY <= yi + ENTRY_H;
-            int cardBg = hover ? CLR_CARD_HOVER : CLR_CARD;
-            Gui.drawRect(rx + 2, yi + 1, rx + rw - 2, yi + ENTRY_H - 1, cardBg);
-            Gui.drawRect(rx + 2, yi + 1, rx + 5, yi + ENTRY_H - 1, CLR_BLUE);
-            Gui.drawRect(rx + 2, yi + ENTRY_H - 1, rx + rw - 2, yi + ENTRY_H, 0xFF111122);
-            if (i < drawEnd - 1) Gui.drawRect(rx + 8, yi + ENTRY_H, rx + rw - 8, yi + ENTRY_H + 1, CLR_DIVIDER);
-            if (hover) hoveredEntry = desc;
-            mc.fontRendererObj.drawString(I18n.format(desc.labelKey), rx + 10, yi + (ENTRY_H - mc.fontRendererObj.FONT_HEIGHT) / 2, CLR_TEXT, false);
-            int vx = rx + rw / 2 + 4;
-            switch (desc.type) {
-                case BOOLEAN: drawBooleanToggle(vx, yi + 2, ENTRY_H, desc, mouseX, mouseY); break;
-                case INT: drawIntSpinner(vx, yi + 2, ENTRY_H, desc, mouseX, mouseY); break;
-                case FLOAT: drawFloatSpinner(vx, yi + 2, ENTRY_H, desc, mouseX, mouseY); break;
-                case COLOR: drawColorPreview(vx, yi + 2, ENTRY_H, desc, mouseX, mouseY); break;
-                case ENUM: drawEnumSpinner(vx, yi + 2, ENTRY_H, desc, mouseX, mouseY); break;
-            }
-            // 脉冲动画——仅在开关更新时短暂高亮（使用 Card 级脉冲，不遮盖类内部件）
-            if (pulseLabel != null && pulseLabel.equals(desc.labelKey) && System.currentTimeMillis() < pulseEndTime) {
-                long rem = pulseEndTime - System.currentTimeMillis();
-                int pa = (int)((rem / 600.0) * (0x3C - 0x0A) + 0x0A);
-                if (pa > 0x3C) pa = 0x3C; if (pa < 0x0A) pa = 0x0A;
-                // 仅左侧 3px 蓝色强调条变亮，不遮盖内容
-                Gui.drawRect(rx + 2, yi + 1, rx + 5, yi + ENTRY_H - 1, (pa << 24) | 0x00FFFFFF);
-            }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void handleClick(ConfigEntry e,int mx,int my,int vx,int cy,int cw){
+        if(cfg()==null)return;
+        switch(e.type){
+            case BOOLEAN:{ boolean v="true".equals(e.getter.get());
+                ((Consumer<Boolean>)e.setter).accept(!v);pls(e.label,400);break;}
+            case INT:{int v=Integer.parseInt(e.getter.get()),tx=vx+130,bw=16;
+                if(mx>=tx&&mx<=tx+bw&&my>=cy+3&&my<=cy+19)((Consumer<Integer>)e.setter).accept(Math.max(e.minInt,v-1));
+                else{int px=tx+bw+8+fr().getStringWidth(String.valueOf(v))+8;
+                    if(mx>=px&&mx<=px+bw&&my>=cy+3&&my<=cy+19)((Consumer<Integer>)e.setter).accept(Math.min(e.maxInt,v+1));}
+                pls(e.label,300);break;}
+            case FLOAT:{float v=Float.parseFloat(e.getter.get());int tx=vx+130,bw=16;
+                if(mx>=tx&&mx<=tx+bw&&my>=cy+3&&my<=cy+19)((Consumer<Float>)e.setter).accept(Math.max(e.minFlt,v-1f));
+                else{int px=tx+bw+8+fr().getStringWidth(String.format("%.1f",v))+8;
+                    if(mx>=px&&mx<=px+bw&&my>=cy+3&&my<=cy+19)((Consumer<Float>)e.setter).accept(Math.min(e.maxFlt,v+1f));}
+                pls(e.label,300);break;}
+            case ENUM:{String cur=e.getter.get();int idx=-1;
+                for(int i=0;i<e.enumValues.length;i++)if(e.enumValues[i].equals(cur)){idx=i;break;}
+                int tx=vx+130,bw=16;
+                if(mx>=tx&&mx<=tx+bw)idx=(idx<=0)?e.enumValues.length-1:idx-1;
+                else{int px=tx+bw+8+fr().getStringWidth(cur)+8;
+                    if(mx>=px&&mx<=px+bw)idx=(idx>=e.enumValues.length-1)?0:idx+1;}
+                if(idx>=0)((Consumer<String>)e.setter).accept(e.enumValues[idx]);
+                pls(e.label,300);break;}
+            case COLOR:{mc.displayGuiScreen(new GuiColorPicker(this,()->getColorField(e.colorKey),v->setColorField(e.colorKey,v)));break;}
         }
-        int btnY = height - 32;
-        Gui.drawRect(rx + 4, btnY, rx + 84, btnY + 24, CLR_SAVE);
-        drawCenteredString(mc.fontRendererObj, I18n.format("gui.save"), rx + 44, btnY + (24 - mc.fontRendererObj.FONT_HEIGHT) / 2, 0xFFAAFFAA);
-        Gui.drawRect(rx + 88, btnY, rx + 168, btnY + 24, CLR_RESET);
-        drawCenteredString(mc.fontRendererObj, I18n.format("gui.reset"), rx + 128, btnY + (24 - mc.fontRendererObj.FONT_HEIGHT) / 2, 0xFFFFAAAA);
-        Gui.drawRect(rx + rw - 84, btnY, rx + rw - 4, btnY + 24, 0xFF2A2A2A);
-        drawCenteredString(mc.fontRendererObj, I18n.format("gui.cancel"), rx + rw - 44, btnY + (24 - mc.fontRendererObj.FONT_HEIGHT) / 2, CLR_TEXT);
-        if (hoveredEntry != null && hoveredEntry.tooltipKey != null) {
-            String tip = I18n.format(hoveredEntry.tooltipKey);
-            int tw = mc.fontRendererObj.getStringWidth(tip) + 10;
-            int tx = Math.min(mouseX + 12, width - tw - 4);
-            int ty = Math.max(mouseY - 12, 4);
-            Gui.drawRect(tx, ty, tx + tw, ty + 16, 0xCC222222);
-            mc.fontRendererObj.drawString(tip, tx + 5, ty + 3, 0xCCFFFFAA, false);
-        }
-        super.drawScreen(mouseX, mouseY, partialTicks);
     }
 
-    private void drawBooleanToggle(int x, int y, int h, ConfigEntryDescriptor entry, int mouseX, int mouseY) {
-        boolean value = Boolean.parseBoolean(entry.getter.get());
-        int toggleW = 40;
-        int toggleH = 14;
-        int tx = x - toggleW;
-        int ty = y + (h - toggleH) / 2;
+    private void pls(String lb,long ms){pulseLabel=lb;pulseEnd=System.currentTimeMillis()+ms;}
 
-        // 背景
-        int bgColor = value ? COLOR_TOGGLE_ON : COLOR_TOGGLE_OFF;
-        drawRect(tx, ty, tx + toggleW, ty + toggleH, bgColor);
-
-        // 滑块
-        int knobSize = toggleH - 4;
-        int knobX = value ? tx + toggleW - knobSize - 2 : tx + 2;
-        drawRect(knobX, ty + 2, knobX + knobSize, ty + 2 + knobSize, 0xFFFFFFFF);
-
-        // 文字
-        String label = LangManager.get(value ? "common.on" : "common.off");
-        int labelX = tx - mc.fontRendererObj.getStringWidth(label) - 4;
-        mc.fontRendererObj.drawString(label, labelX, y + (h - mc.fontRendererObj.FONT_HEIGHT) / 2, COLOR_VALUE_TEXT, false);
-    }
-
-    // ── Int 滚轮 ──
-    private void drawIntSpinner(int x, int y, int h, ConfigEntryDescriptor entry, int mouseX, int mouseY) {
-        int value = Integer.parseInt(entry.getter.get());
-        int arrowW = 16;
-        int arrowH = 16;
-        int ay = y + (h - arrowH) / 2;
-
-        // 左箭头
-        int lx = x - 80;
-        boolean lHover = mouseX >= lx && mouseX <= lx + arrowW && mouseY >= ay && mouseY <= ay + arrowH;
-        drawRect(lx, ay, lx + arrowW, ay + arrowH, lHover ? COLOR_ARROW_HOVER : COLOR_ARROW_BG);
-        int arrowCenterX = lx + arrowW / 2;
-        int arrowCenterY = ay + arrowH / 2;
-        mc.fontRendererObj.drawString("\u25C0", arrowCenterX - mc.fontRendererObj.getStringWidth("\u25C0") / 2,
-                arrowCenterY - mc.fontRendererObj.FONT_HEIGHT / 2, COLOR_TEXT_LIGHT, false);
-
-        // 数值
-        String valStr = String.valueOf(value);
-        int valX = lx + arrowW + 5;
-        mc.fontRendererObj.drawString(valStr, valX, y + (h - mc.fontRendererObj.FONT_HEIGHT) / 2, COLOR_VALUE_TEXT, false);
-
-        // 右箭头
-        int rx = valX + mc.fontRendererObj.getStringWidth(valStr) + 5;
-        boolean rHover = mouseX >= rx && mouseX <= rx + arrowW && mouseY >= ay && mouseY <= ay + arrowH;
-        drawRect(rx, ay, rx + arrowW, ay + arrowH, rHover ? COLOR_ARROW_HOVER : COLOR_ARROW_BG);
-        mc.fontRendererObj.drawString("\u25B6", rx + arrowW / 2 - mc.fontRendererObj.getStringWidth("\u25B6") / 2,
-                arrowCenterY - mc.fontRendererObj.FONT_HEIGHT / 2, COLOR_TEXT_LIGHT, false);
-    }
-
-    // ── Color 色块预览 ──
-    private void drawColorPreview(int x, int y, int h, ConfigEntryDescriptor entry, int mouseX, int mouseY) {
-        String str = entry.getter.get(); // e.g. "#FF4444CC"
-        int sw = mc.fontRendererObj.getStringWidth(str);
-        int textRight = x - 5;
-        int textX = textRight - sw;
-        mc.fontRendererObj.drawString(str, textX, y + (h - mc.fontRendererObj.FONT_HEIGHT) / 2, 0xFF666666, false);
-
-        // 色块 (16x16)
-        int blockSize = 16;
-        int blockX = textRight + 4;
-        int blockY = y + (h - blockSize) / 2;
-
-        // 解析颜色
-        int color = 0xFFFFFFFF;
-        try {
-            String hex = str.replace("#", "");
-            if (hex.length() >= 6) {
-                color = (int) Long.parseLong(hex, 16);
-            }
-        } catch (NumberFormatException ignored) {}
-        // 确保 Alpha 不透明（预览用）
-        color = 0xFF000000 | (color & 0x00FFFFFF);
-
-        drawRect(blockX, blockY, blockX + blockSize, blockY + blockSize, color);
-        drawRect(blockX, blockY, blockX + blockSize, blockY + blockSize, 0xFF888888);
-    }
-
-    // ── Enum 滚轮 ──
-    private void drawEnumSpinner(int x, int y, int h, ConfigEntryDescriptor entry, int mouseX, int mouseY) {
-        String current = entry.getter.get();
-        int arrowW = 16, arrowH = 16;
-        int ay = y + (h - arrowH) / 2;
-
-        // 左箭头
-        int lx = x - 80;
-        boolean lHover = mouseX >= lx && mouseX <= lx + arrowW && mouseY >= ay && mouseY <= ay + arrowH;
-        drawRect(lx, ay, lx + arrowW, ay + arrowH, lHover ? COLOR_ARROW_HOVER : COLOR_ARROW_BG);
-        int ax = lx + arrowW / 2;
-        mc.fontRendererObj.drawString("\u25C0", ax - mc.fontRendererObj.getStringWidth("\u25C0") / 2,
-                ay + (arrowH - mc.fontRendererObj.FONT_HEIGHT) / 2, COLOR_TEXT_LIGHT, false);
-
-        // 当前值
-        int valX = lx + arrowW + 5;
-        mc.fontRendererObj.drawString(current, valX, y + (h - mc.fontRendererObj.FONT_HEIGHT) / 2, COLOR_VALUE_TEXT, false);
-
-        // 右箭头
-        int rx = valX + mc.fontRendererObj.getStringWidth(current) + 5;
-        boolean rHover = mouseX >= rx && mouseX <= rx + arrowW && mouseY >= ay && mouseY <= ay + arrowH;
-        drawRect(rx, ay, rx + arrowW, ay + arrowH, rHover ? COLOR_ARROW_HOVER : COLOR_ARROW_BG);
-        mc.fontRendererObj.drawString("\u25B6", rx + arrowW / 2 - mc.fontRendererObj.getStringWidth("\u25B6") / 2,
-                ay + (arrowH - mc.fontRendererObj.FONT_HEIGHT) / 2, COLOR_TEXT_LIGHT, false);
-    }
-
-    // ── Float 滚轮 ──
-    private void drawFloatSpinner(int x, int y, int h, ConfigEntryDescriptor entry, int mouseX, int mouseY) {
-        double value = Double.parseDouble(entry.getter.get());
-        int arrowW = 16;
-        int arrowH = 16;
-        int ay = y + (h - arrowH) / 2;
-
-        // 左箭头
-        int lx = x - 80;
-        boolean lHover = mouseX >= lx && mouseX <= lx + arrowW && mouseY >= ay && mouseY <= ay + arrowH;
-        drawRect(lx, ay, lx + arrowW, ay + arrowH, lHover ? COLOR_ARROW_HOVER : COLOR_ARROW_BG);
-        int arrowCenterX = lx + arrowW / 2;
-        int arrowCenterY = ay + arrowH / 2;
-        mc.fontRendererObj.drawString("\u25C0", arrowCenterX - mc.fontRendererObj.getStringWidth("\u25C0") / 2,
-                arrowCenterY - mc.fontRendererObj.FONT_HEIGHT / 2, COLOR_TEXT_LIGHT, false);
-
-        // 数值
-        String valStr = String.format("%.1f", value);
-        int valX = lx + arrowW + 5;
-        mc.fontRendererObj.drawString(valStr, valX, y + (h - mc.fontRendererObj.FONT_HEIGHT) / 2, COLOR_VALUE_TEXT, false);
-
-        // 右箭头
-        int rx = valX + mc.fontRendererObj.getStringWidth(valStr) + 5;
-        boolean rHover = mouseX >= rx && mouseX <= rx + arrowW && mouseY >= ay && mouseY <= ay + arrowH;
-        drawRect(rx, ay, rx + arrowW, ay + arrowH, rHover ? COLOR_ARROW_HOVER : COLOR_ARROW_BG);
-        mc.fontRendererObj.drawString("\u25B6", rx + arrowW / 2 - mc.fontRendererObj.getStringWidth("\u25B6") / 2,
-                arrowCenterY - mc.fontRendererObj.FONT_HEIGHT / 2, COLOR_TEXT_LIGHT, false);
+    @Override
+    public void handleMouseInput() throws IOException {
+        super.handleMouseInput();int wheel=Mouse.getDWheel();if(wheel==0)return;
+        int mx=Mouse.getX()*width/mc.displayWidth;
+        int my=height-Mouse.getY()*height/mc.displayHeight-1;
+        if(mx<LEFT_W)treeScroll=Math.max(0,treeScroll-wheel/120*20);
+        else if(my>FOOTER_H)entryScroll=Math.max(0,entryScroll-wheel/120*ENTRY_H);
     }
 
     @Override
-    protected void mouseClicked(int mouseX, int mouseY, int mouseButton) {
-        if (mouseButton != 0) return;
-        int rx = LEFT_W + 8, rw = width - rx - 8;
-        // 按钮优先：必须在条目迭代之前处理，否则底部条目会拦截按钮点击
-        int btnY = height - 32;
-        if (mouseY >= btnY) {
-            if (mouseX >= rx + 4 && mouseX <= rx + 84) { saveConfig(); return; }
-            if (mouseX >= rx + 88 && mouseX <= rx + 168) { BetterPlayerHUD.config.loadConfig(); buildFromConfig(); return; }
-            if (mouseX >= rx + rw - 84 && mouseX <= rx + rw - 4) { mc.displayGuiScreen(null); return; }
-        }
-        int treeY = 38, y = treeY - treeScrollOffset;
-        for (ConfigTreeNode root : treeRoots) {
-            if (mouseX >= 4 && mouseX <= LEFT_W - 4 && mouseY >= y && mouseY <= y + 18) { root.expanded = !root.expanded; return; }
-            y += 20;
-            if (!root.expanded) continue;
-            for (ConfigTreeNode child : root.children) {
-                if (mouseX >= 4 && mouseX <= LEFT_W - 4 && mouseY >= y && mouseY <= y + 18) {
-                    if (child.isLeaf()) { if (child != selectedNode) { selectedNode = child; localEntries = child.entries; entriesScrollOffset = 0; triggerPulse(child.labelKey); } }
-                    else { child.expanded = !child.expanded; }
-                    return;
-                }
-                y += 18;
-                if (child.isLeaf() || !child.expanded) continue;
-                for (ConfigTreeNode sub : child.children) {
-                    if (mouseX >= 4 && mouseX <= LEFT_W - 4 && mouseY >= y && mouseY <= y + 16) {
-                        if (sub != selectedNode) { selectedNode = sub; localEntries = sub.entries; entriesScrollOffset = 0; triggerPulse(sub.labelKey); }
-                        return;
-                    }
-                    y += 16;
-                }
-            }
-        }
-        int sx = rx + 4, sw = rw - 8;
-        if (mouseX >= sx && mouseX <= sx + sw && mouseY >= 36 && mouseY <= 54) { isSearching = !isSearching; if (isSearching) searchQuery = ""; return; }
-        if (selectedNode != null && localEntries != null) {
-            int ey = 60;
-            int visStart = Math.max(0, entriesScrollOffset / ENTRY_H);
-            int maxVis = (height - ey) / ENTRY_H + 2;
-            int drawEnd = Math.min(localEntries.size(), visStart + maxVis);
-            for (int i = visStart; i < drawEnd; i++) {
-                int yi = ey + i * ENTRY_H - entriesScrollOffset;
-                if (yi + ENTRY_H < 32 || yi > height) continue;
-                if (mouseX < rx || mouseX > rx + rw || mouseY < yi || mouseY > yi + ENTRY_H) continue;
-                ConfigEntryDescriptor desc = localEntries.get(i);
-                int vx = rx + rw / 2 + 4;
-                switch (desc.type) {
-                    case BOOLEAN: {
-                        debugFlashEnd = System.currentTimeMillis() + 2000L;
-                        boolean oldVal = ((BooleanSupplier)desc.getter).getAsBoolean();
-                        ((Consumer<Boolean>)desc.setter).accept(!oldVal);
-                        triggerPulse(desc.labelKey);
-                        return;
-                    }
-                    case INT: {
-                        debugFlashEnd = System.currentTimeMillis() + 2000L;
-                        int cur = ((IntSupplier)desc.getter).getAsInt();
-                        int step = (Keyboard.isKeyDown(42) || Keyboard.isKeyDown(54)) ? 100 : 1;
-                        int la = vx - 80;
-                        int valX = la + 21;
-                        String vs = String.valueOf(cur);
-                        int ra = valX + mc.fontRendererObj.getStringWidth(vs) + 5;
-                        if (mouseX >= la && mouseX <= la + 16)
-                            ((Consumer<Integer>)desc.setter).accept(Math.max(desc.minInt, cur - step));
-                        else if (mouseX >= ra && mouseX <= ra + 16)
-                            ((Consumer<Integer>)desc.setter).accept(Math.min(desc.maxInt, cur + step));
-                        else return;
-                        triggerPulse(desc.labelKey);
-                        return;
-                    }
-                    case FLOAT: {
-                        debugFlashEnd = System.currentTimeMillis() + 2000L;
-                        float cur = (float)((DoubleSupplier)desc.getter).getAsDouble();
-                        float step = (Keyboard.isKeyDown(42) || Keyboard.isKeyDown(54)) ? 10.0F : 1.0F;
-                        int la = vx - 80;
-                        int valX = la + 21;
-                        String vs = String.format("%.1f", cur);
-                        int ra = valX + mc.fontRendererObj.getStringWidth(vs) + 5;
-                        if (mouseX >= la && mouseX <= la + 16)
-                            ((Consumer<Float>)desc.setter).accept(Math.max(desc.minFloat, cur - step));
-                        else if (mouseX >= ra && mouseX <= ra + 16)
-                            ((Consumer<Float>)desc.setter).accept(Math.min(desc.maxFloat, cur + step));
-                        else return;
-                        triggerPulse(desc.labelKey);
-                        return;
-                    }
-                    case ENUM: {
-                        debugFlashEnd = System.currentTimeMillis() + 2000L;
-                        String cur = (String)((Supplier)desc.getter).get();
-                        int la = vx - 80;
-                        int valX = la + 21;
-                        int ra = valX + mc.fontRendererObj.getStringWidth(cur) + 5;
-                        if (mouseX >= la && mouseX <= la + 16) {
-                            int nxt = desc.enumValues.length - 1;
-                            for (int j = 0; j < desc.enumValues.length; j++)
-                                if (desc.enumValues[j].equals(cur)) nxt = (j - 1 + desc.enumValues.length) % desc.enumValues.length;
-                            ((Consumer<String>)desc.setter).accept(desc.enumValues[nxt]);
-                        } else if (mouseX >= ra && mouseX <= ra + 16) {
-                            int nxt = 0;
-                            for (int j = 0; j < desc.enumValues.length; j++)
-                                if (desc.enumValues[j].equals(cur)) nxt = (j + 1) % desc.enumValues.length;
-                            ((Consumer<String>)desc.setter).accept(desc.enumValues[nxt]);
-                        } else return;
-                        triggerPulse(desc.labelKey);
-                        return;
-                    }
-                    case COLOR: {
-                        debugFlashEnd = System.currentTimeMillis() + 2000L;
-                        int cur = ((IntSupplier)desc.getter).getAsInt();
-                        mc.displayGuiScreen(new GuiColorPicker(GuiModernConfig.this, (IntSupplier)desc.getter, (Consumer<Integer>)desc.setter));
-                        return;
-                    }
-                }
-            }
-        }
-    }
-    @Override
-    public void handleMouseInput() {
-        try {
-            super.handleMouseInput();
-            int d = Mouse.getEventDWheel();
-            if (d != 0) {
-                int amt = (d > 0) ? -22 : 22;
-                if (Mouse.getX() * width / mc.displayWidth < LEFT_W) {
-                    treeScrollOffset = Math.max(0, Math.min(computeMaxTreeScroll(), treeScrollOffset + amt));
-                } else if (localEntries != null) {
-                    int maxS = Math.max(0, localEntries.size() * ENTRY_H - (height - 80));
-                    entriesScrollOffset = Math.max(0, Math.min(maxS, entriesScrollOffset + amt));
-                }
-            }
-        } catch (Exception e) { }
-    }
-    @Override
-    protected void keyTyped(char typedChar, int keyCode) {
-        if (keyCode == 1) { mc.displayGuiScreen(null); return; }
-        if (isSearching) {
-            if (keyCode == 14 && searchQuery.length() > 0) searchQuery = searchQuery.substring(0, searchQuery.length() - 1);
-            else if (keyCode == 28 || keyCode == 15) isSearching = false;
-            else if (typedChar >= 32 && typedChar < 127) searchQuery += typedChar;
-            return;
-        }
-        if (keyCode == 60) {
-            // F9 - no-op in tree version
-        }
-    }
-    private void triggerPulse(String labelKey) {
-        pulseLabel = labelKey; pulseEndTime = System.currentTimeMillis() + 600;
+    protected void keyTyped(char c,int code){
+        if(code==Keyboard.KEY_ESCAPE){mc.displayGuiScreen(parent);return;}
+        if(code==Keyboard.KEY_BACK){if(!searchQuery.isEmpty())searchQuery=searchQuery.substring(0,searchQuery.length()-1);return;}
+        if(code==Keyboard.KEY_F8)return;
+        if(Character.isLetterOrDigit(c)||c==' '||c=='.'||c=='-')searchQuery+=c;
     }
 
-    private boolean searchMatches(ConfigEntryDescriptor entry) {
-        if (searchQuery.isEmpty()) return true;
-        String lower = searchQuery.toLowerCase();
-        String label = LangManager.get(entry.labelKey).toLowerCase();
-        if (label.contains(lower)) return true;
-        // 也搜索 tooltip
-        String tip = LangManager.get(entry.labelKey + ".tooltip");
-        if (!tip.equals(entry.labelKey + ".tooltip") && tip.toLowerCase().contains(lower)) return true;
-        return false;
-    }
+    private net.minecraft.client.gui.FontRenderer fr(){return mc.fontRendererObj;}
 
-    // ────────────────────────────────────────────────────────────────
-    //  简单矩形类
-    // ────────────────────────────────────────────────────────────────
-    private static class Rect {
-        final int x, y, w, h;
-        Rect(int x, int y, int w, int h) {
-            this.x = x; this.y = y; this.w = w; this.h = h;
-        }
-        boolean contains(int px, int py) {
-            return px >= x && px <= x + w && py >= y && py <= y + h;
-        }
+    private void fillR(int l,int t,int r,int b,int c){
+        if(l>=r||t>=b)return;
+        Tessellator tsl=Tessellator.getInstance();WorldRenderer wr=tsl.getWorldRenderer();
+        GlStateManager.enableBlend();GlStateManager.disableTexture2D();
+        GlStateManager.tryBlendFuncSeparate(770,771,1,0);
+        float a=(float)(c>>24&255)/255f,rc=(float)(c>>16&255)/255f,g=(float)(c>>8&255)/255f,bl=(float)(c&255)/255f;
+        wr.begin(7,DefaultVertexFormats.POSITION_COLOR);
+        wr.pos(l,b,0).color(rc,g,bl,a).endVertex();
+        wr.pos(r,b,0).color(rc,g,bl,a).endVertex();
+        wr.pos(r,t,0).color(rc,g,bl,a).endVertex();
+        wr.pos(l,t,0).color(rc,g,bl,a).endVertex();
+        tsl.draw();GlStateManager.enableTexture2D();GlStateManager.disableBlend();
     }
 }
+
