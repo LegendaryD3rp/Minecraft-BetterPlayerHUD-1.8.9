@@ -656,6 +656,44 @@ public class LangManager {
         en_US.put("module.hotbar.tooltip", "Show custom hotbar (9 slots)");
 
         // ═══════════════════════════════════════════════════════════
+        //  F8 补缺 label（category / 部分 module / GUI 文案）
+        // ═══════════════════════════════════════════════════════════
+        zh_CN.put("category.combat", "战斗");
+        en_US.put("category.combat", "Combat");
+        zh_CN.put("category.info", "信息");
+        en_US.put("category.info", "Info");
+        zh_CN.put("category.status", "状态");
+        en_US.put("category.status", "Status");
+        zh_CN.put("category.colors", "颜色");
+        en_US.put("category.colors", "Colors");
+        zh_CN.put("module.crosshair", "自定义准星");
+        en_US.put("module.crosshair", "Crosshair");
+        zh_CN.put("module.blockOutline", "方块描边");
+        en_US.put("module.blockOutline", "Block Outline");
+        zh_CN.put("module.entityHL", "实体高亮");
+        en_US.put("module.entityHL", "Entity Highlight");
+        zh_CN.put("module.blockBreak", "方块破坏");
+        en_US.put("module.blockBreak", "Block Break");
+        zh_CN.put("chroma.maxLines", "最大行数");
+        en_US.put("chroma.maxLines", "Max Lines");
+        zh_CN.put("gui.modules", "模块");
+        en_US.put("gui.modules", "Modules");
+        zh_CN.put("gui.search_hint", "搜索...");
+        en_US.put("gui.search_hint", "Search...");
+        zh_CN.put("lang.switched", "语言已切换：中文");
+        en_US.put("lang.switched", "Language switched: English");
+        zh_CN.put("hudedit.hint", "拖拽模块调整位置 · 点击选中/隐藏 · Esc 退出");
+        en_US.put("hudedit.hint", "Drag modules to reposition · Click to select/hide · Esc to exit");
+        zh_CN.put("hudedit.tab", "Tab 切页");
+        en_US.put("hudedit.tab", "Tab to switch page");
+        zh_CN.put("hudedit.page.combat", "⚔️ 战斗");
+        en_US.put("hudedit.page.combat", "⚔️ Combat");
+        zh_CN.put("hudedit.page.info", "ℹ️ 信息");
+        en_US.put("hudedit.page.info", "ℹ️ Info");
+        zh_CN.put("hudedit.page.status", "📊 状态");
+        en_US.put("hudedit.page.status", "📊 Status");
+
+        // ═══════════════════════════════════════════════════════════
         //  F8 条目级 tooltip（GuiModernConfig 三层树悬停提示）
         // ═══════════════════════════════════════════════════════════
         zh_CN.put("chroma.maxLines.tooltip", "蜃楼聊天框保留的最大行数（20-500）");

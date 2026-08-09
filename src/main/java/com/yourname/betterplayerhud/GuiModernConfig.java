@@ -6,7 +6,6 @@ import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.WorldRenderer;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.client.gui.ScaledResolution;
-import net.minecraft.client.resources.I18n;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
@@ -25,7 +24,7 @@ import java.io.IOException;
  * 摩登 UI：左侧树面板（图标色点 + 选中高亮）、右侧卡片式条目（圆角 + 分隔线）、
  *          脉冲动画、搜索过滤、HSL 颜色选择器
  *
- * 本地化：树节点/条目标签走 .lang 文件（Forge I18n），开关/提示走 LangManager
+ * 本地化：统一走 LangManager（F9 游戏内一键切换中英）
  */
 public class GuiModernConfig extends GuiScreen {
 
@@ -370,8 +369,8 @@ public class GuiModernConfig extends GuiScreen {
 
     private void selectNode(TreeNode n){selectedNode=n;entryScroll=0;}
 
-    // ═══ 本地化（双轨：树/条目走 .lang，开关/提示走 LangManager） ═══
-    private String tr(String k){return I18n.format(k);}
+    // ═══ 本地化（统一走 LangManager：F9 游戏内一键切换中英） ═══
+    private String tr(String k){return LangManager.get(k);}
     private String tipOf(String key){String t=LangManager.get(key+".tooltip");return t.equals(key+".tooltip")?null:t;}
     private String onOff(boolean on){return LangManager.get(on?"common.on":"common.off");}
 
@@ -435,6 +434,16 @@ public class GuiModernConfig extends GuiScreen {
         fr().drawStringWithShadow("§l"+tr(selectedNode.label),vx,cardY,C_ACCENT); cardY+=18;
         boolean searching=!searchQuery.isEmpty();
         String q=searchQuery.toLowerCase();
+        int cw2=cw-12;
+        // 隐式条目：直接挂在节点上（无子组）
+        if(!selectedNode.entries.isEmpty()){
+            for(ConfigEntry e:selectedNode.entries){
+                if(searching&&!tr(e.label).toLowerCase().contains(q))continue;
+                cardY=renderEntry(e,vx,cardY,cw2,mx,my);
+            }
+            fillR(vx+2,cardY-1,vx+cw2-2,cardY,C_DIVIDER);
+            cardY+=4;
+        }
         for(TreeNode grp:selectedNode.children){
             if(!grp.expanded||grp.entries.isEmpty())continue;
             int shown=0;
@@ -443,31 +452,35 @@ public class GuiModernConfig extends GuiScreen {
                 shown++;
             }
             if(searching&&shown==0)continue;
-            int cw2=cw-12;
             String gn=tr(grp.label); int gw=fr().getStringWidth(gn);
             fillR(vx,cardY,vx+gw+16,cardY+16,C_ACCENT);
             fr().drawStringWithShadow(gn,vx+8,cardY+4,0xFFFFFF); cardY+=20;
             for(ConfigEntry e:grp.entries){
                 if(searching&&!tr(e.label).toLowerCase().contains(q))continue;
-                boolean hover=mx>=vx+40&&mx<=vx+cw2-4&&my>=cardY&&my<=cardY+ENTRY_H;
-                fillR(vx+2,cardY,vx+cw2-2,cardY+ENTRY_H,hover?C_CARD_HOVER:C_CARD);
-                fr().drawStringWithShadow(tr(e.label),vx+8,cardY+6,C_TEXT);
-                if(hover)hoveredEntry=e;
-                switch(e.type){
-                    case BOOLEAN:drawToggle(e,vx,cardY,mx,my);break;
-                    case INT:drawSpinner(e,vx,cardY,mx,my,false);break;
-                    case FLOAT:drawSpinner(e,vx,cardY,mx,my,true);break;
-                    case COLOR:drawColorPreview(e,vx,cardY,mx,my);break;
-                    case ENUM:drawEnumCycle(e,vx,cardY,mx,my);break;
-                }
-                fillR(vx+4,cardY+ENTRY_H-1,vx+cw2-4,cardY+ENTRY_H-1,C_DIVIDER);
-                e.x=vx+2;e.y=cardY;e.w=cw2-4;e.h=ENTRY_H;
-                cardY+=ENTRY_H;
+                cardY=renderEntry(e,vx,cardY,cw2,mx,my);
             }
             fillR(vx+2,cardY-1,vx+cw2-2,cardY,C_DIVIDER);
             cardY+=4;
         }
         GL11.glDisable(GL11.GL_SCISSOR_TEST);
+    }
+
+    /** 渲染单个条目卡片，返回下一个 cardY */
+    private int renderEntry(ConfigEntry e,int vx,int cardY,int cw2,int mx,int my){
+        boolean hover=mx>=vx+40&&mx<=vx+cw2-4&&my>=cardY&&my<=cardY+ENTRY_H;
+        fillR(vx+2,cardY,vx+cw2-2,cardY+ENTRY_H,hover?C_CARD_HOVER:C_CARD);
+        fr().drawStringWithShadow(tr(e.label),vx+8,cardY+6,C_TEXT);
+        if(hover)hoveredEntry=e;
+        switch(e.type){
+            case BOOLEAN:drawToggle(e,vx,cardY,mx,my);break;
+            case INT:drawSpinner(e,vx,cardY,mx,my,false);break;
+            case FLOAT:drawSpinner(e,vx,cardY,mx,my,true);break;
+            case COLOR:drawColorPreview(e,vx,cardY,mx,my);break;
+            case ENUM:drawEnumCycle(e,vx,cardY,mx,my);break;
+        }
+        fillR(vx+4,cardY+ENTRY_H-1,vx+cw2-4,cardY+ENTRY_H-1,C_DIVIDER);
+        e.x=vx+2;e.y=cardY;e.w=cw2-4;e.h=ENTRY_H;
+        return cardY+ENTRY_H;
     }
 
     private void drawFooter(int mx,int my){
@@ -543,9 +556,16 @@ public class GuiModernConfig extends GuiScreen {
         int vx=LEFT_W+6,cardY=HEADER_H+20-entryScroll;
         boolean searching=!searchQuery.isEmpty();
         String q=searchQuery.toLowerCase();
+        int cw=width-LEFT_W-12;
+        // 隐式条目（直挂节点）
+        for(ConfigEntry e:selectedNode.entries){
+            if(searching&&!tr(e.label).toLowerCase().contains(q))continue;
+            if(my>=cardY&&my<=cardY+ENTRY_H&&mx>=vx+40){handleClick(e,mx,my,vx,cardY,cw);return;}
+            cardY+=ENTRY_H;
+        }
+        if(!selectedNode.entries.isEmpty())cardY+=4;
         for(TreeNode grp:selectedNode.children){
             if(!grp.expanded)continue;cardY+=20;
-            int cw=width-LEFT_W-12;
             for(ConfigEntry e:grp.entries){
                 if(searching&&!tr(e.label).toLowerCase().contains(q))continue;
                 if(my>=cardY&&my<=cardY+ENTRY_H&&mx>=vx+40){handleClick(e,mx,my,vx,cardY,cw);return;}

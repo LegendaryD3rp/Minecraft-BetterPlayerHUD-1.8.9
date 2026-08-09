@@ -23,6 +23,8 @@ public class BetterPlayerHUD {
 
     // F8 键绑定（默认 F8，1.8.9 无冲突）
     public static KeyBinding keyBindF8 = new KeyBinding("key.bhud.openConfig", Keyboard.KEY_F8, "key.categories.bhud");
+    // F9 语言切换（游戏内全局）
+    public static KeyBinding keyBindLang = new KeyBinding("key.bhud.toggleLang", Keyboard.KEY_F9, "key.categories.bhud");
 
     @Mod.EventHandler
     public void preInit(FMLPreInitializationEvent event) {
@@ -34,6 +36,7 @@ public class BetterPlayerHUD {
     public void init(FMLInitializationEvent event) {
         // F8 键绑定（默认不绑定，用户手动设置）
         ClientRegistry.registerKeyBinding(keyBindF8);
+        ClientRegistry.registerKeyBinding(keyBindLang);
         MinecraftForge.EVENT_BUS.register(new InputHandler());
 
         // 注册拖拽编辑模式
@@ -421,24 +424,25 @@ public class BetterPlayerHUD {
     }
 
     /**
-     * 输入事件处理器 — 检测 F8 打开配置 GUI
+     * 输入事件处理器 — 检测 F8 打开配置 GUI / F9 游戏内切换语言
      */
     public static class InputHandler {
         @SubscribeEvent
         public void onKeyInput(InputEvent.KeyInputEvent event) {
+            net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getMinecraft();
             if (keyBindF8.isPressed()) {
-                net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getMinecraft();
                 if (mc.currentScreen == null) {
                     mc.displayGuiScreen(new GuiModernConfig(mc.currentScreen));
                 }
             }
-            // F9 语言切换：仅当配置页打开时生效
-            if (Keyboard.isKeyDown(Keyboard.KEY_F9)) {
-                net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getMinecraft();
-                if (mc.currentScreen instanceof GuiModernConfig) {
-                    LangManager.toggle();
-                    return;
+            // F9 语言切换：游戏内全局生效（含 GUI 打开时），切换后聊天提示
+            if (keyBindLang.isPressed()) {
+                LangManager.toggle();
+                if (mc.thePlayer != null) {
+                    mc.thePlayer.addChatMessage(new net.minecraft.util.ChatComponentText(
+                        "§b[BetterPlayerHUD] §f" + LangManager.get("lang.switched")));
                 }
+                return;
             }
         }
     }

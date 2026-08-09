@@ -278,7 +278,10 @@ public class HUDEditManager {
         private long resetPromptTime = 0;
         private boolean resetAll = false;
         private int activePage = 0;
-        private static final String[] PAGE_NAMES = {"⚔️ 战斗", "ℹ️ 信息", "📊 状态"};
+        // 页面名动态取 LangManager，F9 切换后立即生效
+        private static String[] pageNames() {
+            return new String[]{LangManager.get("hudedit.page.combat"), LangManager.get("hudedit.page.info"), LangManager.get("hudedit.page.status")};
+        }
 
         // 每个页面对应的模块名列表
         private static final java.util.List<String>[] PAGE_MODULES = new java.util.ArrayList[] {
@@ -401,13 +404,13 @@ public class HUDEditManager {
 
             // ── 页码指示器 ──
             int pageIndicatorY = height - 28;
-            for (int p = 0; p < PAGE_NAMES.length; p++) {
-                String pageLabel = (p == activePage ? "§l§e" : "§7") + "[" + PAGE_NAMES[p] + "]";
+            for (int p = 0; p < pageNames().length; p++) {
+                String pageLabel = (p == activePage ? "§l§e" : "§7") + "[" + pageNames()[p] + "]";
                 int pw = fontRendererObj.getStringWidth(pageLabel);
                 int px = width / 2 - 120 + p * 80;
                 fontRendererObj.drawString(pageLabel, px, pageIndicatorY, 0xFFFFFF, true);
             }
-            String tabHint = "§7Tab 切页";
+            String tabHint = "§7" + LangManager.get("hudedit.tab");
             fontRendererObj.drawString(tabHint, width / 2 - fontRendererObj.getStringWidth(tabHint) / 2, pageIndicatorY - 10, 0xFFFFFF, true);
 
             // ── 重置确认提示 ──
@@ -584,7 +587,7 @@ public class HUDEditManager {
 
             // Tab 切页
             if (keyCode == Keyboard.KEY_TAB) {
-                activePage = (activePage + 1) % PAGE_NAMES.length;
+                activePage = (activePage + 1) % pageNames().length;
                 selected = null;
                 dragging = null;
                 return;
