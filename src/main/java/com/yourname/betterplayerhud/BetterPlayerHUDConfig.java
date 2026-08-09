@@ -426,6 +426,11 @@ public class BetterPlayerHUDConfig {
         int r = config.getInt(keyBase + "R", category, defaultR, 0, 255, "");
         int g = config.getInt(keyBase + "G", category, defaultG, 0, 255, "");
         int b = config.getInt(keyBase + "B", category, defaultB, 0, 255, "");
+        // 自愈：R/G/B 全 255 但默认非纯白 → 旧版 bug 写入的白色，恢复默认
+        // （默认即纯白的字段不受影响，如罗盘文字/准星/按键文字）
+        if (r == 255 && g == 255 && b == 255 && !(defaultR == 255 && defaultG == 255 && defaultB == 255)) {
+            r = defaultR; g = defaultG; b = defaultB;
+        }
         return packRGB(r, g, b);
     }
 
