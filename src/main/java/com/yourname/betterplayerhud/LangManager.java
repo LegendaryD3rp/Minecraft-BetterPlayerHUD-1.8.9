@@ -692,6 +692,33 @@ public class LangManager {
         en_US.put("hudedit.page.info", "ℹ️ Info");
         zh_CN.put("hudedit.page.status", "📊 状态");
         en_US.put("hudedit.page.status", "📊 Status");
+        // ── F8 组 label ──
+        zh_CN.put("crosshair.group.general", "基本");
+        en_US.put("crosshair.group.general", "General");
+        zh_CN.put("crosshair.group.rgb", "RGB 流光");
+        en_US.put("crosshair.group.rgb", "RGB");
+        zh_CN.put("crosshair.group.entity", "实体变色");
+        en_US.put("crosshair.group.entity", "Entity");
+        zh_CN.put("hitmarker.group.general", "基本");
+        en_US.put("hitmarker.group.general", "General");
+        zh_CN.put("hitmarker.group.appearance", "外观");
+        en_US.put("hitmarker.group.appearance", "Appearance");
+        zh_CN.put("compass.group.general", "基本");
+        en_US.put("compass.group.general", "General");
+        zh_CN.put("compass.group.display", "显示选项");
+        en_US.put("compass.group.display", "Display");
+        zh_CN.put("health.group.layout", "布局");
+        en_US.put("health.group.layout", "Layout");
+        zh_CN.put("health.group.elements", "元素");
+        en_US.put("health.group.elements", "Elements");
+        zh_CN.put("distance.group.coords", "坐标");
+        en_US.put("distance.group.coords", "Coordinates");
+        zh_CN.put("distance.group.display", "显示选项");
+        en_US.put("distance.group.display", "Display");
+        zh_CN.put("potion.group.timer", "计时器");
+        en_US.put("potion.group.timer", "Timer");
+        zh_CN.put("potion.group.effects", "效果");
+        en_US.put("potion.group.effects", "Effects");
 
         // ═══════════════════════════════════════════════════════════
         //  F8 条目级 tooltip（GuiModernConfig 三层树悬停提示）

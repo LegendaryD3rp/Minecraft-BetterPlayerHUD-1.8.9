@@ -76,6 +76,12 @@ public class GuiModernConfig extends GuiScreen {
     private ConfigEntry hoveredEntry=null;
     private long pulseEnd=0;
     private String pulseLabel=null;
+    // 窗口面板（居中，保留游戏世界可见）
+    private int px,py,pw,ph;
+    private void panel(){
+        pw=Math.min(720,width-40); ph=Math.min(500,height-40);
+        px=(width-pw)/2; py=(height-ph)/2;
+    }
 
     public GuiModernConfig(GuiScreen p){parent=p;buildTree();selectFirst();}
 
@@ -379,24 +385,34 @@ public class GuiModernConfig extends GuiScreen {
 
     @Override
     public void drawScreen(int mx,int my,float pt){
-        fillR(0,0,width,height,C_BG); drawHeader(mx,my); drawLeftTree(mx,my); drawRightCards(mx,my); drawFooter(mx,my);
+        panel();
+        fillR(0,0,width,height,0x66000000);          // 半透明遮罩（游戏世界可见）
+        fillR(px,py,px+pw,py+ph,C_BG);               // 面板底
+        drawHeader(mx,my); drawLeftTree(mx,my); drawRightCards(mx,my); drawFooter(mx,my);
+        fillR(px,py,px+pw,py+1,C_ACCENT); fillR(px,py+ph-1,px+pw,py+ph,C_ACCENT);
+        fillR(px,py,px+1,py+ph,C_ACCENT); fillR(px+pw-1,py,px+pw,py+ph,C_ACCENT);
         super.drawScreen(mx,my,pt);
     }
 
     private void drawHeader(int mx,int my){
-        fillR(0,0,width,HEADER_H,C_HEADER); fillR(0,HEADER_H-1,width,HEADER_H,C_DIVIDER);
-        fr().drawStringWithShadow("←",8,10,0xFFFFFF);
-        fr().drawStringWithShadow(tr("gui.modules"),26,11,0xFFFFFF);
-        int sx=width-90; fillR(sx,8,sx+80,28,C_SEARCH_BG); fillR(sx,8,sx+80,28,C_DIVIDER);
-        fr().drawString(searchQuery.isEmpty()?"§7"+tr("gui.search_hint"):searchQuery,sx+6,13,0xFFFFFF);
+        fillR(px,py,px+pw,py+HEADER_H,C_HEADER); fillR(px,py+HEADER_H-1,px+pw,py+HEADER_H,C_DIVIDER);
+        fr().drawStringWithShadow("←",px+8,py+10,0xFFFFFF);
+        fr().drawStringWithShadow(tr("gui.modules"),px+26,py+11,0xFFFFFF);
+        int sx=px+pw-96; fillR(sx,py+8,sx+80,py+28,C_SEARCH_BG); fillR(sx,py+8,sx+80,py+28,C_DIVIDER);
+        fr().drawString(searchQuery.isEmpty()?"§7"+tr("gui.search_hint"):searchQuery,sx+6,py+13,0xFFFFFF);
+        if(!searchQuery.isEmpty()){
+            boolean cx=mx>=sx+82&&mx<=sx+92&&my>=py+8&&my<=py+28;
+            fillR(sx+82,py+8,sx+92,py+28,cx?0xFF3A3A4E:C_SEARCH_BG);
+            fr().drawStringWithShadow("✕",sx+86,py+13,cx?0xFFFFFFFF:0xFF888888);
+        }
     }
 
     private void drawLeftTree(int mx,int my){
-        int x0=0,y0=HEADER_H,tw=LEFT_W,th=height-HEADER_H-FOOTER_H;
+        int x0=px,y0=py+HEADER_H,tw=LEFT_W,th=ph-HEADER_H-FOOTER_H;
         fillR(x0,y0,x0+tw,y0+th,C_PANEL); fillR(x0+tw-1,y0,x0+tw,y0+th,C_DIVIDER);
         GL11.glEnable(GL11.GL_SCISSOR_TEST);
         ScaledResolution sr=new ScaledResolution(mc); int sf=sr.getScaleFactor();
-        GL11.glScissor(0,(mc.displayHeight-(y0+th)*sf),tw*sf,th*sf);
+        GL11.glScissor(x0*sf,(mc.displayHeight-(y0+th)*sf),tw*sf,th*sf);
         int y=y0+4-treeScroll;
         for(TreeNode cat:roots){
             boolean ch=mx>=x0+8&&mx<=x0+tw-8&&my>=y&&my<=y+22;
@@ -424,12 +440,12 @@ public class GuiModernConfig extends GuiScreen {
     }
 
     private void drawRightCards(int mx,int my){
-        int x0=LEFT_W,y0=HEADER_H,cw=width-LEFT_W,ch=height-HEADER_H-FOOTER_H;
+        int x0=px+LEFT_W,y0=py+HEADER_H,cw=pw-LEFT_W,ch=ph-HEADER_H-FOOTER_H;
         hoveredEntry=null; if(selectedNode==null)return;
-        fillR(x0,y0,width,y0+ch,C_BG);
+        fillR(x0,y0,px+pw,y0+ch,C_BG);
         GL11.glEnable(GL11.GL_SCISSOR_TEST);
         ScaledResolution sr=new ScaledResolution(mc); int sf=sr.getScaleFactor();
-        GL11.glScissor(x0*sf,(mc.displayHeight-(y0+ch)*sf),(width-x0)*sf,ch*sf);
+        GL11.glScissor(x0*sf,(mc.displayHeight-(y0+ch)*sf),(px+pw-x0)*sf,ch*sf);
         int cardY=y0+4-entryScroll,vx=x0+6;
         fr().drawStringWithShadow("§l"+tr(selectedNode.label),vx,cardY,C_ACCENT); cardY+=18;
         boolean searching=!searchQuery.isEmpty();
@@ -484,18 +500,18 @@ public class GuiModernConfig extends GuiScreen {
     }
 
     private void drawFooter(int mx,int my){
-        int fy=height-FOOTER_H; fillR(0,fy,width,height,C_HEADER); fillR(0,fy,width,fy+1,C_DIVIDER);
+        int fy=py+ph-FOOTER_H; fillR(px,fy,px+pw,py+ph,C_HEADER); fillR(px,fy,px+pw,fy+1,C_DIVIDER);
         String tip=hoveredEntry!=null?tipOf(hoveredEntry.label):null;
         if(tip!=null){
-            int mw=width-40;
+            int mw=pw-40;
             while(fr().getStringWidth(tip+"...")>mw&&tip.length()>2)tip=tip.substring(0,tip.length()-1);
-            fr().drawStringWithShadow("§7"+tip,8,fy+7,C_TEXT_DIM);
+            fr().drawStringWithShadow("§7"+tip,px+8,fy+7,C_TEXT_DIM);
         }
         if(pulseLabel!=null&&System.currentTimeMillis()<pulseEnd){
             long left=pulseEnd-System.currentTimeMillis();
             float p=left/400f; if(p>1)p=1;
             int alpha=(int)(120+135*p);
-            fr().drawStringWithShadow("✓ "+tr(pulseLabel),width-150,fy+7,0xFFFFFF|(alpha<<24));
+            fr().drawStringWithShadow("✓ "+tr(pulseLabel),px+pw-150,fy+7,0xFFFFFF|(alpha<<24));
         }
     }
 
@@ -538,29 +554,32 @@ public class GuiModernConfig extends GuiScreen {
     @Override
     protected void mouseClicked(int mx,int my,int btn){
         if(btn!=0)return;
-        if(mx>=4&&mx<=24&&my>=4&&my<=30){mc.displayGuiScreen(parent);return;}
-        int y=HEADER_H+4-treeScroll;
+        if(mx<px||mx>px+pw||my<py||my>py+ph)return;                 // 面板外不响应
+        if(mx>=px+4&&mx<=px+24&&my>=py+4&&my<=py+30){mc.displayGuiScreen(parent);return;}
+        int sx=px+pw-96;
+        if(!searchQuery.isEmpty()&&mx>=sx+82&&mx<=sx+92&&my>=py+8&&my<=py+28){searchQuery="";return;}
+        int y=py+HEADER_H+4-treeScroll;
         for(TreeNode cat:roots){
-            if(mx>=8&&mx<=LEFT_W-8&&my>=y&&my<=y+22){cat.expanded=!cat.expanded;return;}
+            if(mx>=px+8&&mx<=px+LEFT_W-8&&my>=y&&my<=y+22){cat.expanded=!cat.expanded;return;}
             y+=24;if(!cat.expanded)continue;
             for(TreeNode mod:cat.children){
-                if(mx>=20&&mx<=LEFT_W-4&&my>=y&&my<=y+20){selectNode(mod);return;}
+                if(mx>=px+20&&mx<=px+LEFT_W-4&&my>=y&&my<=y+20){selectNode(mod);return;}
                 y+=21;
                 for(TreeNode grp:mod.children){
-                    if(mx>=32&&mx<=LEFT_W-4&&my>=y&&my<=y+18){grp.expanded=!grp.expanded;selectNode(mod);return;}
+                    if(mx>=px+32&&mx<=px+LEFT_W-4&&my>=y&&my<=y+18){grp.expanded=!grp.expanded;selectNode(mod);return;}
                     y+=19;
                 }
             }
         }
         if(selectedNode==null)return;
-        int vx=LEFT_W+6,cardY=HEADER_H+20-entryScroll;
+        int vx=px+LEFT_W+6,cardY=py+HEADER_H+4-entryScroll+18;   // 与 drawRightCards 同偏移（标题 18px）
         boolean searching=!searchQuery.isEmpty();
         String q=searchQuery.toLowerCase();
-        int cw=width-LEFT_W-12;
+        int cw=pw-LEFT_W-12;
         // 隐式条目（直挂节点）
         for(ConfigEntry e:selectedNode.entries){
             if(searching&&!tr(e.label).toLowerCase().contains(q))continue;
-            if(my>=cardY&&my<=cardY+ENTRY_H&&mx>=vx+40){handleClick(e,mx,my,vx,cardY,cw);return;}
+            if(my>=cardY&&my<=cardY+ENTRY_H&&mx>=vx+2){handleClick(e,mx,my,vx,cardY,cw);return;}
             cardY+=ENTRY_H;
         }
         if(!selectedNode.entries.isEmpty())cardY+=4;
@@ -568,7 +587,7 @@ public class GuiModernConfig extends GuiScreen {
             if(!grp.expanded)continue;cardY+=20;
             for(ConfigEntry e:grp.entries){
                 if(searching&&!tr(e.label).toLowerCase().contains(q))continue;
-                if(my>=cardY&&my<=cardY+ENTRY_H&&mx>=vx+40){handleClick(e,mx,my,vx,cardY,cw);return;}
+                if(my>=cardY&&my<=cardY+ENTRY_H&&mx>=vx+2){handleClick(e,mx,my,vx,cardY,cw);return;}
                 cardY+=ENTRY_H;
             }cardY+=4;
         }
@@ -609,13 +628,16 @@ public class GuiModernConfig extends GuiScreen {
         super.handleMouseInput();int wheel=Mouse.getDWheel();if(wheel==0)return;
         int mx=Mouse.getX()*width/mc.displayWidth;
         int my=height-Mouse.getY()*height/mc.displayHeight-1;
-        if(mx<LEFT_W)treeScroll=Math.max(0,treeScroll-wheel/120*20);
-        else if(my>FOOTER_H)entryScroll=Math.max(0,entryScroll-wheel/120*ENTRY_H);
+        if(mx<px+LEFT_W&&mx>px)treeScroll=Math.max(0,treeScroll-wheel/120*20);
+        else if(my>py+FOOTER_H&&my<py+ph)entryScroll=Math.max(0,entryScroll-wheel/120*ENTRY_H);
     }
 
     @Override
     protected void keyTyped(char c,int code){
-        if(code==Keyboard.KEY_ESCAPE){mc.displayGuiScreen(parent);return;}
+        if(code==Keyboard.KEY_ESCAPE){
+            if(!searchQuery.isEmpty()){searchQuery="";return;}   // 先清搜索，再关界面
+            mc.displayGuiScreen(parent);return;
+        }
         if(code==Keyboard.KEY_BACK){if(!searchQuery.isEmpty())searchQuery=searchQuery.substring(0,searchQuery.length()-1);return;}
         if(code==Keyboard.KEY_F8)return;
         if(Character.isLetterOrDigit(c)||c==' '||c=='.'||c=='-')searchQuery+=c;
