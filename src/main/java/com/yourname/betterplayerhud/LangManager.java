@@ -155,8 +155,28 @@ public class LangManager {
         en_US.put("module.debug", "Debug Info");
         zh_CN.put("module.tablist", "玩家列表");
         en_US.put("module.tablist", "Player List");
+        zh_CN.put("module.compass", "罗盘");
+        en_US.put("module.compass", "Compass");
+        zh_CN.put("module.health", "状态栏");
+        en_US.put("module.health", "Health HUD");
+        zh_CN.put("module.distance", "距离信息");
+        en_US.put("module.distance", "Distance Info");
+        zh_CN.put("module.keys", "按键显示");
+        en_US.put("module.keys", "Key Display");
+        zh_CN.put("module.performance", "性能检测");
+        en_US.put("module.performance", "Performance");
+        zh_CN.put("module.chroma", "蜃楼聊天框");
+        en_US.put("module.chroma", "Chroma Chat");
         zh_CN.put("module.hitmarker", "命中标识");
         en_US.put("module.hitmarker", "Hit Marker");
+        zh_CN.put("module.combo", "连击计数");
+        en_US.put("module.combo", "Combo Counter");
+        zh_CN.put("module.target", "目标血量");
+        en_US.put("module.target", "Target HP");
+        zh_CN.put("module.crisis", "危机警戒");
+        en_US.put("module.crisis", "Crisis Warning");
+        zh_CN.put("module.potion", "药水效果");
+        en_US.put("module.potion", "Potion Effects");
         zh_CN.put("chroma.width", "聊天宽度");
         en_US.put("chroma.width", "Chat Width");
         zh_CN.put("chroma.lines", "可见行数");
@@ -525,6 +545,12 @@ public class LangManager {
         // ═══════════════════════════════════════════════════════════
         //  P2 新增模块：JumpBar / AirHUD / MountHP
         // ═══════════════════════════════════════════════════════════
+        zh_CN.put("module.jumpbar", "跳跃蓄力条");
+        en_US.put("module.jumpbar", "Jump Bar");
+        zh_CN.put("module.airhud", "氧气条");
+        en_US.put("module.airhud", "Air HUD");
+        zh_CN.put("module.mountHP", "坐骑血量");
+        en_US.put("module.mountHP", "Mount Health");
         zh_CN.put("module.jumpbar.tooltip", "按住空格时在屏幕下方显示跳跃蓄力条");
         en_US.put("module.jumpbar.tooltip", "Show jump charge bar when holding space");
         zh_CN.put("module.airhud.tooltip", "水下时显示自定义氧气条");
