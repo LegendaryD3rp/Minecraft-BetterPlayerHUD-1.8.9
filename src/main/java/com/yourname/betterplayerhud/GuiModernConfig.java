@@ -117,6 +117,12 @@ public class GuiModernConfig extends GuiScreen {
             (Consumer<Float>)v->{try{cf(fn).setFloat(cfg(),v);}catch(Exception e){}},
             0,0,mn,mx,null,tip,false,null);
     }
+    private static ConfigEntry mkDbl(String lb,String fn,float mn,float mx,String tip){
+        return new ConfigEntry(ConfigEntry.Type.FLOAT,lb,
+            ()->{try{return String.format("%.1f",cf(fn).getDouble(cfg()));}catch(Exception e){return "0.0";}},
+            (Consumer<Float>)v->{try{cf(fn).setDouble(cfg(),v.doubleValue());}catch(Exception e){}},
+            0,0,mn,mx,null,tip,false,null);
+    }
     private static ConfigEntry mkEnm(String lb,String fn,String[] ev,String tip){
         return new ConfigEntry(ConfigEntry.Type.ENUM,lb,
             ()->{try{Object o=cf(fn).get(cfg());return o==null?"":String.valueOf(o);}catch(Exception e){return "";}},
@@ -192,6 +198,12 @@ public class GuiModernConfig extends GuiScreen {
         xrgb.entries.add(mkEnm("rgb.mode","rgbFlowMode",new String[]{"perimeter","uniform"},null));
         xrgb.entries.add(mkEnm("rgb.algorithm","rgbColorAlgo",new String[]{"hsv","sinewave"},null));
         xrgb.entries.add(mkBool("crosshair.rgb","crosshairRGB",null));
+        xrgb.entries.add(mkInt("rgb.stepMs","rgbStepMs",0,2000,null));
+        xrgb.entries.add(mkBool("rgb.applyBlockOutline","rgbApplyBlockOutline",null));
+        xrgb.entries.add(mkBool("rgb.applyEntityHitbox","rgbApplyEntityHitbox",null));
+        xrgb.entries.add(mkInt("rgb.keyBindToggleBlockOutline","keyBindToggleBlockOutline",0,255,null));
+        xrgb.entries.add(mkInt("rgb.keyBindToggleEntityHitbox","keyBindToggleEntityHitbox",0,255,null));
+        xrgb.entries.add(mkInt("rgb.keyBindToggleRGB","keyBindToggleRGB",0,255,null));
         TreeNode xent=new TreeNode("crosshair.group.entity");crosshair.children.add(xent);
         xent.entries.add(mkBool("crosshair.entityColor","crosshairEntityColor",null));
         xent.entries.add(mkInt("crosshair.range","crosshairEntityRange",1,50,null));
@@ -231,7 +243,14 @@ public class GuiModernConfig extends GuiScreen {
         hmapp.entries.add(mkFlt("hitmarker.blood","hitBloodIntensity",0.0f,1.0f,null));
         hmapp.entries.add(mkBool("hitmarker.randomRotate","hitMarkerRandomRotate",null));
         hmapp.entries.add(mkFlt("hitmarker.rotateStrength","hitMarkerRandomRotateStrength",0.0f,90.0f,null));
+        hmapp.entries.add(mkCol("hitmarker.borderColor","hitMarkerBorderColor",false,null));
+        hmapp.entries.add(mkCol("hitmarker.killBorderColor","hitMarkerKillBorderColor",false,null));
+        hmapp.entries.add(mkFlt("hitmarker.alpha","killAlpha",0.0f,1.0f,null));
+        hmapp.entries.add(mkFlt("hitmarker.size","killSize",1.0f,40.0f,null));
 
+        TreeNode hmchat=new TreeNode("hitmarker.group.chat");hitmarker.children.add(hmchat);
+        hmchat.entries.add(mkBool("hitmarker.enableChatKillDetection","enableChatKillDetection",null));
+        hmchat.entries.add(mkBool("hitmarker.enablePlusChatDetection","enablePlusChatDetection",null));
         TreeNode combo=new TreeNode("module.combo");combo.dotColor=0xFFE74C3C;combo.expanded=true;combat.children.add(combo);
         combo.entries.add(mkBool("module.combo","enableCombo",null));
         combo.entries.add(mkInt("combo.xOffset","comboXOffset",-500,500,null));
@@ -274,6 +293,8 @@ public class GuiModernConfig extends GuiScreen {
         ehl.entries.add(mkBool("entityHL.enable","enableEntityHighlight",null));
         ehl.entries.add(mkFlt("entityHL.width","entityOutlineWidth",1.0f,8.0f,null));
         ehl.entries.add(mkInt("entityHL.alpha","entityOutlineAlpha",0,255,null));
+        ehl.entries.add(mkBool("entityHL.drawVisibleFacesOnlyEntities","drawVisibleFacesOnlyEntities",null));
+        ehl.entries.add(mkBool("entityHL.hideHitboxForInvisible","hideHitboxForInvisible",null));
 
         TreeNode bb=new TreeNode("module.blockBreak");bb.dotColor=0xFFE74C3C;bb.expanded=true;combat.children.add(bb);
         bb.entries.add(mkBool("blockBreak.enable","enableBlockBreakIndicator",null));
@@ -282,6 +303,8 @@ public class GuiModernConfig extends GuiScreen {
         bb.entries.add(mkInt("blockBreak.width","blockBreakIndicatorWidth",10,200,null));
         bb.entries.add(mkInt("blockBreak.height","blockBreakIndicatorHeight",2,20,null));
         bb.entries.add(mkBool("blockBreak.showPercent","blockBreakIndicatorShowPercent",null));
+        bb.entries.add(mkBool("blockBreak.showTime","blockBreakIndicatorShowTime",null));
+        bb.entries.add(mkFlt("blockBreak.timeSmoothing","blockBreakIndicatorTimeSmoothing",0.01f,1.0f,null));
 
         // ── 信息 ──
         TreeNode info=new TreeNode("category.info");info.dotColor=0xFF3498DB;info.expanded=true;roots.add(info);
@@ -304,15 +327,18 @@ public class GuiModernConfig extends GuiScreen {
 
         TreeNode health=new TreeNode("module.health");health.dotColor=0xFF3498DB;health.expanded=true;info.children.add(health);
         health.entries.add(mkBool("module.health","enableHealthHUD",null));
+        health.entries.add(mkBool("health.showHUD","showHealthHUD",null));
         TreeNode hlay=new TreeNode("health.group.layout");health.children.add(hlay);
         hlay.entries.add(mkInt("health.x","healthHudX",-500,2000,null));
         hlay.entries.add(mkInt("health.y","healthHudY",-500,500,null));
         hlay.entries.add(mkBool("health.showArmor","showArmorHUD",null));
+        hlay.entries.add(mkEnm("health.barStyle","healthBarStyle",new String[]{"default","modern","pixel"},null));
         TreeNode helem=new TreeNode("health.group.elements");health.children.add(helem);
         helem.entries.add(mkBool("health.showHunger","showHungerHUD",null));
         helem.entries.add(mkBool("health.showHead","showPlayerHead",null));
         helem.entries.add(mkInt("health.headSize","headSize",8,64,null));
         helem.entries.add(mkInt("health.textSpacing","headTextSpacing",0,20,null));
+        helem.entries.add(mkBool("health.armorDurability","showArmorDurability",null));
 
         TreeNode dist=new TreeNode("module.distance");dist.dotColor=0xFF3498DB;dist.expanded=true;info.children.add(dist);
         dist.entries.add(mkBool("module.distance","enableDistanceHUD",null));
@@ -405,9 +431,13 @@ public class GuiModernConfig extends GuiScreen {
 
         TreeNode boss=new TreeNode("module.bossHP");boss.dotColor=0xFF2ECC71;boss.expanded=true;status.children.add(boss);
         boss.entries.add(mkBool("module.bossHP","enableBossHealthHUD",null));
+        boss.entries.add(mkInt("bossHP.x","bossHpX",-500,500,null));
+        boss.entries.add(mkInt("bossHP.y","bossHpY",-500,500,null));
 
         TreeNode hotbar=new TreeNode("module.hotbar");hotbar.dotColor=0xFF2ECC71;hotbar.expanded=true;status.children.add(hotbar);
         hotbar.entries.add(mkBool("module.hotbar","enableHotbarHUD",null));
+        hotbar.entries.add(mkInt("hotbar.x","hotbarX",-500,500,null));
+        hotbar.entries.add(mkInt("hotbar.yOffset","hotbarYOffset",-500,500,null));
 
         TreeNode potion=new TreeNode("module.potion");potion.dotColor=0xFF2ECC71;potion.expanded=true;status.children.add(potion);
         TreeNode ptimer=new TreeNode("potion.group.timer");potion.children.add(ptimer);
@@ -419,27 +449,45 @@ public class GuiModernConfig extends GuiScreen {
         peff.entries.add(mkBool("module.potion","enablePotionHUD",null));
         peff.entries.add(mkInt("potion.xOffset","potionXOffset",-500,500,null));
         peff.entries.add(mkInt("potion.yOffset","potionYOffset",-500,500,null));
+        peff.entries.add(mkBool("potion.warning","potionWarning",null));
+        peff.entries.add(mkInt("potion.warnThreshold","potionWarnThreshold",1,30,null));
 
         TreeNode crisis=new TreeNode("module.crisis");crisis.dotColor=0xFF2ECC71;crisis.expanded=true;status.children.add(crisis);
         crisis.entries.add(mkBool("module.crisis","enableCrisisWarning",null));
         crisis.entries.add(mkBool("crisis.warnHealth","crisisWarnHealth",null));
-        crisis.entries.add(mkFlt("crisis.healthThreshold","crisisHealthThreshold",0.5f,20.0f,null));
+        crisis.entries.add(mkDbl("crisis.healthThreshold","crisisHealthThreshold",0.5f,20.0f,null));
         crisis.entries.add(mkBool("crisis.warnHunger","crisisWarnHunger",null));
         crisis.entries.add(mkInt("crisis.hungerThreshold","crisisHungerThreshold",1,20,null));
         crisis.entries.add(mkBool("crisis.warnTnt","crisisWarnTnt",null));
-        crisis.entries.add(mkFlt("crisis.tntRadius","crisisTntRadius",2.0f,50.0f,null));
+        crisis.entries.add(mkDbl("crisis.tntRadius","crisisTntRadius",2.0f,50.0f,null));
         crisis.entries.add(mkInt("crisis.xOffset","crisisXOffset",-500,500,null));
         crisis.entries.add(mkInt("crisis.yOffset","crisisYOffset",-500,500,null));
         crisis.entries.add(mkInt("crisis.iconSize","crisisIconSize",12,64,null));
+        crisis.entries.add(mkBool("crisis.warnArrow","crisisWarnArrow",null));
+        crisis.entries.add(mkDbl("crisis.arrowRadius","crisisArrowRadius",1f,300f,null));
+        crisis.entries.add(mkInt("crisis.flashInterval","crisisFlashInterval",0,2000,null));
 
         TreeNode jumpbar=new TreeNode("module.jumpbar");jumpbar.dotColor=0xFF2ECC71;jumpbar.expanded=true;status.children.add(jumpbar);
         jumpbar.entries.add(mkBool("module.jumpbar","enableJumpBar",null));
+        jumpbar.entries.add(mkInt("jumpbar.x","jumpBarX",-500,500,null));
+        jumpbar.entries.add(mkInt("jumpbar.y","jumpBarY",30,300,null));
+        jumpbar.entries.add(mkInt("jumpbar.width","jumpBarWidth",30,300,null));
+        jumpbar.entries.add(mkInt("jumpbar.height","jumpBarHeight",2,20,null));
+        jumpbar.entries.add(mkFlt("jumpbar.chargeSpeed","jumpBarChargeSpeed",0.001f,0.1f,null));
 
         TreeNode airhud=new TreeNode("module.airhud");airhud.dotColor=0xFF2ECC71;airhud.expanded=true;status.children.add(airhud);
         airhud.entries.add(mkBool("module.airhud","enableAirHUD",null));
+        airhud.entries.add(mkInt("air.width","airBarWidth",30,300,null));
+        airhud.entries.add(mkInt("air.height","airBarHeight",2,20,null));
+        airhud.entries.add(mkInt("air.x","airHudX",-500,500,null));
+        airhud.entries.add(mkInt("air.y","airHudY",-500,500,null));
 
         TreeNode mount=new TreeNode("module.mountHP");mount.dotColor=0xFF2ECC71;mount.expanded=true;status.children.add(mount);
         mount.entries.add(mkBool("module.mountHP","enableMountHP",null));
+        mount.entries.add(mkInt("mount.barWidth","mountHPBarWidth",30,300,null));
+        mount.entries.add(mkInt("mount.barHeight","mountHPBarHeight",2,20,null));
+        mount.entries.add(mkInt("mount.x","mountHPX",-500,500,null));
+        mount.entries.add(mkInt("mount.y","mountHPY",-500,500,null));
 
         TreeNode equip=new TreeNode("module.equip");equip.dotColor=0xFF2ECC71;equip.expanded=true;status.children.add(equip);
         TreeNode eqa=new TreeNode("equip.group.armor");equip.children.add(eqa);
