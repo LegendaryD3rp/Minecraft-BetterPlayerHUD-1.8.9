@@ -161,7 +161,8 @@ public class CrisisWarningHandler {
         }
 
         // ── 闪烁 ──
-        boolean flashOn = (mc.theWorld.getTotalWorldTime() % cfg.crisisFlashInterval) < (cfg.crisisFlashInterval / 2);
+        int flashInterval = cfg.crisisFlashInterval < 2 ? 2 : cfg.crisisFlashInterval;
+        boolean flashOn = (mc.theWorld.getTotalWorldTime() % flashInterval) < (flashInterval / 2);
         if (!flashOn) return;
 
         int iconSize = cfg.crisisIconSize;

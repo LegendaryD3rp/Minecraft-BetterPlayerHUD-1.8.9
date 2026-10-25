@@ -465,7 +465,7 @@ public class GuiModernConfig extends GuiScreen {
         crisis.entries.add(mkInt("crisis.iconSize","crisisIconSize",12,128,null));
         crisis.entries.add(mkBool("crisis.warnArrow","crisisWarnArrow",null));
         crisis.entries.add(mkDbl("crisis.arrowRadius","crisisArrowRadius",1f,300f,null));
-        crisis.entries.add(mkInt("crisis.flashInterval","crisisFlashInterval",0,2000,null));
+        crisis.entries.add(mkInt("crisis.flashInterval","crisisFlashInterval",2,2000,null));
 
         TreeNode jumpbar=new TreeNode("module.jumpbar");jumpbar.dotColor=0xFF2ECC71;jumpbar.expanded=true;status.children.add(jumpbar);
         jumpbar.entries.add(mkBool("module.jumpbar","enableJumpBar",null));
