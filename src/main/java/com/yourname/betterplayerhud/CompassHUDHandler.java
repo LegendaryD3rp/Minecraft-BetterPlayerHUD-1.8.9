@@ -32,7 +32,7 @@ public class CompassHUDHandler {
             return;
         }
 
-        if (!BetterPlayerHUD.config.enableCompass) {
+        if (!BetterPlayerHUD.config.enableCompass || !BetterPlayerHUD.config.showCompassHUD) {
             if (HUDEditManager.isEditing()) {
                 ScaledResolution sr = event.resolution;
                 int sw = sr.getScaledWidth(), sh = sr.getScaledHeight();

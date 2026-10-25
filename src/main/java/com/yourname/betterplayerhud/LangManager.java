@@ -1162,6 +1162,24 @@ public class LangManager {
         en_US.put("mount.y", "Mount Bar Y Offset");
         zh_CN.put("hitmarker.group.chat", "聊天击杀检测");
         en_US.put("hitmarker.group.chat", "Chat Detection");
+        zh_CN.put("distance.show", "启用距离 HUD");
+        en_US.put("distance.show", "Enable Distance HUD");
+        zh_CN.put("keys.showDisplay", "启用按键显示");
+        en_US.put("keys.showDisplay", "Enable Keys Display");
+        zh_CN.put("perf.show", "启用性能检测");
+        en_US.put("perf.show", "Enable Performance Monitor");
+        zh_CN.put("target.enabled", "启用目标血量");
+        en_US.put("target.enabled", "Enable Target HP");
+        zh_CN.put("target.showBosses", "显示 Boss");
+        en_US.put("target.showBosses", "Show Bosses");
+        zh_CN.put("crosshair.alwaysShow", "始终显示");
+        en_US.put("crosshair.alwaysShow", "Always Show");
+        zh_CN.put("crisis.enabled", "启用危机警戒");
+        en_US.put("crisis.enabled", "Enable Crisis Warning");
+        zh_CN.put("crisis.warnBow", "拉弓警戒");
+        en_US.put("crisis.warnBow", "Warn Drawing Bow");
+        zh_CN.put("chroma.avatarRounded", "头像圆角");
+        en_US.put("chroma.avatarRounded", "Rounded Avatar");
     }
 
     /**

@@ -184,6 +184,7 @@ public class GuiModernConfig extends GuiScreen {
         crosshair.entries.add(mkBool("module.crosshair","enableCrosshair",null));
         TreeNode xgen=new TreeNode("crosshair.group.general");crosshair.children.add(xgen);
         xgen.entries.add(mkEnm("crosshair.style","crosshairStyle",new String[]{"default","dot","circle","cross","arrow"},null));
+        xgen.entries.add(mkBool("crosshair.alwaysShow","crosshairAlwaysShow",null));
         xgen.entries.add(mkInt("crosshair.gap","crosshairGap",0,20,null));
         xgen.entries.add(mkInt("crosshair.thickness","crosshairThickness",1,10,null));
         xgen.entries.add(mkBool("crosshair.dot","crosshairOutline",null));
@@ -259,6 +260,7 @@ public class GuiModernConfig extends GuiScreen {
 
         TreeNode target=new TreeNode("module.target");target.dotColor=0xFFE74C3C;target.expanded=true;combat.children.add(target);
         target.entries.add(mkBool("module.target","enableTargetHealth",null));
+        target.entries.add(mkBool("target.enabled","targetHPEnabled",null));
 
         TreeNode tgb=new TreeNode("target.group.basic");target.children.add(tgb);
         tgb.entries.add(mkEnm("target.style","targetHPStyle",new String[]{"BAR_ONLY","TEXT_ONLY","BAR_AND_TEXT"},null));
@@ -266,6 +268,7 @@ public class GuiModernConfig extends GuiScreen {
         TreeNode tgt=new TreeNode("target.group.targets");target.children.add(tgt);
         tgt.entries.add(mkBool("target.showPlayers","targetHPShowPlayers",null));
         tgt.entries.add(mkBool("target.showMobs","targetHPShowMobs",null));
+        tgt.entries.add(mkBool("target.showBosses","targetHPShowBosses",null));
         tgt.entries.add(mkBool("target.showSelf","targetHPShowSelf",null));
         tgt.entries.add(mkBool("target.showName","targetHPShowName",null));
         TreeNode tgc=new TreeNode("target.group.colors");target.children.add(tgc);
@@ -342,6 +345,7 @@ public class GuiModernConfig extends GuiScreen {
 
         TreeNode dist=new TreeNode("module.distance");dist.dotColor=0xFF3498DB;dist.expanded=true;info.children.add(dist);
         dist.entries.add(mkBool("module.distance","enableDistanceHUD",null));
+        dist.entries.add(mkBool("distance.show","showDistanceHUD",null));
         TreeNode dcoord=new TreeNode("distance.group.coords");dist.children.add(dcoord);
         dcoord.entries.add(mkInt("dist.x","distanceHudX",0,2000,null));
         dcoord.entries.add(mkInt("dist.y","distanceHudY",0,2000,null));
@@ -361,6 +365,7 @@ public class GuiModernConfig extends GuiScreen {
         keys.entries.add(mkBool("keys.background","showKeysBackground",null));
         keys.entries.add(mkFlt("keys.opacity","keysOpacity",0.0f,1.0f,null));
         keys.entries.add(mkBool("module.keys","enableKeysDisplay",null));
+        keys.entries.add(mkBool("keys.showDisplay","showKeysDisplay",null));
 
         TreeNode chrom=new TreeNode("module.chroma");chrom.dotColor=0xFF3498DB;chrom.expanded=true;info.children.add(chrom);
         chrom.entries.add(mkBool("module.chroma","enableChromaChat",null));
@@ -391,8 +396,10 @@ public class GuiModernConfig extends GuiScreen {
         chm.entries.add(mkInt("chroma.timestampFormat","chromaChatTimestampFormat",0,2,null));
         chm.entries.add(mkBool("chroma.dedup","chromaChatDedup",null));
         chm.entries.add(mkInt("chroma.avatarSize","chromaChatAvatarSize",4,16,null));
+        chm.entries.add(mkBool("chroma.avatarRounded","chromaChatAvatarRounded",null));
         TreeNode perf=new TreeNode("module.performance");perf.dotColor=0xFF3498DB;perf.expanded=true;info.children.add(perf);
         perf.entries.add(mkBool("module.performance","enablePerformanceHUD",null));
+        perf.entries.add(mkBool("perf.show","showPerformanceHUD",null));
 
         TreeNode pfd=new TreeNode("perf.group.display");perf.children.add(pfd);
         pfd.entries.add(mkBool("perf.showFPS","showFPS",null));
@@ -454,6 +461,7 @@ public class GuiModernConfig extends GuiScreen {
 
         TreeNode crisis=new TreeNode("module.crisis");crisis.dotColor=0xFF2ECC71;crisis.expanded=true;status.children.add(crisis);
         crisis.entries.add(mkBool("module.crisis","enableCrisisWarning",null));
+        crisis.entries.add(mkBool("crisis.enabled","enableCriticalHealth",null));
         crisis.entries.add(mkBool("crisis.warnHealth","crisisWarnHealth",null));
         crisis.entries.add(mkDbl("crisis.healthThreshold","crisisHealthThreshold",0.5f,20.0f,null));
         crisis.entries.add(mkBool("crisis.warnHunger","crisisWarnHunger",null));
@@ -464,6 +472,7 @@ public class GuiModernConfig extends GuiScreen {
         crisis.entries.add(mkInt("crisis.yOffset","crisisYOffset",-500,500,null));
         crisis.entries.add(mkInt("crisis.iconSize","crisisIconSize",12,128,null));
         crisis.entries.add(mkBool("crisis.warnArrow","crisisWarnArrow",null));
+        crisis.entries.add(mkBool("crisis.warnBow","crisisWarnBow",null));
         crisis.entries.add(mkDbl("crisis.arrowRadius","crisisArrowRadius",1f,300f,null));
         crisis.entries.add(mkInt("crisis.flashInterval","crisisFlashInterval",2,2000,null));
 
