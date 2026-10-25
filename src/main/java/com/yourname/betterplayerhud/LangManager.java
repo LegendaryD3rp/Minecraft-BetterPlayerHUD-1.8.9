@@ -930,6 +930,40 @@ public class LangManager {
         en_US.put("target.group.layout", "Layout");
         zh_CN.put("target.group.face", "头像");
         en_US.put("target.group.face", "Face");
+        zh_CN.put("perf.textColor", "性能文字颜色");
+        en_US.put("perf.textColor", "Performance Text Color");
+        zh_CN.put("perf.tpsGoodColor", "TPS 良好颜色");
+        en_US.put("perf.tpsGoodColor", "TPS Good Color");
+        zh_CN.put("perf.tpsMediumColor", "TPS 一般颜色");
+        en_US.put("perf.tpsMediumColor", "TPS Medium Color");
+        zh_CN.put("perf.tpsBadColor", "TPS 较差颜色");
+        en_US.put("perf.tpsBadColor", "TPS Bad Color");
+        zh_CN.put("perf.hudX", "X 坐标");
+        en_US.put("perf.hudX", "X Position");
+        zh_CN.put("perf.hudY", "Y 坐标");
+        en_US.put("perf.hudY", "Y Position");
+        zh_CN.put("perf.showFPS", "是否显示FPS");
+        en_US.put("perf.showFPS", "Show FPS");
+        zh_CN.put("perf.showXYZ", "是否显示坐标");
+        en_US.put("perf.showXYZ", "Show Coordinates");
+        zh_CN.put("perf.showTPS", "是否显示实时TPS");
+        en_US.put("perf.showTPS", "Show TPS");
+        zh_CN.put("perf.showPing", "是否显示延迟");
+        en_US.put("perf.showPing", "Show Ping");
+        zh_CN.put("perf.showServerIP", "是否显示服务器IP");
+        en_US.put("perf.showServerIP", "Show Server IP");
+        zh_CN.put("perf.goodTpsThreshold", "良好TPS阈值");
+        en_US.put("perf.goodTpsThreshold", "Good TPS Threshold");
+        zh_CN.put("perf.mediumTpsThreshold", "中等TPS阈值");
+        en_US.put("perf.mediumTpsThreshold", "Medium TPS Threshold");
+        zh_CN.put("perf.group.display", "显示内容");
+        en_US.put("perf.group.display", "Display");
+        zh_CN.put("perf.group.position", "位置");
+        en_US.put("perf.group.position", "Position");
+        zh_CN.put("perf.group.tps", "TPS 阈值");
+        en_US.put("perf.group.tps", "TPS Thresholds");
+        zh_CN.put("perf.group.colors", "颜色");
+        en_US.put("perf.group.colors", "Colors");
     }
 
     /**

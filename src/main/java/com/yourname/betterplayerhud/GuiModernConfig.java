@@ -323,6 +323,23 @@ public class GuiModernConfig extends GuiScreen {
         TreeNode perf=new TreeNode("module.performance");perf.dotColor=0xFF3498DB;perf.expanded=true;info.children.add(perf);
         perf.entries.add(mkBool("module.performance","enablePerformanceHUD",null));
 
+        TreeNode pfd=new TreeNode("perf.group.display");perf.children.add(pfd);
+        pfd.entries.add(mkBool("perf.showFPS","showFPS",null));
+        pfd.entries.add(mkBool("perf.showXYZ","showXYZ",null));
+        pfd.entries.add(mkBool("perf.showTPS","showTPS",null));
+        pfd.entries.add(mkBool("perf.showPing","showPing",null));
+        pfd.entries.add(mkBool("perf.showServerIP","showServerIP",null));
+        TreeNode pfp=new TreeNode("perf.group.position");perf.children.add(pfp);
+        pfp.entries.add(mkInt("perf.hudX","performanceHudX",-500,500,null));
+        pfp.entries.add(mkInt("perf.hudY","performanceHudY",-500,500,null));
+        TreeNode pft=new TreeNode("perf.group.tps");perf.children.add(pft);
+        pft.entries.add(mkInt("perf.goodTpsThreshold","serverInfoGoodTpsThreshold",0,20,null));
+        pft.entries.add(mkInt("perf.mediumTpsThreshold","serverInfoMediumTpsThreshold",0,20,null));
+        TreeNode pfc=new TreeNode("perf.group.colors");perf.children.add(pfc);
+        pfc.entries.add(mkCol("perf.textColor","performanceTextColor",false,null));
+        pfc.entries.add(mkCol("perf.tpsGoodColor","serverInfoTPSGoodColor",false,null));
+        pfc.entries.add(mkCol("perf.tpsMediumColor","serverInfoTPSMediumColor",false,null));
+        pfc.entries.add(mkCol("perf.tpsBadColor","serverInfoTPSBadColor",false,null));
         TreeNode tab=new TreeNode("module.tablist");tab.dotColor=0xFF3498DB;tab.expanded=true;info.children.add(tab);
         tab.entries.add(mkBool("module.tablist","enableTabListHUD",null));
 
