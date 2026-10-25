@@ -58,7 +58,9 @@ public class CrosshairHandler {
     private boolean shouldShow() {
         if (mc.thePlayer == null) return false;
         if (mc.gameSettings.hideGUI) return false;
-        if (mc.gameSettings.thirdPersonView != 0 && !BetterPlayerHUD.config.crosshairShowInThirdPerson) return false;
+        if (mc.gameSettings.thirdPersonView != 0
+                && !BetterPlayerHUD.config.crosshairShowInThirdPerson
+                && !BetterPlayerHUD.config.crosshairAlwaysShow) return false;
         if (mc.currentScreen != null) return false;
         return true;
     }

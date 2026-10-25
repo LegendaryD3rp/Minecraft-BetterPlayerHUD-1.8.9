@@ -255,6 +255,19 @@ public class ChromaChatManager {
         tess.draw();
     }
 
+    /** 画头像：rounded=true 时四角各切一像素，做出圆角效果 */
+    private static void drawAvatar(int x, int y, int size,
+                                   float u0, float v0, float u1, float v1, boolean rounded) {
+        if (!rounded) {
+            drawTexturedModalRect(x, y, size, size, u0, v0, u1, v1);
+            return;
+        }
+        float du = (u1 - u0) / 16.0F, dv = (v1 - v0) / 16.0F;
+        drawTexturedModalRect(x + 1, y, size - 2, 1, u0 + du, v0, u1 - du, v0 + dv);
+        drawTexturedModalRect(x, y + 1, size, size - 2, u0, v0 + dv, u1, v1 - dv);
+        drawTexturedModalRect(x + 1, y + size - 1, size - 2, 1, u0 + du, v1 - dv, u1 - du, v1);
+    }
+
     /** 颜色向白色混合（用于脉冲动画） */
     private static int blendColorToWhite(int color, float t) {
         int r = (int)(((color >> 16) & 0xFF) * (1 - t) + 255 * t);
@@ -807,12 +820,13 @@ public class ChromaChatManager {
                         // 头像淡出：与文字同步，直接用 calcAlpha 的线性值
                         float avatarAlpha = Math.min(1.0F, alpha / 255.0F);
                         GlStateManager.color(1.0F, 1.0F, 1.0F, avatarAlpha);
+                        boolean roundAvatar = cfg.chromaChatAvatarRounded && avatarSize >= 6;
                         // 面部（8/64~16/64, 8/64~16/64）
-                        drawTexturedModalRect(baseX + 2, lineY, avatarSize, avatarSize,
-                            8.0F / 64.0F, 8.0F / 64.0F, 16.0F / 64.0F, 16.0F / 64.0F);
+                        drawAvatar(baseX + 2, lineY, avatarSize,
+                            8.0F / 64.0F, 8.0F / 64.0F, 16.0F / 64.0F, 16.0F / 64.0F, roundAvatar);
                         // 帽子 overlay（40/64~48/64, 8/64~16/64）
-                        drawTexturedModalRect(baseX + 2, lineY, avatarSize, avatarSize,
-                            40.0F / 64.0F, 8.0F / 64.0F, 48.0F / 64.0F, 16.0F / 64.0F);
+                        drawAvatar(baseX + 2, lineY, avatarSize,
+                            40.0F / 64.0F, 8.0F / 64.0F, 48.0F / 64.0F, 16.0F / 64.0F, roundAvatar);
                         GlStateManager.disableBlend();
                     }
                     tx += avatarOffset;

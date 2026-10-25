@@ -121,7 +121,7 @@ public class PerformanceHUDHandler {
     public void onRenderOverlay(RenderGameOverlayEvent.Post event) {
         if (event.type != RenderGameOverlayEvent.ElementType.TEXT) return;
         BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
-        if (!cfg.enablePerformanceHUD) {
+        if (!cfg.enablePerformanceHUD || !cfg.showPerformanceHUD) {
             if (HUDEditManager.isEditing()) {
                 ScaledResolution sr2 = event.resolution;
                 int sw = sr2.getScaledWidth(), sh = sr2.getScaledHeight();

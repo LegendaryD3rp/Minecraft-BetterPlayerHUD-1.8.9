@@ -29,7 +29,7 @@ public class DistanceHUDHandler {
             return;
         }
 
-        if (!BetterPlayerHUD.config.enableDistanceHUD) {
+        if (!BetterPlayerHUD.config.enableDistanceHUD || !BetterPlayerHUD.config.showDistanceHUD) {
             if (HUDEditManager.isEditing()) {
                 ScaledResolution sr = event.resolution;
                 int sw2 = sr.getScaledWidth(), sh2 = sr.getScaledHeight();

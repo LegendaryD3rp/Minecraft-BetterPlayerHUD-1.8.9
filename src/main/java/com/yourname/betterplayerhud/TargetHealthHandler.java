@@ -7,6 +7,8 @@ import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.boss.EntityDragon;
+import net.minecraft.entity.boss.EntityWither;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
@@ -38,7 +40,7 @@ public class TargetHealthHandler {
     @SubscribeEvent
     public void onRenderOverlay(RenderGameOverlayEvent.Post event) {
         if (event.type != RenderGameOverlayEvent.ElementType.ALL) return;
-        if (!BetterPlayerHUD.config.enableTargetHealth) {
+        if (!BetterPlayerHUD.config.enableTargetHealth || !BetterPlayerHUD.config.targetHPEnabled) {
             if (HUDEditManager.isEditing()) {
                 ScaledResolution sr = event.resolution;
                 int sw = sr.getScaledWidth(), sh = sr.getScaledHeight();
@@ -249,6 +251,8 @@ public class TargetHealthHandler {
         if (isSelf && !BetterPlayerHUD.config.targetHPShowSelf) return false;
         if (isPlayer && !isSelf && !BetterPlayerHUD.config.targetHPShowPlayers) return false;
         if (!isPlayer && !BetterPlayerHUD.config.targetHPShowMobs) return false;
+        if (!isPlayer && (entity instanceof EntityDragon || entity instanceof EntityWither)
+                && !BetterPlayerHUD.config.targetHPShowBosses) return false;
         return true;
     }
 

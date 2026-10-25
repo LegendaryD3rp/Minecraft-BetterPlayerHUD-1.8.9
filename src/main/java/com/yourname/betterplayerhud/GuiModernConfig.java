@@ -379,7 +379,7 @@ public class GuiModernConfig extends GuiScreen {
         chc.entries.add(mkCol("chroma.timestampColor","chromaChatTimestampColor",false,null));
         TreeNode chl=new TreeNode("chroma.group.layout");chrom.children.add(chl);
         chl.entries.add(mkInt("chroma.xOffset","chromaChatXOffset",-500,500,null));
-        chl.entries.add(mkInt("chroma.yOffset","chromaChatYOffset",80,800,null));
+        chl.entries.add(mkInt("chroma.yOffset","chromaChatYOffset",-500,500,null));
         chl.entries.add(mkInt("chroma.borderRadius","chromaChatBorderRadius",0,20,null));
         TreeNode cha=new TreeNode("chroma.group.anim");chrom.children.add(cha);
         cha.entries.add(mkFlt("chroma.animBounciness","chromaChatAnimBounciness",0.0f,1.0f,null));
@@ -462,7 +462,7 @@ public class GuiModernConfig extends GuiScreen {
         crisis.entries.add(mkDbl("crisis.tntRadius","crisisTntRadius",2.0f,50.0f,null));
         crisis.entries.add(mkInt("crisis.xOffset","crisisXOffset",-500,500,null));
         crisis.entries.add(mkInt("crisis.yOffset","crisisYOffset",-500,500,null));
-        crisis.entries.add(mkInt("crisis.iconSize","crisisIconSize",12,64,null));
+        crisis.entries.add(mkInt("crisis.iconSize","crisisIconSize",12,128,null));
         crisis.entries.add(mkBool("crisis.warnArrow","crisisWarnArrow",null));
         crisis.entries.add(mkDbl("crisis.arrowRadius","crisisArrowRadius",1f,300f,null));
         crisis.entries.add(mkInt("crisis.flashInterval","crisisFlashInterval",0,2000,null));
@@ -470,7 +470,7 @@ public class GuiModernConfig extends GuiScreen {
         TreeNode jumpbar=new TreeNode("module.jumpbar");jumpbar.dotColor=0xFF2ECC71;jumpbar.expanded=true;status.children.add(jumpbar);
         jumpbar.entries.add(mkBool("module.jumpbar","enableJumpBar",null));
         jumpbar.entries.add(mkInt("jumpbar.x","jumpBarX",-500,500,null));
-        jumpbar.entries.add(mkInt("jumpbar.y","jumpBarY",30,300,null));
+        jumpbar.entries.add(mkInt("jumpbar.y","jumpBarY",-500,500,null));
         jumpbar.entries.add(mkInt("jumpbar.width","jumpBarWidth",30,300,null));
         jumpbar.entries.add(mkInt("jumpbar.height","jumpBarHeight",2,20,null));
         jumpbar.entries.add(mkFlt("jumpbar.chargeSpeed","jumpBarChargeSpeed",0.001f,0.1f,null));

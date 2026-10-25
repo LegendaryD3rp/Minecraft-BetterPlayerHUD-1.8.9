@@ -7,6 +7,7 @@ import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.entity.item.EntityTNTPrimed;
 import net.minecraft.entity.monster.EntityCreeper;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.projectile.EntityArrow;
 import net.minecraft.entity.projectile.EntityFireball;
 import net.minecraft.init.Blocks;
@@ -34,9 +35,13 @@ public class CrisisWarningHandler {
     /** 箭头检测消退计时器（tick），让警告持续一段时间 */
     private int arrowWarnCooldown = 0;
 
+    /** 拉弓警戒消退计时器（tick） */
+    private int bowWarnCooldown = 0;
+
     // ── Tick 缓存：代替每帧全实体扫描 ──
     private boolean tickArrowNear = false;
     private boolean tickExplosiveNear = false;
+    private boolean tickBowNear = false;
 
     // ══════════════════════════════════════════════════════════════
     //  Tick 级扫描（20 tps），缓存结果供渲染帧使用
@@ -47,10 +52,11 @@ public class CrisisWarningHandler {
         if (event.phase != TickEvent.Phase.END) return;
         if (mc.thePlayer == null || mc.theWorld == null) return;
         BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
-        if (!cfg.enableCrisisWarning) return;
+        if (!cfg.enableCrisisWarning || !cfg.enableCriticalHealth) return;
 
         tickArrowNear = false;
         tickExplosiveNear = false;
+        tickBowNear = false;
 
         double px = mc.thePlayer.posX, py = mc.thePlayer.posY, pz = mc.thePlayer.posZ;
 
@@ -63,6 +69,18 @@ public class CrisisWarningHandler {
                 double dx = arrow.posX - px, dy = arrow.posY - py, dz = arrow.posZ - pz;
                 if (dx * dx + dy * dy + dz * dz <= radiusSq) {
                     tickArrowNear = true;
+                }
+            }
+            if (cfg.crisisWarnBow && !tickBowNear && o instanceof EntityPlayer && o != mc.thePlayer) {
+                EntityPlayer other = (EntityPlayer) o;
+                if (other.isUsingItem() && other.getItemInUse() != null
+                        && other.getItemInUse().getItem() == Items.bow
+                        && other.getItemInUseCount() > 0) {
+                    double radiusSq = cfg.crisisArrowRadius * cfg.crisisArrowRadius;
+                    double dx = other.posX - px, dy = other.posY - py, dz = other.posZ - pz;
+                    if (dx * dx + dy * dy + dz * dz <= radiusSq) {
+                        tickBowNear = true;
+                    }
                 }
             }
             if (cfg.crisisWarnTnt && !tickExplosiveNear) {
@@ -87,7 +105,8 @@ public class CrisisWarningHandler {
             }
 
             // 两个都找到了，提前结束遍历
-            if ((!cfg.crisisWarnArrow || tickArrowNear) && (!cfg.crisisWarnTnt || tickExplosiveNear)) break;
+            if ((!cfg.crisisWarnArrow || tickArrowNear) && (!cfg.crisisWarnTnt || tickExplosiveNear)
+                    && (!cfg.crisisWarnBow || tickBowNear)) break;
         }
 
         // 消退计时器（每 tick 精确递减）
@@ -95,6 +114,12 @@ public class CrisisWarningHandler {
             arrowWarnCooldown = 80; // persist 4 seconds
         } else if (arrowWarnCooldown > 0) {
             arrowWarnCooldown--;
+        }
+
+        if (tickBowNear) {
+            bowWarnCooldown = 80;
+        } else if (bowWarnCooldown > 0) {
+            bowWarnCooldown--;
         }
     }
 
@@ -107,7 +132,7 @@ public class CrisisWarningHandler {
         if (event.type != RenderGameOverlayEvent.ElementType.TEXT) return;
         if (mc.thePlayer == null || mc.theWorld == null) return;
         BetterPlayerHUDConfig cfg = BetterPlayerHUD.config;
-        if (!cfg.enableCrisisWarning) {
+        if (!cfg.enableCrisisWarning || !cfg.enableCriticalHealth) {
             if (HUDEditManager.isEditing()) {
                 ScaledResolution sr2 = event.resolution;
                 int centerX = sr2.getScaledWidth() / 2;
@@ -157,9 +182,13 @@ public class CrisisWarningHandler {
         }
         // 附近即将引爆的爆炸物：TNT 或 苦力怕（点燃状态）— 使用 tick 缓存
         if (cfg.crisisWarnTnt && tickExplosiveNear) { types.add(2); stacks.add(ICON_TNT); }
+        // 拉弓警戒：附近有玩家正在拉弓对着自己
+        if (cfg.crisisWarnBow && bowWarnCooldown > 0) {
+            types.add(3); stacks.add(ICON_BOW);
+        }
         // 箭矢警告（消退计时已提前处理，此处仅判断是否显示）
         if (cfg.crisisWarnArrow && arrowWarnCooldown > 0) {
-            types.add(4); stacks.add(ICON_BOW);
+            types.add(4); stacks.add(ICON_ARROW);
         }
 
         if (types.isEmpty()) {

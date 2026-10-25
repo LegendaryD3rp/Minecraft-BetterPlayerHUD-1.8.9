@@ -36,7 +36,8 @@ public class KeysDisplayHandler {
 
     @SubscribeEvent
     public void onClientTick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END || !BetterPlayerHUD.config.enableKeysDisplay) return;
+        if (event.phase != TickEvent.Phase.END || !BetterPlayerHUD.config.enableKeysDisplay
+                || !BetterPlayerHUD.config.showKeysDisplay) return;
         if (mc.thePlayer == null) return;
 
         updateKeyStates();
@@ -48,7 +49,7 @@ public class KeysDisplayHandler {
     public void onRenderGameOverlay(RenderGameOverlayEvent.Post event) {
         if (shouldSkipRendering(event)) return;
 
-        if (!BetterPlayerHUD.config.enableKeysDisplay) {
+        if (!BetterPlayerHUD.config.enableKeysDisplay || !BetterPlayerHUD.config.showKeysDisplay) {
             if (HUDEditManager.isEditing()) {
                 ScaledResolution sr = event.resolution;
                 int sw = sr.getScaledWidth(), sh = sr.getScaledHeight();
