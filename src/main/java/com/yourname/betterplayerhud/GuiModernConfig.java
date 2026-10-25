@@ -58,6 +58,7 @@ public class GuiModernConfig extends GuiScreen {
         public final String[] enumValues;
         public final boolean isARGB;
         public final String colorKey;            // 颜色字段名
+        public String colorKey2, colorKey3;      // 三通道颜色的 G/B 字段名
         int x,y,w,h;
         public ConfigEntry(Type t,String lb,Supplier<String> g,Object s,
                            int mn,int mx,float mnf,float mxf,String[] ev,
@@ -129,6 +130,14 @@ public class GuiModernConfig extends GuiScreen {
             0,0,0,0,null,tip,argb,fn);
     }
 
+    private static ConfigEntry mkCol3(String lb,String fr,String fg,String fb,String tip){
+        ConfigEntry e=new ConfigEntry(ConfigEntry.Type.COLOR,lb,
+            ()->String.format("#%06X",((getIntField(fr)&0xFF)<<16)|((getIntField(fg)&0xFF)<<8)|(getIntField(fb)&0xFF)),
+            (Consumer<Integer>)v->{setIntField(fr,(v>>16)&0xFF);setIntField(fg,(v>>8)&0xFF);setIntField(fb,v&0xFF);},
+            0,0,0,0,null,tip,false,fr);
+        e.colorKey2=fg;e.colorKey3=fb;return e;
+    }
+
     private static int getIntField(String n){
         try{Field f=cf(n);if(f==null)return 0;
             if(f.getType()==int.class)return f.getInt(cfg());
@@ -151,6 +160,13 @@ public class GuiModernConfig extends GuiScreen {
         try{Field f=cf(k);if(f!=null)f.setInt(c,v);}catch(Exception e){}
     }
 
+    private static int rgb3(ConfigEntry e){
+        return ((getIntField(e.colorKey)&0xFF)<<16)|((getIntField(e.colorKey2)&0xFF)<<8)|(getIntField(e.colorKey3)&0xFF);
+    }
+    private static void setRgb3(ConfigEntry e,int v){
+        setIntField(e.colorKey,(v>>16)&0xFF);setIntField(e.colorKey2,(v>>8)&0xFF);setIntField(e.colorKey3,v&0xFF);
+    }
+
     // ═══ 树构建（v1.6.0 全量 139 项，三层树） ═══
     private void buildTree(){
         roots.clear();
@@ -159,6 +175,7 @@ public class GuiModernConfig extends GuiScreen {
         TreeNode combat=new TreeNode("category.combat");combat.dotColor=0xFFE74C3C;combat.expanded=true;roots.add(combat);
 
         TreeNode crosshair=new TreeNode("module.crosshair");crosshair.dotColor=0xFFE74C3C;crosshair.expanded=true;combat.children.add(crosshair);
+        crosshair.entries.add(mkBool("module.crosshair","enableCrosshair",null));
         TreeNode xgen=new TreeNode("crosshair.group.general");crosshair.children.add(xgen);
         xgen.entries.add(mkEnm("crosshair.style","crosshairStyle",new String[]{"default","dot","circle","cross","arrow"},null));
         xgen.entries.add(mkInt("crosshair.gap","crosshairGap",0,20,null));
@@ -222,6 +239,7 @@ public class GuiModernConfig extends GuiScreen {
         TreeNode info=new TreeNode("category.info");info.dotColor=0xFF3498DB;info.expanded=true;roots.add(info);
 
         TreeNode compass=new TreeNode("module.compass");compass.dotColor=0xFF3498DB;compass.expanded=true;info.children.add(compass);
+        compass.entries.add(mkBool("module.compass","enableCompass",null));
         TreeNode cgen=new TreeNode("compass.group.general");compass.children.add(cgen);
         cgen.entries.add(mkBool("compass.show","showCompassHUD",null));
         cgen.entries.add(mkInt("compass.x","xPosition",-200,2000,null));
@@ -237,6 +255,7 @@ public class GuiModernConfig extends GuiScreen {
         cdisp.entries.add(mkBool("compass.exactAngle","showExactAngle",null));
 
         TreeNode health=new TreeNode("module.health");health.dotColor=0xFF3498DB;health.expanded=true;info.children.add(health);
+        health.entries.add(mkBool("module.health","enableHealthHUD",null));
         TreeNode hlay=new TreeNode("health.group.layout");health.children.add(hlay);
         hlay.entries.add(mkInt("health.x","healthHudX",-500,2000,null));
         hlay.entries.add(mkInt("health.y","healthHudY",-500,500,null));
@@ -248,6 +267,7 @@ public class GuiModernConfig extends GuiScreen {
         helem.entries.add(mkInt("health.textSpacing","headTextSpacing",0,20,null));
 
         TreeNode dist=new TreeNode("module.distance");dist.dotColor=0xFF3498DB;dist.expanded=true;info.children.add(dist);
+        dist.entries.add(mkBool("module.distance","enableDistanceHUD",null));
         TreeNode dcoord=new TreeNode("distance.group.coords");dist.children.add(dcoord);
         dcoord.entries.add(mkInt("dist.x","distanceHudX",0,2000,null));
         dcoord.entries.add(mkInt("dist.y","distanceHudY",0,2000,null));
@@ -266,6 +286,7 @@ public class GuiModernConfig extends GuiScreen {
         keys.entries.add(mkFlt("keys.scale","keysScale",0.25f,4.0f,null));
         keys.entries.add(mkBool("keys.background","showKeysBackground",null));
         keys.entries.add(mkFlt("keys.opacity","keysOpacity",0.0f,1.0f,null));
+        keys.entries.add(mkBool("module.keys","enableKeysDisplay",null));
 
         TreeNode chrom=new TreeNode("module.chroma");chrom.dotColor=0xFF3498DB;chrom.expanded=true;info.children.add(chrom);
         chrom.entries.add(mkBool("module.chroma","enableChromaChat",null));
@@ -535,7 +556,7 @@ public class GuiModernConfig extends GuiScreen {
     }
 
     private void drawColorPreview(ConfigEntry e,int vx,int cy,int mx,int my){
-        int color=getColorField(e.colorKey); int px=vx+130,sz=14;
+        int color=e.colorKey2==null?getColorField(e.colorKey):rgb3(e); int px=vx+130,sz=14;
         fillR(px-1,cy+3,px+sz+1,cy+5+sz,0xFF000000);
         fillR(px,cy+4,px+sz,cy+4+sz,color);
         fr().drawStringWithShadow(String.format("#%06X",color&0xFFFFFF),px+sz+8,cy+6,0xFFFFFF);
@@ -617,7 +638,7 @@ public class GuiModernConfig extends GuiScreen {
                     if(mx>=px&&mx<=px+bw)idx=(idx>=e.enumValues.length-1)?0:idx+1;}
                 if(idx>=0)((Consumer<String>)e.setter).accept(e.enumValues[idx]);
                 pls(e.label,300);break;}
-            case COLOR:{mc.displayGuiScreen(new GuiColorPicker(this,()->getColorField(e.colorKey),v->setColorField(e.colorKey,v)));break;}
+            case COLOR:{mc.displayGuiScreen(new GuiColorPicker(this,()->e.colorKey2==null?getColorField(e.colorKey):rgb3(e),v->{if(e.colorKey2==null)setColorField(e.colorKey,v);else setRgb3(e,v);}));break;}
         }
     }
 
