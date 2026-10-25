@@ -1046,6 +1046,46 @@ public class LangManager {
         en_US.put("crosshair.group.spread", "Spread");
         zh_CN.put("crosshair.group.position", "位置");
         en_US.put("crosshair.group.position", "Position");
+        zh_CN.put("chroma.background", "聊天背景色");
+        en_US.put("chroma.background", "Chat Background");
+        zh_CN.put("chroma.border", "聊天边框色");
+        en_US.put("chroma.border", "Chat Border");
+        zh_CN.put("chroma.hoverColor", "悬停高亮色");
+        en_US.put("chroma.hoverColor", "Hover Highlight Color");
+        zh_CN.put("chroma.dedupBadgeColor", "折叠徽标色");
+        en_US.put("chroma.dedupBadgeColor", "Dedup Badge Color");
+        zh_CN.put("chroma.timestampColor", "时间戳颜色");
+        en_US.put("chroma.timestampColor", "Timestamp Color");
+        zh_CN.put("chroma.xOffset", "位置偏移X（F7编辑模式设置）");
+        en_US.put("chroma.xOffset", "X Offset (F7 Edit)");
+        zh_CN.put("chroma.yOffset", "位置偏移Y（F7编辑模式设置）");
+        en_US.put("chroma.yOffset", "Y Offset (F7 Edit)");
+        zh_CN.put("chroma.borderRadius", "圆角半径");
+        en_US.put("chroma.borderRadius", "Corner Radius");
+        zh_CN.put("chroma.animBounciness", "弹性系数(0~1, 0=无弹性)");
+        en_US.put("chroma.animBounciness", "Bounciness (0-1)");
+        zh_CN.put("chroma.msgAnimEnable", "新消息弹入动画");
+        en_US.put("chroma.msgAnimEnable", "Message Pop-in Animation");
+        zh_CN.put("chroma.msgAnimDuration", "入场动画时长(ms)");
+        en_US.put("chroma.msgAnimDuration", "Pop-in Duration (ms)");
+        zh_CN.put("chroma.hoverHighlight", "鼠标悬停高亮");
+        en_US.put("chroma.hoverHighlight", "Hover Highlight");
+        zh_CN.put("chroma.timestampFormat", "时间戳格式: 0=[MM-dd HH:mm] 1=[HH:mm] 2=[HH:mm:ss]");
+        en_US.put("chroma.timestampFormat", "Timestamp Format");
+        zh_CN.put("chroma.dedup", "相同发送者同内容消息折叠");
+        en_US.put("chroma.dedup", "Collapse Duplicate Messages");
+        zh_CN.put("chroma.dedupAnim", "折叠计数变化时脉冲动画");
+        en_US.put("chroma.dedupAnim", "Dedup Pulse Animation");
+        zh_CN.put("chroma.avatarSize", "头像大小 (px)");
+        en_US.put("chroma.avatarSize", "Avatar Size (px)");
+        zh_CN.put("chroma.group.colors", "颜色");
+        en_US.put("chroma.group.colors", "Colors");
+        zh_CN.put("chroma.group.layout", "位置与圆角");
+        en_US.put("chroma.group.layout", "Layout");
+        zh_CN.put("chroma.group.anim", "动画");
+        en_US.put("chroma.group.anim", "Animation");
+        zh_CN.put("chroma.group.misc", "杂项");
+        en_US.put("chroma.group.misc", "Misc");
     }
 
     /**

@@ -345,6 +345,26 @@ public class GuiModernConfig extends GuiScreen {
         chrom.entries.add(mkBool("chroma.signboard","chromaChatSignboardMerge",null));
         chrom.entries.add(mkInt("chroma.maxLines","chromaChatMaxLines",20,500,null));
 
+        TreeNode chc=new TreeNode("chroma.group.colors");chrom.children.add(chc);
+        chc.entries.add(mkCol("chroma.background","chromaChatBackgroundColor",true,null));
+        chc.entries.add(mkCol("chroma.border","chromaChatBorderColor",true,null));
+        chc.entries.add(mkCol("chroma.hoverColor","chromaChatHoverColor",true,null));
+        chc.entries.add(mkCol("chroma.dedupBadgeColor","chromaChatDedupBadgeColor",true,null));
+        chc.entries.add(mkCol("chroma.timestampColor","chromaChatTimestampColor",false,null));
+        TreeNode chl=new TreeNode("chroma.group.layout");chrom.children.add(chl);
+        chl.entries.add(mkInt("chroma.xOffset","chromaChatXOffset",-500,500,null));
+        chl.entries.add(mkInt("chroma.yOffset","chromaChatYOffset",80,800,null));
+        chl.entries.add(mkInt("chroma.borderRadius","chromaChatBorderRadius",0,20,null));
+        TreeNode cha=new TreeNode("chroma.group.anim");chrom.children.add(cha);
+        cha.entries.add(mkFlt("chroma.animBounciness","chromaChatAnimBounciness",0.0f,1.0f,null));
+        cha.entries.add(mkBool("chroma.msgAnimEnable","chromaChatMsgAnimEnable",null));
+        cha.entries.add(mkInt("chroma.msgAnimDuration","chromaChatMsgAnimDuration",50,1000,null));
+        cha.entries.add(mkBool("chroma.dedupAnim","chromaChatDedupAnim",null));
+        TreeNode chm=new TreeNode("chroma.group.misc");chrom.children.add(chm);
+        chm.entries.add(mkBool("chroma.hoverHighlight","chromaChatHoverHighlight",null));
+        chm.entries.add(mkInt("chroma.timestampFormat","chromaChatTimestampFormat",0,2,null));
+        chm.entries.add(mkBool("chroma.dedup","chromaChatDedup",null));
+        chm.entries.add(mkInt("chroma.avatarSize","chromaChatAvatarSize",4,16,null));
         TreeNode perf=new TreeNode("module.performance");perf.dotColor=0xFF3498DB;perf.expanded=true;info.children.add(perf);
         perf.entries.add(mkBool("module.performance","enablePerformanceHUD",null));
 
