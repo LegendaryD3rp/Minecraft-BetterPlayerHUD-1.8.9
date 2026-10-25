@@ -964,6 +964,38 @@ public class LangManager {
         en_US.put("perf.group.tps", "TPS Thresholds");
         zh_CN.put("perf.group.colors", "颜色");
         en_US.put("perf.group.colors", "Colors");
+        zh_CN.put("equip.itemCount", "启用物品数量统计");
+        en_US.put("equip.itemCount", "Enable Item Count");
+        zh_CN.put("equip.armorHUD", "是否在物品栏两侧显示装甲");
+        en_US.put("equip.armorHUD", "Enable Armor HUD");
+        zh_CN.put("equip.heldItemHUD", "是否在左下方显示手持物品信息");
+        en_US.put("equip.heldItemHUD", "Enable Held Item HUD");
+        zh_CN.put("equip.armorXOffset", "装甲栏X偏移");
+        en_US.put("equip.armorXOffset", "Armor X Offset");
+        zh_CN.put("equip.armorYOffset", "装甲栏Y偏移");
+        en_US.put("equip.armorYOffset", "Armor Y Offset");
+        zh_CN.put("equip.heldItemXOffset", "手持物品信息X偏移");
+        en_US.put("equip.heldItemXOffset", "Held Item X Offset");
+        zh_CN.put("equip.heldItemYOffset", "手持物品信息Y偏移");
+        en_US.put("equip.heldItemYOffset", "Held Item Y Offset");
+        zh_CN.put("equip.showItemCountLeft", "显示物品栏当前格数量");
+        en_US.put("equip.showItemCountLeft", "Show Current Stack Count");
+        zh_CN.put("equip.showItemCountRight", "显示物品栏背包总数");
+        en_US.put("equip.showItemCountRight", "Show Inventory Total");
+        zh_CN.put("equip.itemCountX", "物品数量X偏移");
+        en_US.put("equip.itemCountX", "Item Count X Offset");
+        zh_CN.put("equip.itemCountY", "物品数量Y偏移");
+        en_US.put("equip.itemCountY", "Item Count Y Offset");
+        zh_CN.put("equip.showHeldItemEnchants", "手持物品是否显示附魔");
+        en_US.put("equip.showHeldItemEnchants", "Show Held Item Enchants");
+        zh_CN.put("equip.showArmorBackground", "装甲栏槽位半透明背景");
+        en_US.put("equip.showArmorBackground", "Armor Slot Background");
+        zh_CN.put("equip.group.armor", "护甲");
+        en_US.put("equip.group.armor", "Armor");
+        zh_CN.put("equip.group.held", "手持物品");
+        en_US.put("equip.group.held", "Held Item");
+        zh_CN.put("equip.group.count", "物品数量");
+        en_US.put("equip.group.count", "Item Count");
     }
 
     /**

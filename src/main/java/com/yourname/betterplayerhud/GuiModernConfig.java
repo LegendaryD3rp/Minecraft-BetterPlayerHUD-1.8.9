@@ -396,6 +396,23 @@ public class GuiModernConfig extends GuiScreen {
         TreeNode mount=new TreeNode("module.mountHP");mount.dotColor=0xFF2ECC71;mount.expanded=true;status.children.add(mount);
         mount.entries.add(mkBool("module.mountHP","enableMountHP",null));
 
+        TreeNode equip=new TreeNode("module.equip");equip.dotColor=0xFF2ECC71;equip.expanded=true;status.children.add(equip);
+        TreeNode eqa=new TreeNode("equip.group.armor");equip.children.add(eqa);
+        eqa.entries.add(mkBool("equip.armorHUD","enableArmorHUD",null));
+        eqa.entries.add(mkInt("equip.armorXOffset","armorXOffset",-500,500,null));
+        eqa.entries.add(mkInt("equip.armorYOffset","armorYOffset",-500,500,null));
+        eqa.entries.add(mkBool("equip.showArmorBackground","showArmorBackground",null));
+        TreeNode eqh=new TreeNode("equip.group.held");equip.children.add(eqh);
+        eqh.entries.add(mkBool("equip.heldItemHUD","enableHeldItemHUD",null));
+        eqh.entries.add(mkInt("equip.heldItemXOffset","heldItemXOffset",-500,500,null));
+        eqh.entries.add(mkInt("equip.heldItemYOffset","heldItemYOffset",-500,500,null));
+        eqh.entries.add(mkBool("equip.showHeldItemEnchants","showHeldItemEnchants",null));
+        TreeNode eqc=new TreeNode("equip.group.count");equip.children.add(eqc);
+        eqc.entries.add(mkBool("equip.itemCount","enableItemCount",null));
+        eqc.entries.add(mkBool("equip.showItemCountLeft","showItemCountLeft",null));
+        eqc.entries.add(mkBool("equip.showItemCountRight","showItemCountRight",null));
+        eqc.entries.add(mkInt("equip.itemCountX","itemCountX",-500,500,null));
+        eqc.entries.add(mkInt("equip.itemCountY","itemCountY",-500,500,null));
         // ── 颜色 ──
         TreeNode colors=new TreeNode("category.colors");colors.dotColor=0xFFF39C12;colors.expanded=true;roots.add(colors);
         colors.entries.add(mkCol("color.healthSafe","healthColorSafe",true,null));
